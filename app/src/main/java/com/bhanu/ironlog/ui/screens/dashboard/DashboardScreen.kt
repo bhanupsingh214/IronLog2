@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.EventNote
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -16,12 +16,15 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.bhanu.ironlog.data.local.pojo.ProgramWithStats
+import java.text.SimpleDateFormat
+import java.util.*
 
 @Composable
 fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
-    val items by viewModel.items.collectAsState()
+    val activeProgram by viewModel.activeProgram.collectAsState()
 
     LazyColumn(
         modifier = Modifier
@@ -43,7 +46,7 @@ fun DashboardScreen(
         }
 
         item {
-            CurrentProgramCard()
+            CurrentProgramCard(activeProgram)
         }
 
         item {
@@ -57,21 +60,14 @@ fun DashboardScreen(
         item {
             PersonalRecordsCard()
         }
-        
-        // Debug info from earlier
-        item {
-            Text(
-                text = "System Status: ${items.size} logs synced",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-        }
     }
 }
 
 @Composable
 fun DashboardHeader() {
+    val calendar = Calendar.getInstance()
+    val dateFormat = SimpleDateFormat("EEEE, MMM dd", Locale.getDefault())
+    
     Column {
         Text(
             text = "Welcome back, Champ!",
@@ -79,7 +75,7 @@ fun DashboardHeader() {
             fontWeight = FontWeight.Bold
         )
         Text(
-            text = "Monday, Oct 27", // Placeholder date
+            text = dateFormat.format(calendar.time),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -166,49 +162,44 @@ fun TodayWorkoutCard() {
 }
 
 @Composable
-fun CurrentProgramCard() {
+fun CurrentProgramCard(activeProgram: ProgramWithStats?) {
     DashboardCard(title = "Current Program", icon = Icons.AutoMirrored.Filled.EventNote) {
-        Text(
-            text = "PPL Foundation (4-Day Split)",
-            style = MaterialTheme.typography.bodyLarge
-        )
-        LinearProgressIndicator(
-            progress = { 0.65f },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
-        )
-        Text(
-            text = "Week 6 of 12 • 65% Complete",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        if (activeProgram != null) {
+            Text(
+                text = activeProgram.program.name,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "${activeProgram.dayCount} days • ${activeProgram.exerciseCount} exercises",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            Text(
+                text = "No active program",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.outline
+            )
+        }
     }
 }
 
 @Composable
 fun WeeklyVolumeCard() {
     DashboardCard(title = "Weekly Volume", icon = Icons.Default.BarChart) {
-        // Placeholder for a graph
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(100.dp)
-                .padding(vertical = 8.dp),
+                .height(60.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
-                "Volume Chart Placeholder",
-                style = MaterialTheme.typography.bodyMedium,
+                "Chart data will appear here",
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline
             )
         }
-        Text(
-            text = "Total Volume: 42,500 kg (+12% vs last week)",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.primary
-        )
     }
 }
 
@@ -226,7 +217,7 @@ fun RecentHistoryCard() {
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = "View Details",
+                        text = "View",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.secondary
                     )
