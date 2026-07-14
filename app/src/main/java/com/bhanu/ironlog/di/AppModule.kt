@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.bhanu.ironlog.data.local.AppDatabase
 import com.bhanu.ironlog.data.local.dao.PlaceholderDao
 import com.bhanu.ironlog.data.local.dao.ProgramDao
+import com.bhanu.ironlog.data.local.dao.SessionDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -23,8 +24,7 @@ object AppModule {
             context,
             AppDatabase::class.java,
             "iron_log_db"
-        ).fallbackToDestructiveMigration(dropAllTables = true)
-            .build()
+        ).build()
     }
 
     @Provides
@@ -35,5 +35,10 @@ object AppModule {
     @Provides
     fun provideProgramDao(database: AppDatabase): ProgramDao {
         return database.programDao()
+    }
+
+    @Provides
+    fun provideSessionDao(database: AppDatabase): SessionDao {
+        return database.sessionDao()
     }
 }

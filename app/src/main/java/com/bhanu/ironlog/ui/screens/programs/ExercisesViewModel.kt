@@ -17,35 +17,45 @@ class ExercisesViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    val dayId: Long = checkNotNull(savedStateHandle["dayId"])
+    val dayId: Long = savedStateHandle.get<Long>("dayId") ?: -1L
+
+    val isArgumentValid = dayId != -1L
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
 
-    val workoutDay: StateFlow<WorkoutDayEntity?> = repository.getWorkoutDay(dayId)
-        .stateIn(
+    val workoutDay: StateFlow<WorkoutDayEntity?> = if (isArgumentValid) {
+        repository.getWorkoutDay(dayId)
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = null
+            )
+    } else {
+        MutableStateFlow(null)
+    }
+
+    val exercises: StateFlow<List<ExerciseEntity>> = if (isArgumentValid) {
+        combine(
+            repository.getExercisesForDay(dayId),
+            _searchQuery
+        ) { exercises, query ->
+            if (query.isBlank()) {
+                exercises
+            } else {
+                exercises.filter {
+                    it.name.contains(query, ignoreCase = true) ||
+                    it.muscleGroup.contains(query, ignoreCase = true)
+                }
+            }
+        }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = null
+            initialValue = emptyList()
         )
-
-    val exercises: StateFlow<List<ExerciseEntity>> = combine(
-        repository.getExercisesForDay(dayId),
-        _searchQuery
-    ) { exercises, query ->
-        if (query.isBlank()) {
-            exercises
-        } else {
-            exercises.filter {
-                it.name.contains(query, ignoreCase = true) ||
-                it.muscleGroup.contains(query, ignoreCase = true)
-            }
-        }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    } else {
+        MutableStateFlow(emptyList())
+    }
 
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query

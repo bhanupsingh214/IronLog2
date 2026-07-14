@@ -1,18 +1,25 @@
 package com.bhanu.ironlog.data.repository
 
 import com.bhanu.ironlog.data.local.dao.ProgramDao
+import com.bhanu.ironlog.data.local.dao.SessionDao
 import com.bhanu.ironlog.data.local.entity.ExerciseEntity
 import com.bhanu.ironlog.data.local.entity.ProgramEntity
+import com.bhanu.ironlog.data.local.entity.SetEntity
 import com.bhanu.ironlog.data.local.entity.WorkoutDayEntity
+import com.bhanu.ironlog.data.local.entity.WorkoutSessionEntity
 import com.bhanu.ironlog.data.local.pojo.ProgramWithStats
 import com.bhanu.ironlog.data.local.pojo.WorkoutDayWithStats
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ProgramRepository @Inject constructor(
-    private val programDao: ProgramDao
+    private val programDao: ProgramDao,
+    private val sessionDao: SessionDao
 ) {
     fun getAllProgramsWithStats(): Flow<List<ProgramWithStats>> = programDao.getAllProgramsWithStats()
     
@@ -77,6 +84,69 @@ class ProgramRepository @Inject constructor(
     fun getExercisesForDay(dayId: Long): Flow<List<ExerciseEntity>> =
         programDao.getExercisesForDayFlow(dayId)
 
+    fun getExercise(exerciseId: Long): Flow<ExerciseEntity?> =
+        programDao.getExerciseFlow(exerciseId)
+
+    fun getSetsForExercise(exerciseId: Long, sessionId: Long = 0): Flow<List<SetEntity>> =
+        programDao.getSetsForExerciseAndSessionFlow(exerciseId, sessionId)
+
+    fun getPreviousSets(exerciseId: Long, currentSessionId: Long): Flow<List<SetEntity>> =
+        programDao.getPreviousSessionSets(exerciseId, currentSessionId)
+
+    suspend fun insertSet(set: SetEntity) {
+        val maxOrder = programDao.getMaxOrderForExerciseInSession(set.exerciseId, set.sessionId) ?: -1
+        val currentSets = programDao.getSetsForExerciseAndSession(set.exerciseId, set.sessionId)
+        val nextSetNumber = currentSets.size + 1
+        programDao.insertSet(set.copy(order = maxOrder + 1, setNumber = nextSetNumber))
+    }
+
+    suspend fun updateSet(set: SetEntity) = programDao.updateSet(set)
+
+    suspend fun deleteSet(set: SetEntity) {
+        programDao.deleteSet(set)
+        renumberSets(set.exerciseId, set.sessionId)
+    }
+
+    private suspend fun renumberSets(exerciseId: Long, sessionId: Long) {
+        val sets = programDao.getSetsForExerciseAndSession(exerciseId, sessionId).sortedBy { it.order }
+        sets.forEachIndexed { index, set ->
+            val updatedSet = set.copy(setNumber = index + 1, order = index)
+            programDao.updateSet(updatedSet)
+        }
+    }
+
+    suspend fun moveSet(setId: Long, up: Boolean) {
+        val set = programDao.getSetById(setId) ?: return
+        val sets = programDao.getSetsForExerciseAndSession(set.exerciseId, set.sessionId).sortedBy { it.order }
+        val currentIndex = sets.indexOfFirst { it.id == setId }
+        
+        val targetIndex = if (up) currentIndex - 1 else currentIndex + 1
+        
+        if (targetIndex in sets.indices) {
+            val targetSet = sets[targetIndex]
+            val newOrderForCurrent = targetSet.order
+            val newOrderForTarget = set.order
+            
+            programDao.updateSet(set.copy(order = newOrderForCurrent, setNumber = targetIndex + 1))
+            programDao.updateSet(targetSet.copy(order = newOrderForTarget, setNumber = currentIndex + 1))
+        }
+    }
+
+    suspend fun duplicateSet(setId: Long) {
+        val set = programDao.getSetById(setId) ?: return
+        val currentSets = programDao.getSetsForExerciseAndSession(set.exerciseId, set.sessionId)
+        val maxOrder = programDao.getMaxOrderForExerciseInSession(set.exerciseId, set.sessionId) ?: 0
+        programDao.insertSet(
+            set.copy(
+                id = 0,
+                setNumber = currentSets.size + 1,
+                order = maxOrder + 1,
+                isCompleted = false,
+                createdAt = System.currentTimeMillis()
+            )
+        )
+    }
+
     fun getWorkoutDay(dayId: Long): Flow<WorkoutDayEntity?> =
         programDao.getWorkoutDayFlow(dayId)
 
@@ -136,6 +206,68 @@ class ProgramRepository @Inject constructor(
             )
         )
     }
+
+    // Session Management
+    fun getCompletedSessions(): Flow<List<WorkoutSessionEntity>> = sessionDao.getCompletedSessions()
+    
+    fun getActiveSession(): Flow<WorkoutSessionEntity?> = sessionDao.getActiveSession()
+    
+    fun getSession(sessionId: Long): Flow<WorkoutSessionEntity?> = sessionDao.getSessionByIdFlow(sessionId)
+    
+    fun getWeeklyVolume(): Flow<Double?> {
+        val calendar = Calendar.getInstance()
+        calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        return sessionDao.getVolumeSince(calendar.timeInMillis)
+    }
+
+    fun getTopPersonalRecords(): Flow<List<Pair<String, Double>>> = 
+        sessionDao.getTopPersonalRecords().map { list ->
+            list.map { it.exerciseName to it.maxWeight }
+        }
+
+    suspend fun startWorkoutSession(dayId: Long, dayName: String, programName: String): Long {
+        val sessionId = sessionDao.insertSession(
+            WorkoutSessionEntity(
+                dayId = dayId,
+                dayName = dayName,
+                programName = programName
+            )
+        )
+        
+        // Copy sets from template (sessionId = 0) to new session
+        val exercises = programDao.getExercisesForDay(dayId)
+        for (exercise in exercises) {
+            val templateSets = programDao.getSetsForExerciseAndSession(exercise.id, 0)
+            for (set in templateSets) {
+                programDao.insertSet(set.copy(
+                    id = 0,
+                    sessionId = sessionId,
+                    isCompleted = false,
+                    createdAt = System.currentTimeMillis()
+                ))
+            }
+        }
+        
+        return sessionId
+    }
+
+    suspend fun updateWorkoutSession(session: WorkoutSessionEntity) = sessionDao.updateSession(session)
+
+    suspend fun finishWorkoutSession(sessionId: Long, durationSeconds: Long) {
+        val session = sessionDao.getSessionById(sessionId)
+        session?.let {
+            sessionDao.updateSession(it.copy(
+                isCompleted = true,
+                endTime = System.currentTimeMillis(),
+                durationSeconds = durationSeconds
+            ))
+        }
+    }
+
+    suspend fun deleteSession(sessionId: Long) = sessionDao.deleteSessionById(sessionId)
 
     suspend fun updateWorkoutDay(day: WorkoutDayEntity) = programDao.updateDay(day)
 

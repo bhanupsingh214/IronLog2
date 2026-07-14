@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bhanu.ironlog.data.local.entity.WorkoutDayEntity
 import com.bhanu.ironlog.data.local.pojo.WorkoutDayWithStats
+import com.bhanu.ironlog.ui.components.ErrorScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,6 +26,11 @@ fun WorkoutDaysScreen(
     onNavigateToExercises: (Long) -> Unit,
     viewModel: WorkoutDaysViewModel = hiltViewModel(),
 ) {
+    if (!viewModel.isArgumentValid) {
+        ErrorScreen(onBack = onBack, message = "Invalid Program data")
+        return
+    }
+
     val workoutDays by viewModel.workoutDays.collectAsState()
     var showAddDialog by remember { mutableStateOf(value = false) }
     var dayToEdit by remember { mutableStateOf<WorkoutDayEntity?>(value = null) }

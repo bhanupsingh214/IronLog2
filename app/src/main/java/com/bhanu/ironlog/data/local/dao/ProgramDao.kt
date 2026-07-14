@@ -83,6 +83,44 @@ interface ProgramDao {
     @Insert
     suspend fun insertSet(set: SetEntity): Long
 
+    @Query("SELECT * FROM exercise_sets WHERE exerciseId = :exerciseId AND sessionId = :sessionId ORDER BY `order` ASC")
+    fun getSetsForExerciseAndSessionFlow(exerciseId: Long, sessionId: Long): Flow<List<SetEntity>>
+
+    @Query("SELECT * FROM exercise_sets WHERE exerciseId = :exerciseId AND sessionId = :sessionId ORDER BY `order` ASC")
+    suspend fun getSetsForExerciseAndSession(exerciseId: Long, sessionId: Long): List<SetEntity>
+
+    @Query("SELECT * FROM exercise_sets WHERE exerciseId = :exerciseId ORDER BY `order` ASC")
+    fun getSetsForExerciseFlow(exerciseId: Long): Flow<List<SetEntity>>
+
+    @Update
+    suspend fun updateSet(set: SetEntity)
+
+    @Delete
+    suspend fun deleteSet(set: SetEntity)
+
+    @Query("SELECT MAX(`order`) FROM exercise_sets WHERE exerciseId = :exerciseId AND sessionId = :sessionId")
+    suspend fun getMaxOrderForExerciseInSession(exerciseId: Long, sessionId: Long): Int?
+
+    @Query("SELECT * FROM exercise_sets WHERE id = :id")
+    suspend fun getSetById(id: Long): SetEntity?
+
+    @Query("SELECT * FROM exercises WHERE id = :id")
+    fun getExerciseFlow(id: Long): Flow<ExerciseEntity?>
+
+    @Query("""
+        SELECT * FROM exercise_sets 
+        WHERE exerciseId = :exerciseId 
+        AND sessionId = (
+            SELECT id FROM workout_sessions 
+            WHERE dayId = (SELECT dayId FROM exercises WHERE id = :exerciseId)
+            AND isCompleted = 1 
+            AND id != :currentSessionId
+            ORDER BY date DESC LIMIT 1
+        )
+        ORDER BY `order` ASC
+    """)
+    fun getPreviousSessionSets(exerciseId: Long, currentSessionId: Long): Flow<List<SetEntity>>
+
     // Exercise Management
     @Update
     suspend fun updateExercise(exercise: ExerciseEntity)

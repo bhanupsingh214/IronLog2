@@ -1,5 +1,6 @@
 package com.bhanu.ironlog.ui.screens.dashboard
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -7,24 +8,54 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.bhanu.ironlog.data.local.entity.WorkoutSessionEntity
 import com.bhanu.ironlog.data.local.pojo.ProgramWithStats
+import com.bhanu.ironlog.data.local.pojo.WorkoutDayWithStats
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun DashboardScreen(
+    onNavigateToWorkout: () -> Unit,
+    onNavigateToCurrentProgram: (Long) -> Unit,
+    onNavigateToRecentSession: (Long, Long) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val activeProgram by viewModel.activeProgram.collectAsState()
+    val todayWorkout by viewModel.todayWorkout.collectAsState()
+    val recentHistory by viewModel.recentHistory.collectAsState()
+    val weeklyVolume by viewModel.weeklyVolume.collectAsState()
+    val personalRecords by viewModel.personalRecords.collectAsState()
+    
+    var showAddLogDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        launch {
+            viewModel.navigateToWorkout.collectLatest {
+                onNavigateToWorkout()
+            }
+        }
+        launch {
+            viewModel.navigateToSession.collectLatest { pair ->
+                if (pair.first != 0L && pair.second != 0L) {
+                    showAddLogDialog = false
+                    onNavigateToRecentSession(pair.first, pair.second)
+                    viewModel.onNavigationHandled()
+                }
+            }
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -38,28 +69,55 @@ fun DashboardScreen(
         }
 
         item {
-            QuickActions()
+            QuickActions(
+                onStartWorkout = { viewModel.onStartWorkout() },
+                onAddLog = { showAddLogDialog = true },
+                enabled = activeProgram != null
+            )
         }
 
         item {
-            TodayWorkoutCard()
+            TodayWorkoutCard(
+                todayWorkout = todayWorkout,
+                onClick = {
+                    viewModel.onStartWorkout()
+                }
+            )
         }
 
         item {
-            CurrentProgramCard(activeProgram)
+            CurrentProgramCard(
+                activeProgram = activeProgram,
+                onClick = { programId ->
+                    onNavigateToCurrentProgram(programId)
+                }
+            )
         }
 
         item {
-            WeeklyVolumeCard()
+            WeeklyVolumeCard(weeklyVolume)
         }
 
         item {
-            RecentHistoryCard()
+            RecentHistoryCard(
+                history = recentHistory,
+                onViewClick = { dayId, sessionId ->
+                    onNavigateToRecentSession(dayId, sessionId)
+                }
+            )
         }
 
         item {
-            PersonalRecordsCard()
+            PersonalRecordsCard(personalRecords)
         }
+    }
+
+    if (showAddLogDialog) {
+        AddLogDialog(
+            onDismiss = { showAddLogDialog = false },
+            activeProgram = activeProgram,
+            viewModel = viewModel
+        )
     }
 }
 
@@ -83,24 +141,30 @@ fun DashboardHeader() {
 }
 
 @Composable
-fun QuickActions() {
+fun QuickActions(
+    onStartWorkout: () -> Unit,
+    onAddLog: () -> Unit,
+    enabled: Boolean
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Button(
-            onClick = { /* TODO */ },
+            onClick = onStartWorkout,
             modifier = Modifier.weight(1f),
-            shape = MaterialTheme.shapes.medium
+            shape = MaterialTheme.shapes.medium,
+            enabled = enabled
         ) {
             Icon(Icons.Default.Add, contentDescription = null)
             Spacer(Modifier.width(8.dp))
             Text("Start Workout")
         }
         OutlinedButton(
-            onClick = { /* TODO */ },
+            onClick = onAddLog,
             modifier = Modifier.weight(1f),
-            shape = MaterialTheme.shapes.medium
+            shape = MaterialTheme.shapes.medium,
+            enabled = enabled
         ) {
             Icon(Icons.Default.History, contentDescription = null)
             Spacer(Modifier.width(8.dp))
@@ -113,10 +177,11 @@ fun QuickActions() {
 fun DashboardCard(
     title: String,
     icon: ImageVector,
+    modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
     ElevatedCard(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large
     ) {
         Column(
@@ -146,24 +211,42 @@ fun DashboardCard(
 }
 
 @Composable
-fun TodayWorkoutCard() {
-    DashboardCard(title = "Today's Workout", icon = Icons.Default.FitnessCenter) {
-        Text(
-            text = "Push Day - Hypertrophy",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            text = "6 exercises • Est. 75 mins",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+fun TodayWorkoutCard(todayWorkout: WorkoutDayWithStats?, onClick: () -> Unit) {
+    DashboardCard(
+        title = "Today's Workout", 
+        icon = Icons.Default.FitnessCenter,
+        modifier = Modifier.clickable(enabled = todayWorkout != null) { onClick() }
+    ) {
+        if (todayWorkout != null) {
+            Text(
+                text = todayWorkout.day.name,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "${todayWorkout.exerciseCount} exercises • Est. ${todayWorkout.day.estimatedDurationMinutes} mins",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            Text(
+                text = "No workout scheduled",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.outline
+            )
+        }
     }
 }
 
 @Composable
-fun CurrentProgramCard(activeProgram: ProgramWithStats?) {
-    DashboardCard(title = "Current Program", icon = Icons.AutoMirrored.Filled.EventNote) {
+fun CurrentProgramCard(activeProgram: ProgramWithStats?, onClick: (Long) -> Unit) {
+    DashboardCard(
+        title = "Current Program", 
+        icon = Icons.AutoMirrored.Filled.EventNote,
+        modifier = Modifier.clickable(enabled = activeProgram != null) { 
+            activeProgram?.let { onClick(it.program.id) }
+        }
+    ) {
         if (activeProgram != null) {
             Text(
                 text = activeProgram.program.name,
@@ -186,40 +269,85 @@ fun CurrentProgramCard(activeProgram: ProgramWithStats?) {
 }
 
 @Composable
-fun WeeklyVolumeCard() {
+fun WeeklyVolumeCard(volume: Double) {
     DashboardCard(title = "Weekly Volume", icon = Icons.Default.BarChart) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp),
-            contentAlignment = Alignment.Center
-        ) {
+        Text(
+            text = String.format(Locale.getDefault(), "%.1f kg", volume),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = "Total volume logged this week",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+fun RecentHistoryCard(
+    history: List<WorkoutSessionEntity>,
+    onViewClick: (Long, Long) -> Unit
+) {
+    DashboardCard(title = "Recent History", icon = Icons.Default.History) {
+        if (history.isEmpty()) {
             Text(
-                "Chart data will appear here",
-                style = MaterialTheme.typography.bodySmall,
+                text = "No workouts logged yet",
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.outline
             )
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                val dateFormat = SimpleDateFormat("MMM dd", Locale.getDefault())
+                history.forEach { session ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onViewClick(session.dayId, session.id) },
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                text = session.dayName,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = dateFormat.format(Date(session.date)),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
+                        Text(
+                            text = "${session.durationSeconds / 60}m",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-fun RecentHistoryCard() {
-    DashboardCard(title = "Recent History", icon = Icons.Default.History) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            repeat(2) { index ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = if (index == 0) "Yesterday: Pull Day" else "Saturday: Leg Day",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = "View",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.secondary
+fun PersonalRecordsCard(records: List<Pair<String, Double>>) {
+    DashboardCard(title = "Personal Records", icon = Icons.Default.EmojiEvents) {
+        if (records.isEmpty()) {
+            Text(
+                text = "No PRs logged yet",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.outline
+            )
+        } else {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                items(records.size) { index ->
+                    val (name, weight) = records[index]
+                    SuggestionChip(
+                        onClick = { },
+                        label = {
+                            Text(text = "$name: ${weight}kg")
+                        }
                     )
                 }
             }
@@ -228,23 +356,37 @@ fun RecentHistoryCard() {
 }
 
 @Composable
-fun PersonalRecordsCard() {
-    DashboardCard(title = "Personal Records", icon = Icons.Default.EmojiEvents) {
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(3) { index ->
-                SuggestionChip(
-                    onClick = { },
-                    label = {
-                        Text(
-                            text = when(index) {
-                                0 -> "Deadlift: 180kg"
-                                1 -> "Bench: 110kg"
-                                else -> "Squat: 145kg"
-                            }
-                        )
+fun AddLogDialog(
+    onDismiss: () -> Unit,
+    activeProgram: ProgramWithStats?,
+    viewModel: DashboardViewModel
+) {
+    val workoutDays by viewModel.activeProgramDays.collectAsState()
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Select Workout Day") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Pick a day from ${activeProgram?.program?.name}")
+                LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
+                    items(workoutDays.size) { index ->
+                        val item = workoutDays[index]
+                        OutlinedButton(
+                            onClick = { 
+                                viewModel.onAddHistoricalSession(item.day.id, System.currentTimeMillis())
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(item.day.name)
+                        }
                     }
-                )
+                }
             }
+        },
+        confirmButton = { },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
-    }
+    )
 }

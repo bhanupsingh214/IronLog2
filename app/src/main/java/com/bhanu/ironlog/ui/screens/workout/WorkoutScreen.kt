@@ -1,22 +1,114 @@
 package com.bhanu.ironlog.ui.screens.workout
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.bhanu.ironlog.data.local.entity.ExerciseEntity
+import com.bhanu.ironlog.data.local.entity.WorkoutDayEntity
+import com.bhanu.ironlog.data.local.pojo.WorkoutDayWithStats
+import com.bhanu.ironlog.ui.components.formatTimer
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WorkoutScreen(
+    onBack: () -> Unit,
+    onNavigateToSessionExercises: (Long, Long) -> Unit,
+    viewModel: WorkoutViewModel = hiltViewModel()
+) {
+    val activeProgram by viewModel.activeProgram.collectAsState()
+    val workoutDays by viewModel.workoutDays.collectAsState()
+    val timerSeconds by viewModel.timerSeconds.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text("Workout Session", style = MaterialTheme.typography.titleMedium)
+                        Text(activeProgram?.program?.name ?: "Active Program", style = MaterialTheme.typography.bodySmall)
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    Text(
+                        text = formatTimer(timerSeconds),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(end = 16.dp)
+                    )
+                }
+            )
+        }
+    ) { padding ->
+        if (workoutDays.isEmpty()) {
+            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Text("No workout days in active program", color = MaterialTheme.colorScheme.outline)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(workoutDays, key = { it.day.id }) { item ->
+                    WorkoutDayItemForSession(
+                        item = item,
+                        onClick = { 
+                            viewModel.startSession(item.day) { sessionId ->
+                                onNavigateToSessionExercises(item.day.id, sessionId)
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
-fun WorkoutScreen() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+fun WorkoutDayItemForSession(
+    item: WorkoutDayWithStats,
+    onClick: () -> Unit
+) {
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
     ) {
-        Text(
-            text = "Workout",
-            style = MaterialTheme.typography.headlineMedium
-        )
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.day.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "${item.exerciseCount} Exercises",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outline)
+        }
     }
 }

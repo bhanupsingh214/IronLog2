@@ -7,6 +7,7 @@ import com.bhanu.ironlog.data.local.entity.WorkoutDayEntity
 import com.bhanu.ironlog.data.local.pojo.WorkoutDayWithStats
 import com.bhanu.ironlog.data.repository.ProgramRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -19,16 +20,23 @@ class WorkoutDaysViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    val programId: Long = checkNotNull(savedStateHandle["programId"])
+    val programId: Long = savedStateHandle.get<Long>("programId") ?: -1L
 
-    val workoutDays: StateFlow<List<WorkoutDayWithStats>> = repository.getWorkoutDaysWithStats(programId)
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+    val isArgumentValid = programId != -1L
+
+    val workoutDays: StateFlow<List<WorkoutDayWithStats>> = if (isArgumentValid) {
+        repository.getWorkoutDaysWithStats(programId)
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+    } else {
+        MutableStateFlow(emptyList())
+    }
 
     fun addWorkoutDay(name: String, notes: String) {
+        if (!isArgumentValid) return
         viewModelScope.launch {
             repository.insertWorkoutDay(programId, name, notes)
         }

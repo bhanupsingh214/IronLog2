@@ -1,5 +1,6 @@
 package com.bhanu.ironlog.ui.screens.programs
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -15,14 +16,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bhanu.ironlog.data.local.entity.ExerciseEntity
+import com.bhanu.ironlog.ui.components.ErrorScreen
 import com.bhanu.ironlog.ui.components.SearchBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExercisesScreen(
     onBack: () -> Unit,
+    onNavigateToLogging: (Long) -> Unit,
     viewModel: ExercisesViewModel = hiltViewModel(),
 ) {
+    if (!viewModel.isArgumentValid) {
+        ErrorScreen(onBack = onBack, message = "Invalid Workout Day data")
+        return
+    }
+
     val workoutDay by viewModel.workoutDay.collectAsState()
     val exercises by viewModel.exercises.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -79,14 +87,15 @@ fun ExercisesScreen(
                         exercise = exercise,
                         isFirst = index == 0,
                         isLast = (index == exercises.size - 1),
-                        onEdit = { exerciseToEdit = it },
-                        onDelete = { exerciseToDelete = it },
-                        onDuplicate = { viewModel.duplicateExercise(it.id) },
-                        onMoveUp = { viewModel.moveExerciseUp(it.id) },
-                        onMoveDown = { viewModel.moveExerciseDown(it.id) },
+                        onEdit = { exerciseToEdit = exercise },
+                        onDelete = { exerciseToDelete = exercise },
+                        onDuplicate = { viewModel.duplicateExercise(exercise.id) },
+                        onMoveUp = { viewModel.moveExerciseUp(exercise.id) },
+                        onMoveDown = { viewModel.moveExerciseDown(exercise.id) },
                         onToggleEnabled = { enabled ->
                             viewModel.updateExercise(exercise.copy(enabled = enabled))
-                        }
+                        },
+                        onClick = { onNavigateToLogging(exercise.id) }
                     )
                 }
             }
@@ -155,12 +164,15 @@ fun ExerciseItem(
     onDuplicate: (ExerciseEntity) -> Unit,
     onMoveUp: (ExerciseEntity) -> Unit,
     onMoveDown: (ExerciseEntity) -> Unit,
-    onToggleEnabled: (Boolean) -> Unit
+    onToggleEnabled: (Boolean) -> Unit,
+    onClick: (ExerciseEntity) -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
     ElevatedCard(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick(exercise) },
         shape = MaterialTheme.shapes.large,
         colors = if (exercise.enabled) CardDefaults.elevatedCardColors()
         else CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))

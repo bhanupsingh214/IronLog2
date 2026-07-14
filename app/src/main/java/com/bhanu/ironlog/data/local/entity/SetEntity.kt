@@ -19,7 +19,15 @@ data class SetEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val exerciseId: Long,
-    val reps: Int = 0,
+    val sessionId: Long = 0, // 0 for template/default, >0 for specific session
+    val setNumber: Int = 1,
     val weight: Double = 0.0,
-    val order: Int
+    val reps: Int = 0,
+    val rpe: Double? = null,
+    val rir: Int? = null,
+    val notes: String = "",
+    val isCompleted: Boolean = false,
+    val setType: String = "Working", // Warm-up, Working, Top Set, Back-off, Drop Set
+    val order: Int,
+    val createdAt: Long = System.currentTimeMillis()
 )

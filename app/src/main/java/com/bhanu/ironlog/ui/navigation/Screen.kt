@@ -8,7 +8,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Dashboard : Screen("dashboard", "Dashboard", Icons.Default.Dashboard)
     object Programs : Screen("programs", "Programs", Icons.AutoMirrored.Filled.List)
-    object Workout : Screen("workout", "Workout", Icons.Default.PlayArrow)
+    object Workout : Screen("workout_session_days", "Workout", Icons.Default.PlayArrow)
+    object SessionExercises : Screen("session_exercises/{dayId}/{sessionId}", "Exercises", Icons.Default.FitnessCenter) {
+        fun passSession(dayId: Long, sessionId: Long) = "session_exercises/$dayId/$sessionId"
+    }
     object Insights : Screen("insights", "Insights", Icons.Default.Info)
     object Profile : Screen("profile", "Profile", Icons.Default.Person)
     object ArchivedPrograms : Screen("archived_programs", "Archived", Icons.Default.Archive)
@@ -17,5 +20,8 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     }
     object Exercises : Screen("exercises/{dayId}", "Exercises", Icons.Default.FitnessCenter) {
         fun passDayId(id: Long) = "exercises/$id"
+    }
+    object WorkoutLogging : Screen("workout_logging/{exerciseId}/{sessionId}", "Logging", Icons.Default.Edit) {
+        fun passLogging(exerciseId: Long, sessionId: Long) = "workout_logging/$exerciseId/$sessionId"
     }
 }
