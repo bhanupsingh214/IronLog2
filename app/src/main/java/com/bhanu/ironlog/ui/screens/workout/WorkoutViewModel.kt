@@ -8,6 +8,7 @@ import com.bhanu.ironlog.data.local.entity.WorkoutDayEntity
 import com.bhanu.ironlog.data.local.pojo.ProgramWithStats
 import com.bhanu.ironlog.data.local.pojo.WorkoutDayWithStats
 import com.bhanu.ironlog.data.repository.ProgramRepository
+import com.bhanu.ironlog.data.repository.WorkoutSessionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -19,7 +20,8 @@ import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class WorkoutViewModel @Inject constructor(
-    private val repository: ProgramRepository
+    private val repository: ProgramRepository,
+    private val sessionRepository: WorkoutSessionRepository
 ) : ViewModel() {
 
     val activeProgram: StateFlow<ProgramWithStats?> = repository.getActiveProgram()
@@ -72,10 +74,9 @@ class WorkoutViewModel @Inject constructor(
     fun startSession(day: WorkoutDayEntity, onSessionStarted: (Long) -> Unit) {
         viewModelScope.launch {
             val program = activeProgram.value ?: return@launch
-            val sessionId = repository.startWorkoutSession(
+            val sessionId = sessionRepository.getOrCreateSession(
                 dayId = day.id,
-                dayName = day.name,
-                programName = program.program.name
+                programId = program.program.id
             )
             onSessionStarted(sessionId)
         }

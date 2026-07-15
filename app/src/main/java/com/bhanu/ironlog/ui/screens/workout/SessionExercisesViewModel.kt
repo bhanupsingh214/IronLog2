@@ -3,9 +3,10 @@ package com.bhanu.ironlog.ui.screens.workout
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bhanu.ironlog.data.local.entity.ExerciseEntity
-import com.bhanu.ironlog.data.local.entity.WorkoutSessionEntity
+import com.bhanu.ironlog.data.local.entity.WorkoutSession
+import com.bhanu.ironlog.data.local.pojo.SessionExerciseWithTemplate
 import com.bhanu.ironlog.data.repository.ProgramRepository
+import com.bhanu.ironlog.data.repository.WorkoutSessionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -18,6 +19,7 @@ import kotlin.time.Duration.Companion.seconds
 @HiltViewModel
 class SessionExercisesViewModel @Inject constructor(
     private val repository: ProgramRepository,
+    private val sessionRepository: WorkoutSessionRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -27,8 +29,8 @@ class SessionExercisesViewModel @Inject constructor(
     val isArgumentValid = dayId != -1L && sessionId != -1L
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val session: StateFlow<WorkoutSessionEntity?> = if (isArgumentValid) {
-        repository.getSession(sessionId)
+    val session: StateFlow<WorkoutSession?> = if (isArgumentValid) {
+        sessionRepository.getSessionById(sessionId)
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
@@ -39,9 +41,9 @@ class SessionExercisesViewModel @Inject constructor(
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val exercises: StateFlow<List<ExerciseEntity>> = session.flatMapLatest { session ->
+    val exercises: StateFlow<List<SessionExerciseWithTemplate>> = session.flatMapLatest { session ->
         if (session != null) {
-            repository.getExercisesForDay(session.dayId)
+            sessionRepository.getExercisesWithTemplateForSession(session.sessionId)
         } else {
             flowOf(emptyList())
         }
@@ -84,7 +86,7 @@ class SessionExercisesViewModel @Inject constructor(
                 completedIds.add(idStr)
             }
             
-            repository.updateWorkoutSession(currentSession.copy(
+            sessionRepository.updateSession(currentSession.copy(
                 completedExerciseIds = completedIds.joinToString(",")
             ))
         }
@@ -92,7 +94,11 @@ class SessionExercisesViewModel @Inject constructor(
 
     fun finishWorkout() {
         viewModelScope.launch {
-            repository.finishWorkoutSession(sessionId, _timerSeconds.value)
+            val currentSession = session.value ?: return@launch
+            sessionRepository.updateSession(currentSession.copy(
+                status = "COMPLETED",
+                endTime = System.currentTimeMillis()
+            ))
         }
     }
 }

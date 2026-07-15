@@ -9,9 +9,12 @@ data class WorkoutSession(
     val sessionId: Long = 0,
     val programId: Long,
     val workoutDayId: Long,
+    val dayName: String,
+    val programName: String,
     val startTime: Long = System.currentTimeMillis(),
     val endTime: Long? = null,
     val status: String = "ACTIVE", // ACTIVE / COMPLETED
     val notes: String? = null,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val completedExerciseIds: String = "" // Comma separated IDs
 )

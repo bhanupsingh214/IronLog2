@@ -95,9 +95,8 @@ class ProgramRepository @Inject constructor(
 
     suspend fun insertSet(set: SetEntity) {
         val maxOrder = programDao.getMaxOrderForExerciseInSession(set.exerciseId, set.sessionId) ?: -1
-        val currentSets = programDao.getSetsForExerciseAndSession(set.exerciseId, set.sessionId)
-        val nextSetNumber = currentSets.size + 1
-        programDao.insertSet(set.copy(order = maxOrder + 1, setNumber = nextSetNumber))
+        programDao.insertSet(set.copy(order = maxOrder + 1))
+        renumberSets(set.exerciseId, set.sessionId)
     }
 
     suspend fun updateSet(set: SetEntity) = programDao.updateSet(set)
@@ -134,17 +133,16 @@ class ProgramRepository @Inject constructor(
 
     suspend fun duplicateSet(setId: Long) {
         val set = programDao.getSetById(setId) ?: return
-        val currentSets = programDao.getSetsForExerciseAndSession(set.exerciseId, set.sessionId)
         val maxOrder = programDao.getMaxOrderForExerciseInSession(set.exerciseId, set.sessionId) ?: 0
         programDao.insertSet(
             set.copy(
                 id = 0,
-                setNumber = currentSets.size + 1,
                 order = maxOrder + 1,
                 isCompleted = false,
                 createdAt = System.currentTimeMillis()
             )
         )
+        renumberSets(set.exerciseId, set.sessionId)
     }
 
     fun getWorkoutDay(dayId: Long): Flow<WorkoutDayEntity?> =

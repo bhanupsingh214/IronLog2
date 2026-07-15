@@ -26,6 +26,7 @@ data class SessionSet(
     val reps: Int,
     val rpe: Double? = null,
     val completed: Boolean = false,
+    val setType: String = "Working", // Warm-up, Working, Top Set, Back-off, Drop Set
     val notes: String? = null,
     val createdAt: Long = System.currentTimeMillis()
 )

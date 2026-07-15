@@ -16,7 +16,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.bhanu.ironlog.data.local.entity.SetEntity
 import com.bhanu.ironlog.ui.components.ErrorScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,7 +35,7 @@ fun WorkoutLoggingScreen(
     val session by viewModel.session.collectAsState()
     val sessionId = viewModel.sessionId
 
-    val isReadOnly = sessionId != 0L && session?.isCompleted == true
+    val isReadOnly = sessionId != 0L && session?.status == "COMPLETED"
 
     Scaffold(
         topBar = {
@@ -57,6 +56,16 @@ fun WorkoutLoggingScreen(
                     onAddBackoff = { viewModel.addSet("Back-off") },
                     onCopyPrevious = { viewModel.copyPreviousSet() }
                 )
+            }
+        },
+        floatingActionButton = {
+            if (sessionId == 0L) {
+                FloatingActionButton(
+                    onClick = { viewModel.addSet("Working") },
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Set")
+                }
             }
         }
     ) { padding ->
@@ -98,13 +107,13 @@ fun WorkoutLoggingScreen(
 
 @Composable
 fun SetItem(
-    set: SetEntity,
-    previousSet: SetEntity?,
+    set: WorkoutSetUiModel,
+    previousSet: WorkoutSetUiModel?,
     isFirst: Boolean,
     isLast: Boolean,
     isReadOnly: Boolean,
-    onUpdate: (SetEntity) -> Unit,
-    onDelete: (SetEntity) -> Unit,
+    onUpdate: (WorkoutSetUiModel) -> Unit,
+    onDelete: (WorkoutSetUiModel) -> Unit,
     onDuplicate: (Long) -> Unit,
     onMoveUp: (Long) -> Unit,
     onMoveDown: (Long) -> Unit

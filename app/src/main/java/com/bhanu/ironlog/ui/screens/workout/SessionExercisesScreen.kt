@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bhanu.ironlog.data.local.entity.ExerciseEntity
+import com.bhanu.ironlog.data.local.pojo.SessionExerciseWithTemplate
 import com.bhanu.ironlog.ui.components.ErrorScreen
 import com.bhanu.ironlog.ui.components.ExerciseSessionItem
 import com.bhanu.ironlog.ui.components.WorkoutProgress
@@ -134,15 +135,15 @@ fun SessionExercisesScreen(
                         )
                     }
 
-                    items(exercises, key = { it.id }) { exercise ->
-                        val isCompleted = completedIds.contains(exercise.id.toString())
-                        ExerciseSessionItem(
-                            exercise = exercise,
-                            isCompleted = isCompleted,
-                            onToggleComplete = { viewModel.toggleExerciseCompletion(exercise.id) },
-                            onClick = { onNavigateToLogging(exercise.id, session?.id ?: 0L) }
-                        )
-                    }
+                    items(exercises, key = { it.sessionExercise.sessionExerciseId }) { item ->
+                    val isCompleted = completedIds.contains(item.template.id.toString())
+                    ExerciseSessionItem(
+                        exercise = item.template,
+                        isCompleted = isCompleted,
+                        onToggleComplete = { viewModel.toggleExerciseCompletion(item.template.id) },
+                        onClick = { onNavigateToLogging(item.template.id, session?.sessionId ?: 0L) }
+                    )
+                }
                 }
             }
         }
