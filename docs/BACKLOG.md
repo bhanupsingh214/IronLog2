@@ -1,15 +1,21 @@
 # IronLog Backlog
 
-## 🔴 In Progress
+## ✅ Completed
 
-### IRON-103
-Workout Session Engine
+### IRON-103 (v0.2)
+Workout Session Lifecycle
 
-- [ ] Session-based logging
-- [ ] Previous Workout
-- [ ] Finish Workout
-- [ ] History
+- [x] Session-based logging
+- [x] Finish Workout
+- [x] Session persistence
+- [x] Dashboard updates
 
+---
+
+## 🟡 In Progress
+
+### IRON-104
+Workout History
 ---
 
 ## 🟡 Upcoming
