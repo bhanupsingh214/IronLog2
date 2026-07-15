@@ -2,7 +2,7 @@ package com.bhanu.ironlog.ui.screens.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bhanu.ironlog.data.local.entity.WorkoutSessionEntity
+import com.bhanu.ironlog.data.local.entity.WorkoutSession
 import com.bhanu.ironlog.data.local.pojo.ProgramWithStats
 import com.bhanu.ironlog.data.local.pojo.WorkoutDayWithStats
 import com.bhanu.ironlog.data.repository.ProgramRepository
@@ -54,7 +54,7 @@ class DashboardViewModel @Inject constructor(
         initialValue = emptyList()
     )
 
-    val recentHistory: StateFlow<List<WorkoutSessionEntity>> = programRepository.getCompletedSessions()
+    val recentHistory: StateFlow<List<WorkoutSession>> = sessionRepository.getCompletedSessions()
         .map { it.take(5) }
         .stateIn(
             scope = viewModelScope,
@@ -62,7 +62,7 @@ class DashboardViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
-    val weeklyVolume: StateFlow<Double> = programRepository.getWeeklyVolume()
+    val weeklyVolume: StateFlow<Double> = sessionRepository.getWeeklyVolume()
         .map { it ?: 0.0 }
         .stateIn(
             scope = viewModelScope,

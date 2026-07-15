@@ -44,33 +44,6 @@ class WorkoutViewModel @Inject constructor(
         initialValue = emptyList()
     )
 
-    private val _timerSeconds = MutableStateFlow(0L)
-    val timerSeconds = _timerSeconds.asStateFlow()
-
-    private var timerJob: Job? = null
-
-    init {
-        startTimer()
-    }
-
-    private fun startTimer() {
-        timerJob?.cancel()
-        timerJob = viewModelScope.launch {
-            while (true) {
-                delay(1.seconds)
-                _timerSeconds.value++
-            }
-        }
-    }
-
-    fun pauseTimer() {
-        timerJob?.cancel()
-    }
-
-    fun resumeTimer() {
-        startTimer()
-    }
-
     fun startSession(day: WorkoutDayEntity, onSessionStarted: (Long) -> Unit) {
         viewModelScope.launch {
             val program = activeProgram.value ?: return@launch

@@ -7,6 +7,7 @@ import com.bhanu.ironlog.data.local.entity.SessionSet
 import com.bhanu.ironlog.data.local.entity.WorkoutSession
 import com.bhanu.ironlog.data.local.pojo.SessionExerciseWithTemplate
 import kotlinx.coroutines.flow.Flow
+import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -17,7 +18,18 @@ class WorkoutSessionRepository @Inject constructor(
 ) {
     fun getAllSessions(): Flow<List<WorkoutSession>> = workoutSessionDao.getAllSessions()
 
+    fun getCompletedSessions(): Flow<List<WorkoutSession>> = workoutSessionDao.getCompletedSessions()
+
     fun getSessionById(sessionId: Long): Flow<WorkoutSession?> = workoutSessionDao.getSessionById(sessionId)
+
+    fun getWeeklyVolume(): Flow<Double?> {
+        val calendar = Calendar.getInstance()
+        calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        return workoutSessionDao.getVolumeSince(calendar.timeInMillis)
+    }
 
     suspend fun getOrCreateSession(dayId: Long, programId: Long): Long {
         val activeSession = workoutSessionDao.getActiveSessionByDay(dayId)
@@ -75,6 +87,19 @@ class WorkoutSessionRepository @Inject constructor(
     suspend fun insertSession(session: WorkoutSession): Long = workoutSessionDao.insertSession(session)
 
     suspend fun updateSession(session: WorkoutSession) = workoutSessionDao.updateSession(session)
+
+    suspend fun finishSession(sessionId: Long) {
+        val session = workoutSessionDao.getSessionByIdOnce(sessionId)
+        session?.let {
+            val endTime = System.currentTimeMillis()
+            val duration = (endTime - it.startTime) / 1000
+            workoutSessionDao.updateSession(it.copy(
+                status = "COMPLETED",
+                endTime = endTime,
+                durationSeconds = duration
+            ))
+        }
+    }
 
     suspend fun deleteSession(session: WorkoutSession) = workoutSessionDao.deleteSession(session)
 

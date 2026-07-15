@@ -16,5 +16,6 @@ data class WorkoutSession(
     val status: String = "ACTIVE", // ACTIVE / COMPLETED
     val notes: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
-    val completedExerciseIds: String = "" // Comma separated IDs
+    val completedExerciseIds: String = "", // Comma separated IDs
+    val durationSeconds: Long = 0
 )

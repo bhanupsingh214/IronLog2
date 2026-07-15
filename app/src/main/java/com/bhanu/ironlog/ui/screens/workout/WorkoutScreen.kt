@@ -29,7 +29,6 @@ fun WorkoutScreen(
 ) {
     val activeProgram by viewModel.activeProgram.collectAsState()
     val workoutDays by viewModel.workoutDays.collectAsState()
-    val timerSeconds by viewModel.timerSeconds.collectAsState()
 
     Scaffold(
         topBar = {
@@ -44,13 +43,6 @@ fun WorkoutScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                },
-                actions = {
-                    Text(
-                        text = formatTimer(timerSeconds),
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(end = 16.dp)
-                    )
                 }
             )
         }

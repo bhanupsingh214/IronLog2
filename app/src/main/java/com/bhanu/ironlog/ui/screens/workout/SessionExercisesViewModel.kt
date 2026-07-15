@@ -93,12 +93,9 @@ class SessionExercisesViewModel @Inject constructor(
     }
 
     fun finishWorkout() {
+        timerJob?.cancel()
         viewModelScope.launch {
-            val currentSession = session.value ?: return@launch
-            sessionRepository.updateSession(currentSession.copy(
-                status = "COMPLETED",
-                endTime = System.currentTimeMillis()
-            ))
+            sessionRepository.finishSession(sessionId)
         }
     }
 }

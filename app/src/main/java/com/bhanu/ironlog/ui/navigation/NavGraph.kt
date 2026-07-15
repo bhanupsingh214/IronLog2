@@ -53,6 +53,11 @@ fun SetupNavGraph(navController: NavHostController) {
         ) {
             SessionExercisesScreen(
                 onBack = { navController.popBackStack() },
+                onFinish = {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(Screen.Dashboard.route) { inclusive = true }
+                    }
+                },
                 onNavigateToLogging = { exerciseId, sessionId ->
                     navController.navigate(Screen.WorkoutLogging.passLogging(exerciseId, sessionId))
                 }

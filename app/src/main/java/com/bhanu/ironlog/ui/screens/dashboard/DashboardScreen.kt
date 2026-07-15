@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.bhanu.ironlog.data.local.entity.WorkoutSessionEntity
+import com.bhanu.ironlog.data.local.entity.WorkoutSession
 import com.bhanu.ironlog.data.local.pojo.ProgramWithStats
 import com.bhanu.ironlog.data.local.pojo.WorkoutDayWithStats
 import kotlinx.coroutines.flow.collectLatest
@@ -287,7 +287,7 @@ fun WeeklyVolumeCard(volume: Double) {
 
 @Composable
 fun RecentHistoryCard(
-    history: List<WorkoutSessionEntity>,
+    history: List<WorkoutSession>,
     onViewClick: (Long, Long) -> Unit
 ) {
     DashboardCard(title = "Recent History", icon = Icons.Default.History) {
@@ -304,7 +304,7 @@ fun RecentHistoryCard(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onViewClick(session.dayId, session.id) },
+                            .clickable { onViewClick(session.workoutDayId, session.sessionId) },
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column {
@@ -313,7 +313,7 @@ fun RecentHistoryCard(
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Text(
-                                text = dateFormat.format(Date(session.date)),
+                                text = dateFormat.format(Date(session.createdAt)),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.outline
                             )

@@ -27,6 +27,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun SessionExercisesScreen(
     onBack: () -> Unit,
+    onFinish: () -> Unit,
     onNavigateToLogging: (Long, Long) -> Unit,
     viewModel: SessionExercisesViewModel = hiltViewModel()
 ) {
@@ -83,7 +84,7 @@ fun SessionExercisesScreen(
                 Button(
                     onClick = { 
                         viewModel.finishWorkout()
-                        onBack()
+                        onFinish()
                     },
                     modifier = Modifier
                         .fillMaxWidth()

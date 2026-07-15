@@ -19,6 +19,9 @@ interface WorkoutSessionDao {
     @Query("SELECT * FROM workout_session_logs WHERE sessionId = :sessionId")
     fun getSessionById(sessionId: Long): Flow<WorkoutSession?>
 
+    @Query("SELECT * FROM workout_session_logs WHERE sessionId = :sessionId")
+    suspend fun getSessionByIdOnce(sessionId: Long): WorkoutSession?
+
     @Query("SELECT * FROM workout_session_logs WHERE workoutDayId = :dayId AND status = 'ACTIVE' LIMIT 1")
     suspend fun getActiveSessionByDay(dayId: Long): WorkoutSession?
 
@@ -55,6 +58,18 @@ interface WorkoutSessionDao {
 
     @Delete
     suspend fun deleteSessionSet(set: SessionSet)
+
+    @Query("SELECT * FROM workout_session_logs WHERE status = 'COMPLETED' ORDER BY createdAt DESC")
+    fun getCompletedSessions(): Flow<List<WorkoutSession>>
+
+    @Query("""
+        SELECT SUM(s.weight * s.reps) 
+        FROM session_sets s 
+        JOIN session_exercises e ON s.sessionExerciseId = e.sessionExerciseId 
+        JOIN workout_session_logs sess ON e.sessionId = sess.sessionId 
+        WHERE sess.status = 'COMPLETED' AND sess.createdAt >= :since
+    """)
+    fun getVolumeSince(since: Long): Flow<Double?>
 
     @Delete
     suspend fun deleteSession(session: WorkoutSession)

@@ -25,8 +25,11 @@ object AppModule {
             context,
             AppDatabase::class.java,
             "iron_log_db"
-        ).addMigrations(AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8)
-            .build()
+        ).addMigrations(
+            AppDatabase.MIGRATION_6_7,
+            AppDatabase.MIGRATION_7_8,
+            AppDatabase.MIGRATION_8_9
+        ).build()
     }
 
     @Provides
