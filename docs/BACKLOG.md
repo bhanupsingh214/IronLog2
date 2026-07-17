@@ -1,30 +1,35 @@
 # IronLog Backlog
 
-## ✅ Completed
-
-### IRON-103 (v0.2)
-Workout Session Lifecycle
-
-- [x] Session-based logging
-- [x] Finish Workout
-- [x] Session persistence
-- [x] Dashboard updates
+## Completed
+- ✅ Core Workout Engine (v0.2.0)
+- ✅ Program Management
+- ✅ Workout Sessions
+- ✅ Logging
+- ✅ History
+- ✅ Dashboard
+- ✅ Data Persistence
 
 ---
 
-## 🟡 In Progress
+## High Priority
 
-### IRON-104
-Workout History
+- [ ] Complete Add Log workflow
+- [ ] Dashboard should display today's actual workout
+- [ ] Fix Dashboard bottom navigation during active workout
+
 ---
 
-## 🟡 Upcoming
+## Medium Priority
 
-### IRON-104
-Workout History
+- [ ] Previous workout comparison
+- [ ] Personal Records
+- [ ] Exercise Progress
+- [ ] Analytics Dashboard
 
-### IRON-105
-Analytics
+---
 
-### IRON-106
-Progressive Overload
+## Future
+
+- [ ] Calendar
+- [ ] Export/Import
+- [ ] Cloud Sync
