@@ -5,6 +5,8 @@ import com.bhanu.ironlog.data.local.entity.SessionExercise
 import com.bhanu.ironlog.data.local.entity.SessionSet
 import com.bhanu.ironlog.data.local.entity.WorkoutSession
 import com.bhanu.ironlog.data.local.pojo.SessionExerciseWithTemplate
+import com.bhanu.ironlog.data.local.pojo.SessionExerciseWithTemplateAndSets
+import com.bhanu.ironlog.data.local.pojo.WorkoutSessionWithVolume
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -35,6 +37,10 @@ interface WorkoutSessionDao {
     @Query("SELECT * FROM session_exercises WHERE sessionId = :sessionId ORDER BY exerciseOrder ASC")
     fun getExercisesWithTemplateForSession(sessionId: Long): Flow<List<SessionExerciseWithTemplate>>
 
+    @Transaction
+    @Query("SELECT * FROM session_exercises WHERE sessionId = :sessionId ORDER BY exerciseOrder ASC")
+    fun getExercisesWithSetsForSession(sessionId: Long): Flow<List<SessionExerciseWithTemplateAndSets>>
+
     @Query("SELECT * FROM session_exercises WHERE sessionId = :sessionId ORDER BY exerciseOrder ASC")
     fun getExercisesForSession(sessionId: Long): Flow<List<SessionExercise>>
 
@@ -61,6 +67,17 @@ interface WorkoutSessionDao {
 
     @Query("SELECT * FROM workout_session_logs WHERE status = 'COMPLETED' ORDER BY createdAt DESC")
     fun getCompletedSessions(): Flow<List<WorkoutSession>>
+
+    @Query("""
+        SELECT sess.*, IFNULL(SUM(s.weight * s.reps), 0) as totalVolume
+        FROM workout_session_logs sess
+        LEFT JOIN session_exercises e ON sess.sessionId = e.sessionId
+        LEFT JOIN session_sets s ON e.sessionExerciseId = s.sessionExerciseId
+        WHERE sess.status = 'COMPLETED'
+        GROUP BY sess.sessionId
+        ORDER BY sess.createdAt DESC
+    """)
+    fun getCompletedSessionsWithVolume(): Flow<List<WorkoutSessionWithVolume>>
 
     @Query("""
         SELECT SUM(s.weight * s.reps) 

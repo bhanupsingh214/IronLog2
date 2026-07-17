@@ -6,6 +6,8 @@ import com.bhanu.ironlog.data.local.entity.SessionExercise
 import com.bhanu.ironlog.data.local.entity.SessionSet
 import com.bhanu.ironlog.data.local.entity.WorkoutSession
 import com.bhanu.ironlog.data.local.pojo.SessionExerciseWithTemplate
+import com.bhanu.ironlog.data.local.pojo.SessionExerciseWithTemplateAndSets
+import com.bhanu.ironlog.data.local.pojo.WorkoutSessionWithVolume
 import kotlinx.coroutines.flow.Flow
 import java.util.Calendar
 import javax.inject.Inject
@@ -19,6 +21,9 @@ class WorkoutSessionRepository @Inject constructor(
     fun getAllSessions(): Flow<List<WorkoutSession>> = workoutSessionDao.getAllSessions()
 
     fun getCompletedSessions(): Flow<List<WorkoutSession>> = workoutSessionDao.getCompletedSessions()
+
+    fun getCompletedSessionsWithVolume(): Flow<List<WorkoutSessionWithVolume>> = 
+        workoutSessionDao.getCompletedSessionsWithVolume()
 
     fun getSessionById(sessionId: Long): Flow<WorkoutSession?> = workoutSessionDao.getSessionById(sessionId)
 
@@ -108,6 +113,9 @@ class WorkoutSessionRepository @Inject constructor(
 
     fun getExercisesWithTemplateForSession(sessionId: Long): Flow<List<SessionExerciseWithTemplate>> =
         workoutSessionDao.getExercisesWithTemplateForSession(sessionId)
+
+    fun getExercisesWithSetsForSession(sessionId: Long): Flow<List<SessionExerciseWithTemplateAndSets>> =
+        workoutSessionDao.getExercisesWithSetsForSession(sessionId)
 
     suspend fun insertSessionExercise(exercise: SessionExercise): Long = 
         workoutSessionDao.insertSessionExercise(exercise)

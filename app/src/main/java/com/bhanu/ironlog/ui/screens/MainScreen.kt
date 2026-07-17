@@ -25,7 +25,7 @@ fun MainScreen() {
         Screen.Dashboard,
         Screen.Programs,
         Screen.Workout,
-        Screen.Insights,
+        Screen.History,
         Screen.Profile,
     )
 

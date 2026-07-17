@@ -14,6 +14,10 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     }
     object Insights : Screen("insights", "Insights", Icons.Default.Info)
     object Profile : Screen("profile", "Profile", Icons.Default.Person)
+    object History : Screen("history", "History", Icons.Default.History)
+    object WorkoutDetails : Screen("workout_details/{sessionId}", "Details", Icons.Default.Info) {
+        fun passSessionId(id: Long) = "workout_details/$id"
+    }
     object ArchivedPrograms : Screen("archived_programs", "Archived", Icons.Default.Archive)
     object WorkoutDays : Screen("workout_days/{programId}", "Workout Days", Icons.Default.CalendarToday) {
         fun passProgramId(id: Long) = "workout_days/$id"

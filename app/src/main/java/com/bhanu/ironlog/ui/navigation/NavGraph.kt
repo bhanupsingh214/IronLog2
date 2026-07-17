@@ -9,6 +9,8 @@ import androidx.navigation.navArgument
 import com.bhanu.ironlog.ui.screens.dashboard.DashboardScreen
 import com.bhanu.ironlog.ui.screens.insights.InsightsScreen
 import com.bhanu.ironlog.ui.screens.profile.ProfileScreen
+import com.bhanu.ironlog.ui.screens.history.HistoryScreen
+import com.bhanu.ironlog.ui.screens.history.WorkoutDetailsScreen
 import com.bhanu.ironlog.ui.screens.programs.ArchivedProgramsScreen
 import com.bhanu.ironlog.ui.screens.programs.ExercisesScreen
 import com.bhanu.ironlog.ui.screens.programs.ProgramsScreen
@@ -31,8 +33,8 @@ fun SetupNavGraph(navController: NavHostController) {
                 onNavigateToCurrentProgram = { programId ->
                     navController.navigate(Screen.WorkoutDays.passProgramId(programId))
                 },
-                onNavigateToRecentSession = { dayId, sessionId ->
-                    navController.navigate(Screen.SessionExercises.passSession(dayId, sessionId))
+                onNavigateToRecentSession = { _, sessionId ->
+                    navController.navigate(Screen.WorkoutDetails.passSessionId(sessionId))
                 }
             )
         }
@@ -105,6 +107,19 @@ fun SetupNavGraph(navController: NavHostController) {
         }
         composable(route = Screen.ArchivedPrograms.route) {
             ArchivedProgramsScreen(onBack = { navController.popBackStack() })
+        }
+        composable(route = Screen.History.route) {
+            HistoryScreen(
+                onNavigateToDetails = { sessionId ->
+                    navController.navigate(Screen.WorkoutDetails.passSessionId(sessionId))
+                }
+            )
+        }
+        composable(
+            route = Screen.WorkoutDetails.route,
+            arguments = listOf(navArgument("sessionId") { type = NavType.LongType })
+        ) {
+            WorkoutDetailsScreen(onBack = { navController.popBackStack() })
         }
         composable(route = Screen.Insights.route) {
             InsightsScreen()
