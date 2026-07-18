@@ -164,4 +164,7 @@ interface ProgramDao {
 
     @Query("SELECT * FROM workout_days WHERE id = :id")
     suspend fun getDayById(id: Long): WorkoutDayEntity?
+
+    @Query("SELECT * FROM exercises ORDER BY name ASC")
+    fun getAllExercisesFlow(): Flow<List<ExerciseEntity>>
 }

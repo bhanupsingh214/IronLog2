@@ -1,22 +1,47 @@
 package com.bhanu.ironlog.ui.screens.progress
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bhanu.ironlog.data.local.pojo.PRWithExerciseName
-import java.util.Locale
+import com.patrykandpatrick.vico.compose.axis.horizontal.rememberBottomAxis
+import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
+import com.patrykandpatrick.vico.compose.chart.Chart
+import com.patrykandpatrick.vico.compose.chart.line.lineChart
+import com.patrykandpatrick.vico.compose.chart.scroll.rememberChartScrollSpec
+import com.patrykandpatrick.vico.compose.component.shape.shader.verticalGradient
+import com.patrykandpatrick.vico.compose.component.textComponent
+import com.patrykandpatrick.vico.compose.m3.style.m3ChartStyle
+import com.patrykandpatrick.vico.compose.style.ProvideChartStyle
+import com.patrykandpatrick.vico.compose.style.currentChartStyle
+import com.patrykandpatrick.vico.core.axis.AxisPosition
+import com.patrykandpatrick.vico.core.axis.formatter.AxisValueFormatter
+import com.patrykandpatrick.vico.core.chart.line.LineChart
+import com.patrykandpatrick.vico.compose.component.shapeComponent
+import com.patrykandpatrick.vico.core.component.shape.ShapeComponent
+import com.patrykandpatrick.vico.core.dimensions.MutableDimensions
+import com.patrykandpatrick.vico.compose.dimensions.dimensionsOf
+import com.patrykandpatrick.vico.core.component.text.TextComponent
+import com.patrykandpatrick.vico.core.entry.entryModelOf
+import com.patrykandpatrick.vico.core.entry.entryOf
+import com.patrykandpatrick.vico.core.marker.Marker
+import com.patrykandpatrick.vico.core.marker.DefaultMarkerLabelFormatter
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,6 +49,12 @@ fun ProgressScreen(
     viewModel: ProgressViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val allExercises by viewModel.allExercises.collectAsState()
+    val selectedExerciseId by viewModel.selectedExerciseId.collectAsState()
+    val isE1RM by viewModel.isE1RMToggle.collectAsState()
+    val strengthHistory by viewModel.strengthHistory.collectAsState()
+    val volumeHistory by viewModel.volumeHistory.collectAsState()
+    val volumeFilter by viewModel.volumeTimeFilter.collectAsState()
 
     Scaffold(
         topBar = {
@@ -54,7 +85,18 @@ fun ProgressScreen(
                     if (state.totalWorkouts == 0) {
                         EmptyProgressState()
                     } else {
-                        ProgressContent(state)
+                        ProgressContent(
+                            state = state,
+                            exercises = allExercises,
+                            selectedExerciseId = selectedExerciseId,
+                            isE1RM = isE1RM,
+                            strengthHistory = strengthHistory,
+                            volumeHistory = volumeHistory,
+                            volumeFilter = volumeFilter,
+                            onExerciseSelected = { viewModel.onExerciseSelected(it) },
+                            onToggleE1RM = { viewModel.toggleE1RM(it) },
+                            onVolumeFilterSelected = { viewModel.onVolumeFilterSelected(it) }
+                        )
                     }
                 }
             }
@@ -62,8 +104,20 @@ fun ProgressScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProgressContent(state: ProgressUiState.Success) {
+fun ProgressContent(
+    state: ProgressUiState.Success,
+    exercises: List<com.bhanu.ironlog.data.local.entity.ExerciseEntity>,
+    selectedExerciseId: Long?,
+    isE1RM: Boolean,
+    strengthHistory: List<com.bhanu.ironlog.data.local.pojo.ExerciseStrengthHistory>,
+    volumeHistory: List<com.bhanu.ironlog.data.local.pojo.DailyVolume>,
+    volumeFilter: TimeFilter,
+    onExerciseSelected: (Long) -> Unit,
+    onToggleE1RM: (Boolean) -> Unit,
+    onVolumeFilterSelected: (TimeFilter) -> Unit
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -77,13 +131,13 @@ fun ProgressContent(state: ProgressUiState.Success) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 StatCard(
                     title = "Workouts",
-                    value = state.totalWorkouts.toString(),
+                    value = String.format(Locale.getDefault(), "%,d", state.totalWorkouts),
                     icon = Icons.Default.History,
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
                     title = "Total Volume",
-                    value = String.format(Locale.getDefault(), "%.0fkg", state.totalVolume),
+                    value = String.format(Locale.getDefault(), "%,.0fkg", state.totalVolume),
                     icon = Icons.Default.FitnessCenter,
                     modifier = Modifier.weight(1f)
                 )
@@ -101,10 +155,37 @@ fun ProgressContent(state: ProgressUiState.Success) {
                 StatCard(
                     title = "e1RM PRs",
                     value = state.e1rmPRCount.toString(),
-                    icon = Icons.Default.TrendingUp,
+                    icon = Icons.AutoMirrored.Filled.TrendingUp,
                     modifier = Modifier.weight(1f)
                 )
             }
+        }
+
+        item {
+            Text("Strength Progress", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        }
+
+        item {
+            StrengthChartSection(
+                exercises = exercises,
+                selectedExerciseId = selectedExerciseId,
+                isE1RM = isE1RM,
+                history = strengthHistory,
+                onExerciseSelected = onExerciseSelected,
+                onToggleE1RM = onToggleE1RM
+            )
+        }
+
+        item {
+            Text("Volume Trend", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        }
+
+        item {
+            VolumeTrendSection(
+                history = volumeHistory,
+                currentFilter = volumeFilter,
+                onFilterSelected = onVolumeFilterSelected
+            )
         }
 
         item {
@@ -140,6 +221,166 @@ fun ProgressContent(state: ProgressUiState.Success) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun StrengthChartSection(
+    exercises: List<com.bhanu.ironlog.data.local.entity.ExerciseEntity>,
+    selectedExerciseId: Long?,
+    isE1RM: Boolean,
+    history: List<com.bhanu.ironlog.data.local.pojo.ExerciseStrengthHistory>,
+    onExerciseSelected: (Long) -> Unit,
+    onToggleE1RM: (Boolean) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedExercise = exercises.find { it.id == selectedExerciseId }
+
+    ProvideChartStyle(m3ChartStyle()) {
+        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp)) {
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = selectedExercise?.name ?: "Select Exercise",
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                        textStyle = MaterialTheme.typography.bodyMedium
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        exercises.forEach { exercise ->
+                            DropdownMenuItem(
+                                text = { Text(exercise.name) },
+                                onClick = {
+                                    onExerciseSelected(exercise.id)
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(Modifier.height(8.dp))
+                
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    SegmentedButton(
+                        selected = !isE1RM,
+                        onClick = { onToggleE1RM(false) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                    ) {
+                        Text("Weight", style = MaterialTheme.typography.labelSmall)
+                    }
+                    SegmentedButton(
+                        selected = isE1RM,
+                        onClick = { onToggleE1RM(true) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                    ) {
+                        Text("Est. 1RM", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                if (history.size < 2) {
+                    Box(Modifier.height(200.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text("Train more to unlock your progress graph", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                    }
+                } else {
+                    val entries = history.mapIndexed { index, item ->
+                        val value = if (isE1RM) item.maxE1RM else item.maxWeight
+                        entryOf(index.toFloat(), value.toFloat())
+                    }
+                    
+                    val model = entryModelOf(entries)
+                    
+                    Chart(
+                        chart = lineChart(),
+                        model = model,
+                        startAxis = rememberStartAxis(
+                            valueFormatter = { value, _ -> String.format(Locale.getDefault(), "%,.0f", value) }
+                        ),
+                        bottomAxis = rememberBottomAxis(
+                            valueFormatter = { value, _ ->
+                                val index = value.toInt()
+                                if (index in history.indices) {
+                                    SimpleDateFormat("MMM d", Locale.getDefault()).format(Date(history[index].date))
+                                } else ""
+                            }
+                        ),
+                        chartScrollSpec = rememberChartScrollSpec(isScrollEnabled = true),
+                        isZoomEnabled = true,
+                        modifier = Modifier.height(200.dp).fillMaxWidth()
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun VolumeTrendSection(
+    history: List<com.bhanu.ironlog.data.local.pojo.DailyVolume>,
+    currentFilter: TimeFilter,
+    onFilterSelected: (TimeFilter) -> Unit
+) {
+    ProvideChartStyle(m3ChartStyle()) {
+        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TimeFilter.entries.forEach { filter ->
+                        FilterChip(
+                            selected = currentFilter == filter,
+                            onClick = { onFilterSelected(filter) },
+                            label = { Text(filter.label, style = MaterialTheme.typography.labelSmall) }
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                if (history.size < 2) {
+                    Box(Modifier.height(200.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text("Train more to unlock your progress graph", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                    }
+                } else {
+                    val entries = history.mapIndexed { index, item ->
+                        entryOf(index.toFloat(), item.volume.toFloat())
+                    }
+                    
+                    val model = entryModelOf(entries)
+                    
+                    Chart(
+                        chart = lineChart(),
+                        model = model,
+                        startAxis = rememberStartAxis(
+                            valueFormatter = { value, _ -> String.format(Locale.getDefault(), "%,.0f", value) }
+                        ),
+                        bottomAxis = rememberBottomAxis(
+                            valueFormatter = { value, _ ->
+                                val index = value.toInt()
+                                if (index in history.indices) {
+                                    SimpleDateFormat("MMM d", Locale.getDefault()).format(Date(history[index].date))
+                                } else ""
+                            }
+                        ),
+                        chartScrollSpec = rememberChartScrollSpec(isScrollEnabled = true),
+                        isZoomEnabled = true,
+                        modifier = Modifier.height(200.dp).fillMaxWidth()
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun StatCard(title: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
     ElevatedCard(modifier = modifier) {
@@ -159,11 +400,11 @@ fun VolumeSummaryCard(weekly: Double, monthly: Double) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
                     Text("Weekly Volume", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
-                    Text(String.format(Locale.getDefault(), "%.1f kg", weekly), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(String.format(Locale.getDefault(), "%,.1f kg", weekly), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text("Monthly Volume", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
-                    Text(String.format(Locale.getDefault(), "%.1f kg", monthly), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(String.format(Locale.getDefault(), "%,.1f kg", monthly), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
             }
         }
