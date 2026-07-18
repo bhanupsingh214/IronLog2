@@ -25,6 +25,7 @@ fun MainScreen() {
         Screen.Dashboard,
         Screen.Programs,
         Screen.Workout,
+        Screen.Progress,
         Screen.History,
         Screen.Profile,
     )
@@ -50,6 +51,7 @@ fun MainScreen() {
                             Screen.Workout -> currentRoute == Screen.Workout.route || 
                                             currentRoute?.startsWith("session_exercises") == true ||
                                             (currentRoute?.startsWith("workout_logging") == true && sessionId > 0L)
+                            Screen.Progress -> currentRoute == Screen.Progress.route
                             else -> currentRoute == screen.route
                         },
                         onClick = {

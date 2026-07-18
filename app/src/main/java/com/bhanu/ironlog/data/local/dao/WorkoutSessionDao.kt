@@ -97,6 +97,15 @@ interface WorkoutSessionDao {
     """)
     fun getVolumeSince(since: Long): Flow<Double?>
 
+    @Query("""
+        SELECT SUM(s.weight * s.reps) 
+        FROM session_sets s 
+        JOIN session_exercises e ON s.sessionExerciseId = e.sessionExerciseId 
+        JOIN workout_session_logs sess ON e.sessionId = sess.sessionId 
+        WHERE sess.status = 'COMPLETED'
+    """)
+    fun getTotalVolume(): Flow<Double?>
+
     @Delete
     suspend fun deleteSession(session: WorkoutSession)
 }

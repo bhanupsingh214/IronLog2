@@ -34,8 +34,15 @@ class WorkoutSessionRepository @Inject constructor(
         calendar.set(Calendar.HOUR_OF_DAY, 0)
         calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
         return workoutSessionDao.getVolumeSince(calendar.timeInMillis)
     }
+
+    fun getVolumeSince(since: Long): Flow<Double?> = 
+        workoutSessionDao.getVolumeSince(since)
+
+    fun getTotalVolume(): Flow<Double?> = 
+        workoutSessionDao.getTotalVolume()
 
     suspend fun getOrCreateSession(dayId: Long, programId: Long, startTime: Long = System.currentTimeMillis()): Long {
         val activeSession = workoutSessionDao.getActiveSessionByDay(dayId)

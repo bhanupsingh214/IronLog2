@@ -8,7 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.bhanu.ironlog.ui.screens.dashboard.DashboardScreen
-import com.bhanu.ironlog.ui.screens.insights.InsightsScreen
+import com.bhanu.ironlog.ui.screens.progress.ProgressScreen
 import com.bhanu.ironlog.ui.screens.profile.ProfileScreen
 import com.bhanu.ironlog.ui.screens.history.HistoryScreen
 import com.bhanu.ironlog.ui.screens.history.WorkoutDetailsScreen
@@ -129,8 +129,8 @@ fun SetupNavGraph(navController: NavHostController) {
         ) {
             WorkoutDetailsScreen(onBack = { navController.popBackStack() })
         }
-        composable(route = Screen.Insights.route) {
-            InsightsScreen()
+        composable(route = Screen.Progress.route) {
+            ProgressScreen()
         }
         composable(route = Screen.Profile.route) {
             ProfileScreen()
