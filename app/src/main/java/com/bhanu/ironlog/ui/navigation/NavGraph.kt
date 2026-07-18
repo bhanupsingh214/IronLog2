@@ -1,6 +1,7 @@
 package com.bhanu.ironlog.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -35,6 +36,9 @@ fun SetupNavGraph(navController: NavHostController) {
                 },
                 onNavigateToRecentSession = { _, sessionId ->
                     navController.navigate(Screen.WorkoutDetails.passSessionId(sessionId))
+                },
+                onNavigateToSessionExercises = { dayId, sessionId ->
+                    navController.navigate(Screen.SessionExercises.passSession(dayId, sessionId))
                 }
             )
         }
@@ -56,8 +60,12 @@ fun SetupNavGraph(navController: NavHostController) {
             SessionExercisesScreen(
                 onBack = { navController.popBackStack() },
                 onFinish = {
-                    navController.navigate(Screen.Dashboard.route) {
-                        popUpTo(Screen.Dashboard.route) { inclusive = true }
+                    navController.navigate(Screen.History.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
                     }
                 },
                 onNavigateToLogging = { exerciseId, sessionId ->

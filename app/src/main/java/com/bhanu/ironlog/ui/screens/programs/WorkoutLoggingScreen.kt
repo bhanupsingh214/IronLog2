@@ -119,6 +119,12 @@ fun SetItem(
     onMoveDown: (Long) -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    
+    // Local state to prevent cursor jumping while typing
+    var localWeight by remember(set.id) { mutableStateOf(if (set.weight == 0.0) "" else set.weight.toString()) }
+    var localReps by remember(set.id) { mutableStateOf(if (set.reps == 0) "" else set.reps.toString()) }
+    var localRpe by remember(set.id) { mutableStateOf(set.rpe?.toString() ?: "") }
+    var localNotes by remember(set.id) { mutableStateOf(set.notes) }
 
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -199,8 +205,9 @@ fun SetItem(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 LoggingTextField(
-                    value = if (set.weight == 0.0) "" else set.weight.toString(),
+                    value = localWeight,
                     onValueChange = { 
+                        localWeight = it
                         val weight = it.toDoubleOrNull() ?: 0.0
                         onUpdate(set.copy(weight = weight))
                     },
@@ -210,8 +217,9 @@ fun SetItem(
                     enabled = !isReadOnly
                 )
                 LoggingTextField(
-                    value = if (set.reps == 0) "" else set.reps.toString(),
+                    value = localReps,
                     onValueChange = { 
+                        localReps = it
                         val reps = it.toIntOrNull() ?: 0
                         onUpdate(set.copy(reps = reps))
                     },
@@ -220,8 +228,9 @@ fun SetItem(
                     enabled = !isReadOnly
                 )
                 LoggingTextField(
-                    value = set.rpe?.toString() ?: "",
+                    value = localRpe,
                     onValueChange = { 
+                        localRpe = it
                         val rpe = it.toDoubleOrNull()
                         onUpdate(set.copy(rpe = rpe))
                     },
@@ -234,8 +243,11 @@ fun SetItem(
             if (set.isCompleted || isReadOnly) {
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
-                    value = set.notes,
-                    onValueChange = { onUpdate(set.copy(notes = it)) },
+                    value = localNotes,
+                    onValueChange = { 
+                        localNotes = it
+                        onUpdate(set.copy(notes = it))
+                    },
                     label = { Text("Notes", style = MaterialTheme.typography.bodySmall) },
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = MaterialTheme.typography.bodySmall,

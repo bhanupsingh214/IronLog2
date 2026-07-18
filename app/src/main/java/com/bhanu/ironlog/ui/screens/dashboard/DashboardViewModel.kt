@@ -11,6 +11,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.Calendar
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -30,7 +32,15 @@ class DashboardViewModel @Inject constructor(
     val todayWorkout: StateFlow<WorkoutDayWithStats?> = activeProgram.flatMapLatest { program ->
         if (program != null) {
             programRepository.getWorkoutDaysWithStats(program.program.id).map { days ->
-                days.firstOrNull { it.day.isEnabled }
+                val currentWeekday = Calendar.getInstance().getDisplayName(
+                    Calendar.DAY_OF_WEEK,
+                    Calendar.LONG,
+                    Locale.getDefault()
+                )
+                
+                days.find { 
+                    it.day.isEnabled && it.day.name.equals(currentWeekday, ignoreCase = true) 
+                } ?: days.firstOrNull { it.day.isEnabled }
             }
         } else {
             flowOf(null)
@@ -101,7 +111,8 @@ class DashboardViewModel @Inject constructor(
             
             val sessionId = sessionRepository.getOrCreateSession(
                 dayId = dayId,
-                programId = program.program.id
+                programId = program.program.id,
+                startTime = date
             )
             
             _navigateToSession.emit(dayId to sessionId) 

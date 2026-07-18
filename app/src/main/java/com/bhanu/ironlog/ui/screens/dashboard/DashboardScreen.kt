@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
@@ -30,6 +31,7 @@ fun DashboardScreen(
     onNavigateToWorkout: () -> Unit,
     onNavigateToCurrentProgram: (Long) -> Unit,
     onNavigateToRecentSession: (Long, Long) -> Unit,
+    onNavigateToSessionExercises: (Long, Long) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val activeProgram by viewModel.activeProgram.collectAsState()
@@ -50,7 +52,7 @@ fun DashboardScreen(
             viewModel.navigateToSession.collectLatest { pair ->
                 if (pair.first != 0L && pair.second != 0L) {
                     showAddLogDialog = false
-                    onNavigateToRecentSession(pair.first, pair.second)
+                    onNavigateToSessionExercises(pair.first, pair.second)
                     viewModel.onNavigationHandled()
                 }
             }
@@ -355,6 +357,7 @@ fun PersonalRecordsCard(records: List<Pair<String, Double>>) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddLogDialog(
     onDismiss: () -> Unit,
@@ -362,31 +365,68 @@ fun AddLogDialog(
     viewModel: DashboardViewModel
 ) {
     val workoutDays by viewModel.activeProgramDays.collectAsState()
-    
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Select Workout Day") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Pick a day from ${activeProgram?.program?.name}")
-                LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
-                    items(workoutDays.size) { index ->
-                        val item = workoutDays[index]
-                        OutlinedButton(
-                            onClick = { 
-                                viewModel.onAddHistoricalSession(item.day.id, System.currentTimeMillis())
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(item.day.name)
+    var selectedDayId by remember { mutableStateOf<Long?>(null) }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    if (!showDatePicker) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Select Workout Day") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Pick a day from ${activeProgram?.program?.name}")
+                    LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
+                        items(workoutDays.size) { index ->
+                            val item = workoutDays[index]
+                            OutlinedButton(
+                                onClick = {
+                                    selectedDayId = item.day.id
+                                    showDatePicker = true
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(item.day.name)
+                            }
                         }
                     }
                 }
+            },
+            confirmButton = { },
+            dismissButton = {
+                TextButton(onClick = onDismiss) { Text("Cancel") }
             }
-        },
-        confirmButton = { },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+        )
+    } else {
+        val datePickerState = rememberDatePickerState(
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    return utcTimeMillis <= System.currentTimeMillis()
+                }
+            }
+        )
+
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val date = datePickerState.selectedDateMillis ?: System.currentTimeMillis()
+                        selectedDayId?.let { dayId ->
+                            viewModel.onAddHistoricalSession(dayId, date)
+                        }
+                        showDatePicker = false
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Back")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
-    )
+    }
 }

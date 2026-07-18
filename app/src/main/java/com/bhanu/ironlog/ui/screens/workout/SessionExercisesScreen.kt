@@ -1,5 +1,6 @@
 package com.bhanu.ironlog.ui.screens.workout
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -36,6 +38,7 @@ fun SessionExercisesScreen(
         return
     }
 
+    val context = LocalContext.current
     val session by viewModel.session.collectAsState()
     val exercises by viewModel.exercises.collectAsState()
     val timerSeconds by viewModel.timerSeconds.collectAsState()
@@ -84,6 +87,7 @@ fun SessionExercisesScreen(
                 Button(
                     onClick = { 
                         viewModel.finishWorkout()
+                        Toast.makeText(context, "Workout Saved", Toast.LENGTH_SHORT).show()
                         onFinish()
                     },
                     modifier = Modifier

@@ -36,10 +36,33 @@ class WorkoutSessionRepository @Inject constructor(
         return workoutSessionDao.getVolumeSince(calendar.timeInMillis)
     }
 
-    suspend fun getOrCreateSession(dayId: Long, programId: Long): Long {
+    suspend fun getOrCreateSession(dayId: Long, programId: Long, startTime: Long = System.currentTimeMillis()): Long {
         val activeSession = workoutSessionDao.getActiveSessionByDay(dayId)
-        if (activeSession != null) {
+        val isHistorical = startTime < System.currentTimeMillis() - 60000
+        
+        if (!isHistorical && activeSession != null) {
             return activeSession.sessionId
+        }
+
+        // For historical logs, check if a session already exists for this day and date
+        if (isHistorical) {
+            val calendar = Calendar.getInstance()
+            calendar.timeInMillis = startTime
+            calendar.set(Calendar.HOUR_OF_DAY, 0)
+            calendar.set(Calendar.MINUTE, 0)
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
+            val dayStart = calendar.timeInMillis
+            calendar.set(Calendar.HOUR_OF_DAY, 23)
+            calendar.set(Calendar.MINUTE, 59)
+            calendar.set(Calendar.SECOND, 59)
+            calendar.set(Calendar.MILLISECOND, 999)
+            val dayEnd = calendar.timeInMillis
+            
+            val existing = workoutSessionDao.getSessionByDayAndDate(dayId, dayStart, dayEnd)
+            if (existing != null) {
+                return existing.sessionId
+            }
         }
 
         // Get Names for Session
@@ -53,7 +76,9 @@ class WorkoutSessionRepository @Inject constructor(
                 workoutDayId = dayId,
                 dayName = day?.name ?: "Unknown Day",
                 programName = program?.name ?: "Unknown Program",
-                status = "ACTIVE"
+                status = "ACTIVE",
+                startTime = startTime,
+                createdAt = startTime
             )
         )
 
@@ -97,7 +122,11 @@ class WorkoutSessionRepository @Inject constructor(
         val session = workoutSessionDao.getSessionByIdOnce(sessionId)
         session?.let {
             val endTime = System.currentTimeMillis()
-            val duration = (endTime - it.startTime) / 1000
+            // If the workout was started more than 12 hours ago, it's likely a historical log
+            // or a forgotten session. In these cases, we don't want a massive duration.
+            val isHistorical = it.startTime < endTime - 12 * 3600 * 1000
+            val duration = if (isHistorical) 0L else (endTime - it.startTime) / 1000
+
             workoutSessionDao.updateSession(it.copy(
                 status = "COMPLETED",
                 endTime = endTime,
