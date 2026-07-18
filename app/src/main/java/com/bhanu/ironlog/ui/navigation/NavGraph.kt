@@ -12,6 +12,8 @@ import com.bhanu.ironlog.ui.screens.progress.ProgressScreen
 import com.bhanu.ironlog.ui.screens.profile.ProfileScreen
 import com.bhanu.ironlog.ui.screens.history.HistoryScreen
 import com.bhanu.ironlog.ui.screens.history.WorkoutDetailsScreen
+import com.bhanu.ironlog.ui.screens.records.RecordDetailScreen
+import com.bhanu.ironlog.ui.screens.records.RecordsScreen
 import com.bhanu.ironlog.ui.screens.programs.ArchivedProgramsScreen
 import com.bhanu.ironlog.ui.screens.programs.ExercisesScreen
 import com.bhanu.ironlog.ui.screens.programs.ProgramsScreen
@@ -39,6 +41,9 @@ fun SetupNavGraph(navController: NavHostController) {
                 },
                 onNavigateToSessionExercises = { dayId, sessionId ->
                     navController.navigate(Screen.SessionExercises.passSession(dayId, sessionId))
+                },
+                onNavigateToRecords = {
+                    navController.navigate(Screen.Records.route)
                 }
             )
         }
@@ -123,6 +128,20 @@ fun SetupNavGraph(navController: NavHostController) {
                 }
             )
         }
+        composable(route = Screen.Records.route) {
+            RecordsScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToDetail = { exerciseId ->
+                    navController.navigate(Screen.RecordDetail.passExerciseId(exerciseId))
+                }
+            )
+        }
+        composable(
+            route = Screen.RecordDetail.route,
+            arguments = listOf(navArgument("exerciseId") { type = NavType.LongType })
+        ) {
+            RecordDetailScreen(onBack = { navController.popBackStack() })
+        }
         composable(
             route = Screen.WorkoutDetails.route,
             arguments = listOf(navArgument("sessionId") { type = NavType.LongType })
@@ -130,7 +149,11 @@ fun SetupNavGraph(navController: NavHostController) {
             WorkoutDetailsScreen(onBack = { navController.popBackStack() })
         }
         composable(route = Screen.Progress.route) {
-            ProgressScreen()
+            ProgressScreen(
+                onNavigateToRecords = {
+                    navController.navigate(Screen.Records.route)
+                }
+            )
         }
         composable(route = Screen.Profile.route) {
             ProfileScreen()

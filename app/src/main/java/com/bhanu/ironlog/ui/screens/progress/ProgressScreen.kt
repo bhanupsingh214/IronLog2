@@ -18,34 +18,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bhanu.ironlog.data.local.pojo.PRWithExerciseName
+import com.bhanu.ironlog.ui.components.StrengthProgressionChart
 import com.patrykandpatrick.vico.compose.axis.horizontal.rememberBottomAxis
 import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
 import com.patrykandpatrick.vico.compose.chart.Chart
 import com.patrykandpatrick.vico.compose.chart.line.lineChart
 import com.patrykandpatrick.vico.compose.chart.scroll.rememberChartScrollSpec
-import com.patrykandpatrick.vico.compose.component.shape.shader.verticalGradient
-import com.patrykandpatrick.vico.compose.component.textComponent
 import com.patrykandpatrick.vico.compose.m3.style.m3ChartStyle
 import com.patrykandpatrick.vico.compose.style.ProvideChartStyle
-import com.patrykandpatrick.vico.compose.style.currentChartStyle
-import com.patrykandpatrick.vico.core.axis.AxisPosition
-import com.patrykandpatrick.vico.core.axis.formatter.AxisValueFormatter
-import com.patrykandpatrick.vico.core.chart.line.LineChart
-import com.patrykandpatrick.vico.compose.component.shapeComponent
-import com.patrykandpatrick.vico.core.component.shape.ShapeComponent
-import com.patrykandpatrick.vico.core.dimensions.MutableDimensions
-import com.patrykandpatrick.vico.compose.dimensions.dimensionsOf
-import com.patrykandpatrick.vico.core.component.text.TextComponent
 import com.patrykandpatrick.vico.core.entry.entryModelOf
 import com.patrykandpatrick.vico.core.entry.entryOf
-import com.patrykandpatrick.vico.core.marker.Marker
-import com.patrykandpatrick.vico.core.marker.DefaultMarkerLabelFormatter
 import java.text.SimpleDateFormat
 import java.util.*
+import com.patrykandpatrick.vico.compose.dimensions.dimensionsOf
+import com.patrykandpatrick.vico.core.component.text.TextComponent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProgressScreen(
+    onNavigateToRecords: () -> Unit,
     viewModel: ProgressViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -95,7 +86,8 @@ fun ProgressScreen(
                             volumeFilter = volumeFilter,
                             onExerciseSelected = { viewModel.onExerciseSelected(it) },
                             onToggleE1RM = { viewModel.toggleE1RM(it) },
-                            onVolumeFilterSelected = { viewModel.onVolumeFilterSelected(it) }
+                            onVolumeFilterSelected = { viewModel.onVolumeFilterSelected(it) },
+                            onNavigateToRecords = onNavigateToRecords
                         )
                     }
                 }
@@ -116,7 +108,8 @@ fun ProgressContent(
     volumeFilter: TimeFilter,
     onExerciseSelected: (Long) -> Unit,
     onToggleE1RM: (Boolean) -> Unit,
-    onVolumeFilterSelected: (TimeFilter) -> Unit
+    onVolumeFilterSelected: (TimeFilter) -> Unit,
+    onNavigateToRecords: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -203,7 +196,7 @@ fun ProgressContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("Recent Personal Records", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                TextButton(onClick = { /* TODO */ }, enabled = false) {
+                TextButton(onClick = onNavigateToRecords) {
                     Text("View All")
                 }
             }
@@ -234,90 +227,62 @@ fun StrengthChartSection(
     var expanded by remember { mutableStateOf(false) }
     val selectedExercise = exercises.find { it.id == selectedExerciseId }
 
-    ProvideChartStyle(m3ChartStyle()) {
-        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp)) {
-                ExposedDropdownMenuBox(
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = it }
+            ) {
+                OutlinedTextField(
+                    value = selectedExercise?.name ?: "Select Exercise",
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                    textStyle = MaterialTheme.typography.bodyMedium
+                )
+                ExposedDropdownMenu(
                     expanded = expanded,
-                    onExpandedChange = { expanded = it }
+                    onDismissRequest = { expanded = false }
                 ) {
-                    OutlinedTextField(
-                        value = selectedExercise?.name ?: "Select Exercise",
-                        onValueChange = {},
-                        readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
-                        textStyle = MaterialTheme.typography.bodyMedium
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
-                        exercises.forEach { exercise ->
-                            DropdownMenuItem(
-                                text = { Text(exercise.name) },
-                                onClick = {
-                                    onExerciseSelected(exercise.id)
-                                    expanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-                
-                Spacer(Modifier.height(8.dp))
-                
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    SegmentedButton(
-                        selected = !isE1RM,
-                        onClick = { onToggleE1RM(false) },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-                    ) {
-                        Text("Weight", style = MaterialTheme.typography.labelSmall)
-                    }
-                    SegmentedButton(
-                        selected = isE1RM,
-                        onClick = { onToggleE1RM(true) },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-                    ) {
-                        Text("Est. 1RM", style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-
-                Spacer(Modifier.height(16.dp))
-
-                if (history.size < 2) {
-                    Box(Modifier.height(200.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text("Train more to unlock your progress graph", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
-                    }
-                } else {
-                    val entries = history.mapIndexed { index, item ->
-                        val value = if (isE1RM) item.maxE1RM else item.maxWeight
-                        entryOf(index.toFloat(), value.toFloat())
-                    }
-                    
-                    val model = entryModelOf(entries)
-                    
-                    Chart(
-                        chart = lineChart(),
-                        model = model,
-                        startAxis = rememberStartAxis(
-                            valueFormatter = { value, _ -> String.format(Locale.getDefault(), "%,.0f", value) }
-                        ),
-                        bottomAxis = rememberBottomAxis(
-                            valueFormatter = { value, _ ->
-                                val index = value.toInt()
-                                if (index in history.indices) {
-                                    SimpleDateFormat("MMM d", Locale.getDefault()).format(Date(history[index].date))
-                                } else ""
+                    exercises.forEach { exercise ->
+                        DropdownMenuItem(
+                            text = { Text(exercise.name) },
+                            onClick = {
+                                onExerciseSelected(exercise.id)
+                                expanded = false
                             }
-                        ),
-                        chartScrollSpec = rememberChartScrollSpec(isScrollEnabled = true),
-                        isZoomEnabled = true,
-                        modifier = Modifier.height(200.dp).fillMaxWidth()
-                    )
+                        )
+                    }
                 }
             }
+            
+            Spacer(Modifier.height(8.dp))
+            
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                SegmentedButton(
+                    selected = !isE1RM,
+                    onClick = { onToggleE1RM(false) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                ) {
+                    Text("Weight", style = MaterialTheme.typography.labelSmall)
+                }
+                SegmentedButton(
+                    selected = isE1RM,
+                    onClick = { onToggleE1RM(true) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                ) {
+                    Text("Est. 1RM", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            StrengthProgressionChart(
+                history = history,
+                isE1RM = isE1RM,
+                modifier = Modifier.height(200.dp).fillMaxWidth()
+            )
         }
     }
 }
@@ -427,7 +392,7 @@ fun PRItem(item: PRWithExerciseName) {
                 Text("Weight PR", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
             }
             Text(
-                String.format(Locale.getDefault(), "%.1f kg", item.pr.weightPR),
+                String.format(Locale.getDefault(), "%,.1f kg", item.pr.weightPR),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold

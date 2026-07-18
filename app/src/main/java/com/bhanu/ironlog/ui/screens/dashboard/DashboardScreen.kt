@@ -32,6 +32,7 @@ fun DashboardScreen(
     onNavigateToCurrentProgram: (Long) -> Unit,
     onNavigateToRecentSession: (Long, Long) -> Unit,
     onNavigateToSessionExercises: (Long, Long) -> Unit,
+    onNavigateToRecords: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val activeProgram by viewModel.activeProgram.collectAsState()
@@ -110,7 +111,10 @@ fun DashboardScreen(
         }
 
         item {
-            PersonalRecordsCard(personalRecords)
+            PersonalRecordsCard(
+                records = personalRecords,
+                onClick = onNavigateToRecords
+            )
         }
     }
 
@@ -333,8 +337,15 @@ fun RecentHistoryCard(
 }
 
 @Composable
-fun PersonalRecordsCard(records: List<Pair<String, Double>>) {
-    DashboardCard(title = "Personal Records", icon = Icons.Default.EmojiEvents) {
+fun PersonalRecordsCard(
+    records: List<Pair<String, Double>>,
+    onClick: () -> Unit
+) {
+    DashboardCard(
+        title = "Personal Records", 
+        icon = Icons.Default.EmojiEvents,
+        modifier = Modifier.clickable { onClick() }
+    ) {
         if (records.isEmpty()) {
             Text(
                 text = "No PRs logged yet",

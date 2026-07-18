@@ -15,6 +15,10 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Progress : Screen("progress", "Progress", Icons.Default.BarChart)
     object Profile : Screen("profile", "Profile", Icons.Default.Person)
     object History : Screen("history", "History", Icons.Default.History)
+    object Records : Screen("records", "Records", Icons.Default.EmojiEvents)
+    object RecordDetail : Screen("record_detail/{exerciseId}", "Record Detail", Icons.Default.Info) {
+        fun passExerciseId(id: Long) = "record_detail/$id"
+    }
     object WorkoutDetails : Screen("workout_details/{sessionId}", "Details", Icons.Default.Info) {
         fun passSessionId(id: Long) = "workout_details/$id"
     }
