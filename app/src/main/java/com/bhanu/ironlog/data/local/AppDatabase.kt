@@ -6,6 +6,7 @@ import com.bhanu.ironlog.data.local.dao.PlaceholderDao
 import com.bhanu.ironlog.data.local.dao.ProgramDao
 import com.bhanu.ironlog.data.local.dao.SessionDao
 import com.bhanu.ironlog.data.local.dao.WorkoutSessionDao
+import com.bhanu.ironlog.data.local.dao.PersonalRecordDao
 import com.bhanu.ironlog.data.local.entity.*
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
@@ -20,9 +21,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         WorkoutSessionEntity::class,
         WorkoutSession::class,
         SessionExercise::class,
-        SessionSet::class
+        SessionSet::class,
+        PersonalRecordEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -30,6 +32,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun programDao(): ProgramDao
     abstract fun sessionDao(): SessionDao
     abstract fun workoutSessionDao(): WorkoutSessionDao
+    abstract fun personalRecordDao(): PersonalRecordDao
 
     companion object {
         val MIGRATION_6_7 = object : Migration(6, 7) {
@@ -88,6 +91,24 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_8_9 = object : Migration(8, 9) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `workout_session_logs` ADD COLUMN `durationSeconds` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `personal_records` (
+                        `exerciseTemplateId` INTEGER PRIMARY KEY NOT NULL, 
+                        `weightPR` REAL NOT NULL, 
+                        `weightPRDate` INTEGER NOT NULL, 
+                        `weightPRSessionId` INTEGER NOT NULL, 
+                        `estimated1RM` REAL NOT NULL, 
+                        `estimated1RMDate` INTEGER NOT NULL, 
+                        `estimated1RMSessionId` INTEGER NOT NULL, 
+                        `createdAt` INTEGER NOT NULL, 
+                        `updatedAt` INTEGER NOT NULL
+                    )
+                """)
             }
         }
     }

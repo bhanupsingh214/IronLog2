@@ -19,11 +19,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bhanu.ironlog.data.local.entity.ExerciseEntity
 import com.bhanu.ironlog.data.local.pojo.SessionExerciseWithTemplate
+import com.bhanu.ironlog.data.service.Achievement
+import com.bhanu.ironlog.data.service.AchievementType
 import com.bhanu.ironlog.ui.components.ErrorScreen
 import com.bhanu.ironlog.ui.components.ExerciseSessionItem
 import com.bhanu.ironlog.ui.components.WorkoutProgress
 import com.bhanu.ironlog.ui.components.formatTimer
 import kotlinx.coroutines.delay
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,6 +45,17 @@ fun SessionExercisesScreen(
     val session by viewModel.session.collectAsState()
     val exercises by viewModel.exercises.collectAsState()
     val timerSeconds by viewModel.timerSeconds.collectAsState()
+    
+    val achievements by viewModel.achievements.collectAsState()
+    val showCelebration by viewModel.showCelebration.collectAsState()
+
+    // Handle Finish Navigation
+    LaunchedEffect(Unit) {
+        viewModel.finishSignal.collect {
+            Toast.makeText(context, "Workout Saved", Toast.LENGTH_SHORT).show()
+            onFinish()
+        }
+    }
 
     // We can use a derived state to track if we've attempted to load and failed
     var loadingTimedOut by remember { mutableStateOf(false) }
@@ -91,8 +105,6 @@ fun SessionExercisesScreen(
                 Button(
                     onClick = { 
                         viewModel.finishWorkout()
-                        Toast.makeText(context, "Workout Saved", Toast.LENGTH_SHORT).show()
-                        onFinish()
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -157,4 +169,60 @@ fun SessionExercisesScreen(
             }
         }
     }
+
+    if (showCelebration) {
+        PRCelebrationDialog(
+            achievements = achievements,
+            onDismiss = { viewModel.onCelebrationDismissed() }
+        )
+    }
+}
+
+@Composable
+fun PRCelebrationDialog(
+    achievements: List<Achievement>,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    Icons.Default.EmojiEvents,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(8.dp))
+                Text("New Personal Records!", fontWeight = FontWeight.Bold)
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                achievements.forEach { achievement ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(achievement.exerciseName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                            val typeLabel = if (achievement.type == AchievementType.WEIGHT_PR) "New Max Weight" else "New Est. 1RM"
+                            Text(typeLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                        }
+                        Text(
+                            String.format(Locale.getDefault(), "%.1f kg", achievement.value),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text("Awesome!")
+            }
+        }
+    )
 }

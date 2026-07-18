@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.bhanu.ironlog.data.local.entity.WorkoutSession
 import com.bhanu.ironlog.data.local.pojo.ProgramWithStats
 import com.bhanu.ironlog.data.local.pojo.WorkoutDayWithStats
+import com.bhanu.ironlog.data.repository.PersonalRecordRepository
 import com.bhanu.ironlog.data.repository.ProgramRepository
 import com.bhanu.ironlog.data.repository.WorkoutSessionRepository
 import com.bhanu.ironlog.util.WorkoutResolver
@@ -17,7 +18,8 @@ import javax.inject.Inject
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val programRepository: ProgramRepository,
-    private val sessionRepository: WorkoutSessionRepository
+    private val sessionRepository: WorkoutSessionRepository,
+    private val prRepository: PersonalRecordRepository
 ) : ViewModel() {
 
     val activeProgram: StateFlow<ProgramWithStats?> = programRepository.getActiveProgram()
@@ -71,7 +73,12 @@ class DashboardViewModel @Inject constructor(
             initialValue = 0.0
         )
 
-    val personalRecords: StateFlow<List<Pair<String, Double>>> = programRepository.getTopPersonalRecords()
+    val personalRecords: StateFlow<List<Pair<String, Double>>> = prRepository.getAllPRsWithExerciseName()
+        .map { list ->
+            list.map { it.exercise.name to it.pr.weightPR }
+                .sortedByDescending { it.second }
+                .take(5)
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),

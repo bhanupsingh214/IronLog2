@@ -7,6 +7,8 @@ import com.bhanu.ironlog.data.local.entity.WorkoutSession
 import com.bhanu.ironlog.data.local.pojo.SessionExerciseWithTemplate
 import com.bhanu.ironlog.data.repository.ProgramRepository
 import com.bhanu.ironlog.data.repository.WorkoutSessionRepository
+import com.bhanu.ironlog.data.service.Achievement
+import com.bhanu.ironlog.data.service.PersonalRecordEngine
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -20,6 +22,7 @@ import kotlin.time.Duration.Companion.seconds
 class SessionExercisesViewModel @Inject constructor(
     private val repository: ProgramRepository,
     private val sessionRepository: WorkoutSessionRepository,
+    private val prEngine: PersonalRecordEngine,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -60,6 +63,12 @@ class SessionExercisesViewModel @Inject constructor(
     private val _timerSeconds = MutableStateFlow(0L)
     val timerSeconds = _timerSeconds.asStateFlow()
 
+    private val _achievements = MutableStateFlow<List<Achievement>>(emptyList())
+    val achievements = _achievements.asStateFlow()
+
+    private val _showCelebration = MutableStateFlow(false)
+    val showCelebration = _showCelebration.asStateFlow()
+
     private var timerJob: Job? = null
 
     init {
@@ -99,7 +108,30 @@ class SessionExercisesViewModel @Inject constructor(
     fun finishWorkout() {
         timerJob?.cancel()
         viewModelScope.launch {
+            // 1. Process PRs before closing session
+            val newAchievements = prEngine.processSessionPRs(sessionId)
+            
+            // 2. Finish Session
             sessionRepository.finishSession(sessionId)
+            
+            // 3. Show celebration if needed
+            if (newAchievements.isNotEmpty()) {
+                _achievements.value = newAchievements
+                _showCelebration.value = true
+            } else {
+                // If no PRs, we'll signal to navigate away
+                _finishSignal.emit(Unit)
+            }
+        }
+    }
+
+    private val _finishSignal = MutableSharedFlow<Unit>()
+    val finishSignal = _finishSignal.asSharedFlow()
+
+    fun onCelebrationDismissed() {
+        _showCelebration.value = false
+        viewModelScope.launch {
+            _finishSignal.emit(Unit)
         }
     }
 }

@@ -7,6 +7,7 @@ import com.bhanu.ironlog.data.local.dao.PlaceholderDao
 import com.bhanu.ironlog.data.local.dao.ProgramDao
 import com.bhanu.ironlog.data.local.dao.SessionDao
 import com.bhanu.ironlog.data.local.dao.WorkoutSessionDao
+import com.bhanu.ironlog.data.local.dao.PersonalRecordDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -28,7 +29,8 @@ object AppModule {
         ).addMigrations(
             AppDatabase.MIGRATION_6_7,
             AppDatabase.MIGRATION_7_8,
-            AppDatabase.MIGRATION_8_9
+            AppDatabase.MIGRATION_8_9,
+            AppDatabase.MIGRATION_9_10
         ).build()
     }
 
@@ -50,5 +52,10 @@ object AppModule {
     @Provides
     fun provideWorkoutSessionDao(database: AppDatabase): WorkoutSessionDao {
         return database.workoutSessionDao()
+    }
+
+    @Provides
+    fun providePersonalRecordDao(database: AppDatabase): PersonalRecordDao {
+        return database.personalRecordDao()
     }
 }
