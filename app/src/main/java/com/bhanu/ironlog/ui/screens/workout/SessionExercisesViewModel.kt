@@ -43,7 +43,11 @@ class SessionExercisesViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     val exercises: StateFlow<List<SessionExerciseWithTemplate>> = session.flatMapLatest { session ->
         if (session != null) {
-            sessionRepository.getExercisesWithTemplateForSession(session.sessionId)
+            if (session.status == "ACTIVE") {
+                sessionRepository.getExercisesForActiveSession(session.sessionId, dayId)
+            } else {
+                sessionRepository.getExercisesWithTemplateForSession(session.sessionId)
+            }
         } else {
             flowOf(emptyList())
         }

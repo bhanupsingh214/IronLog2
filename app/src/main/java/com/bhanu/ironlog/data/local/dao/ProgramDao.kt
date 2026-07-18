@@ -11,7 +11,7 @@ interface ProgramDao {
     @Query("""
         SELECT p.*, 
         (SELECT COUNT(*) FROM workout_days WHERE programId = p.id) as dayCount,
-        (SELECT COUNT(e.id) FROM workout_days wd LEFT JOIN exercises e ON wd.id = e.dayId WHERE wd.programId = p.id) as exerciseCount
+        (SELECT COUNT(e.id) FROM workout_days wd LEFT JOIN exercises e ON wd.id = e.dayId WHERE wd.programId = p.id AND e.enabled = 1) as exerciseCount
         FROM programs p
         WHERE p.isArchived = 0
     """)
@@ -20,7 +20,7 @@ interface ProgramDao {
     @Query("""
         SELECT p.*, 
         (SELECT COUNT(*) FROM workout_days WHERE programId = p.id) as dayCount,
-        (SELECT COUNT(e.id) FROM workout_days wd LEFT JOIN exercises e ON wd.id = e.dayId WHERE wd.programId = p.id) as exerciseCount
+        (SELECT COUNT(e.id) FROM workout_days wd LEFT JOIN exercises e ON wd.id = e.dayId WHERE wd.programId = p.id AND e.enabled = 1) as exerciseCount
         FROM programs p
         WHERE p.isArchived = 1
         ORDER BY lastModifiedAt DESC
@@ -54,7 +54,7 @@ interface ProgramDao {
     @Query("""
         SELECT p.*, 
         (SELECT COUNT(*) FROM workout_days WHERE programId = p.id) as dayCount,
-        (SELECT COUNT(e.id) FROM workout_days wd LEFT JOIN exercises e ON wd.id = e.dayId WHERE wd.programId = p.id) as exerciseCount
+        (SELECT COUNT(e.id) FROM workout_days wd LEFT JOIN exercises e ON wd.id = e.dayId WHERE wd.programId = p.id AND e.enabled = 1) as exerciseCount
         FROM programs p
         WHERE p.isActive = 1 AND p.isArchived = 0
         LIMIT 1
@@ -68,8 +68,14 @@ interface ProgramDao {
     @Query("SELECT * FROM exercises WHERE dayId = :dayId ORDER BY `order` ASC")
     fun getExercisesForDayFlow(dayId: Long): Flow<List<ExerciseEntity>>
 
+    @Query("SELECT * FROM exercises WHERE dayId = :dayId AND enabled = 1 ORDER BY `order` ASC")
+    fun getEnabledExercisesForDayFlow(dayId: Long): Flow<List<ExerciseEntity>>
+
     @Query("SELECT * FROM exercises WHERE dayId = :dayId")
     suspend fun getExercisesForDay(dayId: Long): List<ExerciseEntity>
+
+    @Query("SELECT * FROM exercises WHERE dayId = :dayId AND enabled = 1")
+    suspend fun getEnabledExercisesForDay(dayId: Long): List<ExerciseEntity>
 
     @Query("SELECT * FROM exercise_sets WHERE exerciseId = :exerciseId")
     suspend fun getSetsForExercise(exerciseId: Long): List<SetEntity>
@@ -140,7 +146,7 @@ interface ProgramDao {
     // Workout Day Management
     @Query("""
         SELECT wd.*, 
-        (SELECT COUNT(*) FROM exercises WHERE dayId = wd.id) as exerciseCount
+        (SELECT COUNT(*) FROM exercises WHERE dayId = wd.id AND enabled = 1) as exerciseCount
         FROM workout_days wd
         WHERE wd.programId = :programId
         ORDER BY wd.`order` ASC

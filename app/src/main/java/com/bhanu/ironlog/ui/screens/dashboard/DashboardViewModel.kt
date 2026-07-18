@@ -7,12 +7,11 @@ import com.bhanu.ironlog.data.local.pojo.ProgramWithStats
 import com.bhanu.ironlog.data.local.pojo.WorkoutDayWithStats
 import com.bhanu.ironlog.data.repository.ProgramRepository
 import com.bhanu.ironlog.data.repository.WorkoutSessionRepository
+import com.bhanu.ironlog.util.WorkoutResolver
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.util.Calendar
-import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -32,15 +31,7 @@ class DashboardViewModel @Inject constructor(
     val todayWorkout: StateFlow<WorkoutDayWithStats?> = activeProgram.flatMapLatest { program ->
         if (program != null) {
             programRepository.getWorkoutDaysWithStats(program.program.id).map { days ->
-                val currentWeekday = Calendar.getInstance().getDisplayName(
-                    Calendar.DAY_OF_WEEK,
-                    Calendar.LONG,
-                    Locale.getDefault()
-                )
-                
-                days.find { 
-                    it.day.isEnabled && it.day.name.equals(currentWeekday, ignoreCase = true) 
-                } ?: days.firstOrNull { it.day.isEnabled }
+                WorkoutResolver.resolveTodayWorkout(days)
             }
         } else {
             flowOf(null)

@@ -47,6 +47,9 @@ interface WorkoutSessionDao {
     @Query("SELECT * FROM session_exercises WHERE sessionId = :sessionId ORDER BY exerciseOrder ASC")
     fun getExercisesForSession(sessionId: Long): Flow<List<SessionExercise>>
 
+    @Query("SELECT * FROM session_exercises WHERE sessionId = :sessionId")
+    suspend fun getExercisesForSessionList(sessionId: Long): List<SessionExercise>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSessionSet(set: SessionSet): Long
 
@@ -67,6 +70,9 @@ interface WorkoutSessionDao {
 
     @Delete
     suspend fun deleteSessionSet(set: SessionSet)
+
+    @Delete
+    suspend fun deleteSessionExercise(exercise: SessionExercise)
 
     @Query("SELECT * FROM workout_session_logs WHERE status = 'COMPLETED' ORDER BY createdAt DESC")
     fun getCompletedSessions(): Flow<List<WorkoutSession>>

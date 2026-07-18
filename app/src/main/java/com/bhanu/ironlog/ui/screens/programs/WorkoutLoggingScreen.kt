@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bhanu.ironlog.ui.components.ErrorScreen
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -124,7 +126,11 @@ fun SetItem(
     var localWeight by remember(set.id) { mutableStateOf(if (set.weight == 0.0) "" else set.weight.toString()) }
     var localReps by remember(set.id) { mutableStateOf(if (set.reps == 0) "" else set.reps.toString()) }
     var localRpe by remember(set.id) { mutableStateOf(set.rpe?.toString() ?: "") }
-    var localNotes by remember(set.id) { mutableStateOf(set.notes) }
+    
+    // Using TextFieldValue to preserve cursor position for notes
+    var notesFieldValue by remember(set.id) { 
+        mutableStateOf(TextFieldValue(text = set.notes, selection = TextRange(set.notes.length))) 
+    }
 
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -243,10 +249,10 @@ fun SetItem(
             if (set.isCompleted || isReadOnly) {
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
-                    value = localNotes,
+                    value = notesFieldValue,
                     onValueChange = { 
-                        localNotes = it
-                        onUpdate(set.copy(notes = it))
+                        notesFieldValue = it
+                        onUpdate(set.copy(notes = it.text))
                     },
                     label = { Text("Notes", style = MaterialTheme.typography.bodySmall) },
                     modifier = Modifier.fillMaxWidth(),

@@ -59,6 +59,10 @@ fun SessionExercisesScreen(
         session?.completedExerciseIds?.split(",")?.filter { it.isNotBlank() }?.toSet() ?: emptySet()
     }
 
+    val actualCompletedCount = remember(completedIds, exercises) {
+        exercises.count { completedIds.contains(it.template.id.toString()) }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -135,7 +139,7 @@ fun SessionExercisesScreen(
                 ) {
                     item {
                         WorkoutProgress(
-                            completed = completedIds.size,
+                            completed = actualCompletedCount,
                             total = exercises.size
                         )
                     }
