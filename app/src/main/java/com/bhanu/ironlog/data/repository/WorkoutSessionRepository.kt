@@ -5,9 +5,7 @@ import com.bhanu.ironlog.data.local.dao.WorkoutSessionDao
 import com.bhanu.ironlog.data.local.entity.SessionExercise
 import com.bhanu.ironlog.data.local.entity.SessionSet
 import com.bhanu.ironlog.data.local.entity.WorkoutSession
-import com.bhanu.ironlog.data.local.pojo.SessionExerciseWithTemplate
-import com.bhanu.ironlog.data.local.pojo.SessionExerciseWithTemplateAndSets
-import com.bhanu.ironlog.data.local.pojo.WorkoutSessionWithVolume
+import com.bhanu.ironlog.data.local.pojo.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import java.util.Calendar
@@ -43,6 +41,12 @@ class WorkoutSessionRepository @Inject constructor(
 
     fun getTotalVolume(): Flow<Double?> = 
         workoutSessionDao.getTotalVolume()
+
+    fun getDailyVolumeHistory(since: Long): Flow<List<DailyVolume>> =
+        workoutSessionDao.getDailyVolumeHistory(since)
+
+    fun getExerciseStrengthHistory(exerciseId: Long): Flow<List<ExerciseStrengthHistory>> =
+        workoutSessionDao.getExerciseStrengthHistory(exerciseId)
 
     suspend fun getOrCreateSession(dayId: Long, programId: Long, startTime: Long = System.currentTimeMillis()): Long {
         val activeSession = workoutSessionDao.getActiveSessionByDay(dayId)

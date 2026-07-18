@@ -4,9 +4,7 @@ import androidx.room.*
 import com.bhanu.ironlog.data.local.entity.SessionExercise
 import com.bhanu.ironlog.data.local.entity.SessionSet
 import com.bhanu.ironlog.data.local.entity.WorkoutSession
-import com.bhanu.ironlog.data.local.pojo.SessionExerciseWithTemplate
-import com.bhanu.ironlog.data.local.pojo.SessionExerciseWithTemplateAndSets
-import com.bhanu.ironlog.data.local.pojo.WorkoutSessionWithVolume
+import com.bhanu.ironlog.data.local.pojo.*
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -105,6 +103,28 @@ interface WorkoutSessionDao {
         WHERE sess.status = 'COMPLETED'
     """)
     fun getTotalVolume(): Flow<Double?>
+
+    @Query("""
+        SELECT sess.createdAt as date, SUM(s.weight * s.reps) as volume
+        FROM session_sets s 
+        JOIN session_exercises e ON s.sessionExerciseId = e.sessionExerciseId 
+        JOIN workout_session_logs sess ON e.sessionId = sess.sessionId 
+        WHERE sess.status = 'COMPLETED' AND sess.createdAt >= :since
+        GROUP BY CAST(sess.createdAt / 86400000 AS INTEGER)
+        ORDER BY sess.createdAt ASC
+    """)
+    fun getDailyVolumeHistory(since: Long): Flow<List<DailyVolume>>
+
+    @Query("""
+        SELECT sess.createdAt as date, MAX(s.weight) as maxWeight, MAX(s.weight * (1 + s.reps / 30.0)) as maxE1RM
+        FROM session_sets s
+        JOIN session_exercises e ON s.sessionExerciseId = e.sessionExerciseId
+        JOIN workout_session_logs sess ON e.sessionId = sess.sessionId
+        WHERE sess.status = 'COMPLETED' AND e.exerciseTemplateId = :exerciseId
+        GROUP BY sess.sessionId
+        ORDER BY sess.createdAt ASC
+    """)
+    fun getExerciseStrengthHistory(exerciseId: Long): Flow<List<ExerciseStrengthHistory>>
 
     @Delete
     suspend fun deleteSession(session: WorkoutSession)

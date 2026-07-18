@@ -1,6 +1,7 @@
 package com.bhanu.ironlog.data.repository
 
-import com.bhanu.ironlog.data.local.pojo.PRWithExerciseName
+import com.bhanu.ironlog.data.local.entity.ExerciseEntity
+import com.bhanu.ironlog.data.local.pojo.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.Calendar
@@ -10,8 +11,12 @@ import javax.inject.Singleton
 @Singleton
 class AnalyticsRepository @Inject constructor(
     private val sessionRepository: WorkoutSessionRepository,
+    private val programRepository: ProgramRepository,
     private val prRepository: PersonalRecordRepository
 ) {
+    fun getAllExercises(): Flow<List<ExerciseEntity>> = 
+        programRepository.getAllExercises()
+
     fun getTotalWorkoutsCount(): Flow<Int> = 
         sessionRepository.getCompletedSessions().map { it.size }
 
@@ -45,4 +50,10 @@ class AnalyticsRepository @Inject constructor(
         prRepository.getAllPRsWithExerciseName().map { list ->
             list.sortedByDescending { it.pr.updatedAt }.take(limit)
         }
+
+    fun getDailyVolumeHistory(since: Long): Flow<List<DailyVolume>> =
+        sessionRepository.getDailyVolumeHistory(since)
+
+    fun getExerciseStrengthHistory(exerciseId: Long): Flow<List<ExerciseStrengthHistory>> =
+        sessionRepository.getExerciseStrengthHistory(exerciseId)
 }

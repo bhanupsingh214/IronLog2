@@ -87,6 +87,9 @@ class ProgramRepository @Inject constructor(
     fun getExercise(exerciseId: Long): Flow<ExerciseEntity?> =
         programDao.getExerciseFlow(exerciseId)
 
+    fun getAllExercises(): Flow<List<ExerciseEntity>> =
+        programDao.getAllExercisesFlow()
+
     fun getSetsForExercise(exerciseId: Long, sessionId: Long = 0): Flow<List<SetEntity>> =
         programDao.getSetsForExerciseAndSessionFlow(exerciseId, sessionId)
 
