@@ -33,6 +33,7 @@ fun DashboardScreen(
     onNavigateToRecentSession: (Long, Long) -> Unit,
     onNavigateToSessionExercises: (Long, Long) -> Unit,
     onNavigateToRecords: () -> Unit,
+    onNavigateToHistory: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val activeProgram by viewModel.activeProgram.collectAsState()
@@ -106,7 +107,8 @@ fun DashboardScreen(
                 history = recentHistory,
                 onViewClick = { dayId, sessionId ->
                     onNavigateToRecentSession(dayId, sessionId)
-                }
+                },
+                onViewAllClick = onNavigateToHistory
             )
         }
 
@@ -130,7 +132,7 @@ fun DashboardScreen(
 @Composable
 fun DashboardHeader() {
     val calendar = Calendar.getInstance()
-    val dateFormat = SimpleDateFormat("EEEE, MMM dd", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("EEEE, dd/MM/yyyy", Locale("en", "IN"))
     
     Column {
         Text(
@@ -184,6 +186,7 @@ fun DashboardCard(
     title: String,
     icon: ImageVector,
     modifier: Modifier = Modifier,
+    onHeaderClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     ElevatedCard(
@@ -197,19 +200,27 @@ fun DashboardCard(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 12.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                if (onHeaderClick != null) {
+                    TextButton(onClick = onHeaderClick) {
+                        Text("See History")
+                    }
+                }
             }
             content()
         }
@@ -294,9 +305,14 @@ fun WeeklyVolumeCard(volume: Double) {
 @Composable
 fun RecentHistoryCard(
     history: List<WorkoutSession>,
-    onViewClick: (Long, Long) -> Unit
+    onViewClick: (Long, Long) -> Unit,
+    onViewAllClick: () -> Unit
 ) {
-    DashboardCard(title = "Recent History", icon = Icons.Default.History) {
+    DashboardCard(
+        title = "Recent History", 
+        icon = Icons.Default.History,
+        onHeaderClick = onViewAllClick
+    ) {
         if (history.isEmpty()) {
             Text(
                 text = "No workouts logged yet",
@@ -305,7 +321,6 @@ fun RecentHistoryCard(
             )
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                val dateFormat = SimpleDateFormat("MMM dd", Locale.getDefault())
                 history.forEach { session ->
                     Row(
                         modifier = Modifier
@@ -318,6 +333,7 @@ fun RecentHistoryCard(
                                 text = session.dayName,
                                 style = MaterialTheme.typography.bodyMedium
                             )
+                            val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("en", "IN"))
                             Text(
                                 text = dateFormat.format(Date(session.createdAt)),
                                 style = MaterialTheme.typography.bodySmall,
@@ -437,7 +453,14 @@ fun AddLogDialog(
                 }
             }
         ) {
-            DatePicker(state = datePickerState)
+            DatePicker(
+                state = datePickerState,
+                dateFormatter = remember { 
+                    DatePickerDefaults.dateFormatter(
+                        selectedDateSkeleton = "ddMMyyyy"
+                    ) 
+                }
+            )
         }
     }
 }
