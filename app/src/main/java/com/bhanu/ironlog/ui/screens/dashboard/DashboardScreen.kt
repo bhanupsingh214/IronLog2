@@ -19,6 +19,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bhanu.ironlog.data.local.entity.WorkoutSession
 import com.bhanu.ironlog.data.local.pojo.ProgramWithStats
 import com.bhanu.ironlog.data.local.pojo.WorkoutDayWithStats
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -41,6 +42,8 @@ fun DashboardScreen(
     val recentHistory by viewModel.recentHistory.collectAsState()
     val weeklyVolume by viewModel.weeklyVolume.collectAsState()
     val personalRecords by viewModel.personalRecords.collectAsState()
+    val activeSession by viewModel.activeSession.collectAsState()
+    val currentExerciseName by viewModel.currentExerciseName.collectAsState()
     
     var showAddLogDialog by remember { mutableStateOf(false) }
 
@@ -81,12 +84,22 @@ fun DashboardScreen(
         }
 
         item {
-            TodayWorkoutCard(
-                todayWorkout = todayWorkout,
-                onClick = {
-                    viewModel.onStartWorkout()
-                }
-            )
+            if (activeSession != null) {
+                ActiveWorkoutCard(
+                    session = activeSession!!,
+                    currentExerciseName = currentExerciseName,
+                    onResume = {
+                        onNavigateToSessionExercises(activeSession!!.workoutDayId, activeSession!!.sessionId)
+                    }
+                )
+            } else {
+                TodayWorkoutCard(
+                    todayWorkout = todayWorkout,
+                    onClick = {
+                        viewModel.onStartWorkout()
+                    }
+                )
+            }
         }
 
         item {
@@ -223,6 +236,95 @@ fun DashboardCard(
                 }
             }
             content()
+        }
+    }
+}
+
+@Composable
+fun ActiveWorkoutCard(
+    session: WorkoutSession,
+    currentExerciseName: String?,
+    onResume: () -> Unit
+) {
+    val startedTimeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    
+    var duration by remember { mutableLongStateOf((System.currentTimeMillis() - session.startTime) / 1000) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1000)
+            duration = (System.currentTimeMillis() - session.startTime) / 1000
+        }
+    }
+
+    DashboardCard(
+        title = "Active Workout", 
+        icon = Icons.Default.PlayCircle,
+        modifier = Modifier.clickable { onResume() }
+    ) {
+        Column {
+            Text(
+                text = session.dayName,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "${session.programName} • Started ${startedTimeFormat.format(Date(session.startTime))}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline
+            )
+            
+            Spacer(Modifier.height(12.dp))
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Text("Duration", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                    Text(
+                        text = com.bhanu.ironlog.ui.components.formatTimer(duration),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("Completed", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                    val completedCount = session.completedExerciseIds.split(",").filter { it.isNotBlank() }.size
+                    Text(
+                        text = "$completedCount exercises",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            if (currentExerciseName != null) {
+                Spacer(Modifier.height(12.dp))
+                HorizontalDivider(thickness = 0.5.dp)
+                Spacer(Modifier.height(12.dp))
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Current Exercise", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                        Text(currentExerciseName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    }
+                    if (session.currentSetNumber != null) {
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("Current Set", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                            Text("Set ${session.currentSetNumber}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+            
+            Spacer(Modifier.height(16.dp))
+            
+            Button(
+                onClick = onResume,
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Icon(Icons.Default.PlayArrow, null)
+                Spacer(Modifier.width(8.dp))
+                Text("Resume Workout")
+            }
         }
     }
 }

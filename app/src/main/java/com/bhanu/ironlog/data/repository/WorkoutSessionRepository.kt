@@ -6,7 +6,6 @@ import com.bhanu.ironlog.data.local.entity.SessionExercise
 import com.bhanu.ironlog.data.local.entity.SessionSet
 import com.bhanu.ironlog.data.local.entity.WorkoutSession
 import com.bhanu.ironlog.data.local.pojo.*
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import java.util.Calendar
 import javax.inject.Inject
@@ -17,6 +16,15 @@ class WorkoutSessionRepository @Inject constructor(
     private val workoutSessionDao: WorkoutSessionDao,
     private val programDao: ProgramDao
 ) {
+    private val repositoryScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main)
+
+    val activeWorkoutSession: StateFlow<WorkoutSession?> = workoutSessionDao.getActiveSession()
+        .stateIn(
+            scope = repositoryScope,
+            started = SharingStarted.Eagerly,
+            initialValue = null
+        )
+
     fun getAllSessions(): Flow<List<WorkoutSession>> = workoutSessionDao.getAllSessions()
 
     fun getCompletedSessions(): Flow<List<WorkoutSession>> = workoutSessionDao.getCompletedSessions()
@@ -28,6 +36,8 @@ class WorkoutSessionRepository @Inject constructor(
         workoutSessionDao.getCompletedSessionsWithVolume()
 
     fun getSessionById(sessionId: Long): Flow<WorkoutSession?> = workoutSessionDao.getSessionById(sessionId)
+
+    fun getActiveSession(): Flow<WorkoutSession?> = workoutSessionDao.getActiveSession()
 
     fun getWeeklyVolume(): Flow<Double?> {
         val calendar = Calendar.getInstance()
@@ -114,7 +124,9 @@ class WorkoutSessionRepository @Inject constructor(
                 SessionExercise(
                     sessionId = sessionId,
                     exerciseTemplateId = exercise.id,
-                    exerciseOrder = exercise.order
+                    exerciseOrder = exercise.order,
+                    notes = exercise.notes,
+                    status = "PLANNED"
                 )
             )
 
@@ -159,6 +171,29 @@ class WorkoutSessionRepository @Inject constructor(
         }
     }
 
+    suspend fun discardSession(sessionId: Long) {
+        val session = workoutSessionDao.getSessionByIdOnce(sessionId)
+        session?.let {
+            workoutSessionDao.deleteSession(it)
+        }
+    }
+
+    suspend fun updateEngineState(sessionId: Long, exerciseId: Long?, setNumber: Int?, completedSets: Int) {
+        workoutSessionDao.updateEngineState(sessionId, exerciseId, setNumber, completedSets)
+    }
+
+    suspend fun updateSessionExerciseStatus(sessionExerciseId: Long, status: String) {
+        workoutSessionDao.updateSessionExerciseStatus(sessionExerciseId, status)
+    }
+
+    suspend fun updateSessionExerciseNotes(sessionExerciseId: Long, notes: String) {
+        workoutSessionDao.updateSessionExerciseNotes(sessionExerciseId, notes)
+    }
+
+    suspend fun updateSessionExerciseRestTimer(sessionExerciseId: Long, seconds: Int) {
+        workoutSessionDao.updateSessionExerciseRestTimer(sessionExerciseId, seconds)
+    }
+
     suspend fun deleteSession(session: WorkoutSession) = workoutSessionDao.deleteSession(session)
 
     fun getExercisesForSession(sessionId: Long): Flow<List<SessionExercise>> = 
@@ -167,59 +202,8 @@ class WorkoutSessionRepository @Inject constructor(
     fun getExercisesWithTemplateForSession(sessionId: Long): Flow<List<SessionExerciseWithTemplate>> =
         workoutSessionDao.getExercisesWithTemplateForSession(sessionId)
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    fun getExercisesForActiveSession(sessionId: Long, dayId: Long): Flow<List<SessionExerciseWithTemplate>> =
-        programDao.getEnabledExercisesForDayFlow(dayId).flatMapLatest { templateExercises ->
-            flow {
-                val sessionExercises = workoutSessionDao.getExercisesForSessionList(sessionId)
-                val templateIds = templateExercises.map { it.id }.toSet()
-                val sessionTemplateIds = sessionExercises.map { it.exerciseTemplateId }.toSet()
-
-                // 1. Add missing exercises
-                val missingExercises = templateExercises.filter { it.id !in sessionTemplateIds }
-                for (exercise in missingExercises) {
-                    val sessionExerciseId = workoutSessionDao.insertSessionExercise(
-                        SessionExercise(
-                            sessionId = sessionId,
-                            exerciseTemplateId = exercise.id,
-                            exerciseOrder = exercise.order
-                        )
-                    )
-                    // Copy Sets
-                    val templateSets = programDao.getSetsForExerciseAndSession(exercise.id, 0)
-                    for (set in templateSets) {
-                        workoutSessionDao.insertSessionSet(
-                            SessionSet(
-                                sessionExerciseId = sessionExerciseId,
-                                setNumber = set.setNumber,
-                                weight = set.weight,
-                                reps = set.reps,
-                                rpe = set.rpe,
-                                setType = set.setType,
-                                completed = false
-                            )
-                        )
-                    }
-                }
-
-                // 2. Remove exercises no longer in template
-                val removedSessionExercises = sessionExercises.filter { it.exerciseTemplateId !in templateIds }
-                for (sessionExercise in removedSessionExercises) {
-                    // This will also delete session_sets due to ForeignKey CASCADE
-                    workoutSessionDao.deleteSessionExercise(sessionExercise)
-                }
-                
-                // 3. Update orders if changed (Optional, but good for consistency)
-                for (exercise in templateExercises) {
-                    val existing = sessionExercises.find { it.exerciseTemplateId == exercise.id }
-                    if (existing != null && existing.exerciseOrder != exercise.order) {
-                        workoutSessionDao.insertSessionExercise(existing.copy(exerciseOrder = exercise.order))
-                    }
-                }
-
-                emitAll(workoutSessionDao.getExercisesWithTemplateForSession(sessionId))
-            }
-        }
+    fun getExercisesForActiveSession(sessionId: Long): Flow<List<SessionExerciseWithTemplate>> =
+        workoutSessionDao.getExercisesWithTemplateForSession(sessionId)
 
     fun getExercisesWithSetsForSession(sessionId: Long): Flow<List<SessionExerciseWithTemplateAndSets>> =
         workoutSessionDao.getExercisesWithSetsForSession(sessionId)

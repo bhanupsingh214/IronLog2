@@ -10,8 +10,10 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -19,8 +21,12 @@ import com.bhanu.ironlog.ui.navigation.Screen
 import com.bhanu.ironlog.ui.navigation.SetupNavGraph
 
 @Composable
-fun MainScreen() {
+fun MainScreen(
+    viewModel: MainViewModel = hiltViewModel()
+) {
     val navController = rememberNavController()
+    val activeSession by viewModel.activeSession.collectAsState()
+
     val screens = listOf(
         Screen.Dashboard,
         Screen.Programs,
@@ -61,27 +67,26 @@ fun MainScreen() {
                         icon = { Icon(screen.icon, contentDescription = screen.title) },
                         selected = isSelected,
                         onClick = {
-                            if (currentRoute != screen.route) {
-                                navController.navigate(screen.route) {
-                                    // Pop up to the start destination of the graph to
-                                    // avoid building up a large stack of destinations
-                                    // on the back stack as users select items
+                            if (currentRoute == screen.route && screen != Screen.Workout) {
+                                // Already at root, do nothing
+                            } else {
+                                val targetRoute = if (screen == Screen.Workout && activeSession != null) {
+                                    Screen.SessionExercises.passSession(activeSession!!.workoutDayId, activeSession!!.sessionId)
+                                } else {
+                                    screen.route
+                                }
+
+                                navController.navigate(targetRoute) {
                                     popUpTo(navController.graph.findStartDestination().id) {
                                         saveState = true
                                     }
-                                    // Avoid multiple copies of the same destination when
-                                    // reselecting the same item
                                     launchSingleTop = true
-                                    // Restore state when reselecting a previously selected item
-                                    // Rule: "Dashboard must NEVER redirect back into Workout History"
-                                    // and "ALWAYS navigate directly to the selected ROOT"
-                                    // We'll disable restoreState to ensure we always hit the root
                                     restoreState = false 
                                 }
-                            } else {
-                                // Already at root, but check if we are on a child screen of this root
-                                // If so, pop back to the root
-                                navController.popBackStack(screen.route, inclusive = false)
+                                
+                                if (isSelected) {
+                                    navController.popBackStack(targetRoute, inclusive = false)
+                                }
                             }
                         }
                     )

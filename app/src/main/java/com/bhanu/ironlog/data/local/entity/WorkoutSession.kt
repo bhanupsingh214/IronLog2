@@ -13,9 +13,15 @@ data class WorkoutSession(
     val programName: String,
     val startTime: Long = System.currentTimeMillis(),
     val endTime: Long? = null,
-    val status: String = "ACTIVE", // ACTIVE / COMPLETED
+    val status: String = "ACTIVE", // ACTIVE / COMPLETED / DISCARDED
     val notes: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val completedExerciseIds: String = "", // Comma separated IDs
-    val durationSeconds: Long = 0
+    val durationSeconds: Long = 0,
+    
+    // Engine State
+    val currentExerciseId: Long? = null,
+    val currentSetNumber: Int? = null,
+    val completedSetsCount: Int = 0,
+    val hasShownBackgroundDialog: Boolean = false
 )

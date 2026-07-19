@@ -38,6 +38,17 @@ class WorkoutLoggingViewModel @Inject constructor(
         MutableStateFlow(null)
     }
 
+    val sessionExercise: StateFlow<SessionExercise?> = if (isArgumentValid && sessionId > 0) {
+        flow {
+            val se = sessionRepository.getSessionExercise(sessionId, exerciseId)
+            emit(se)
+            // In a more complex app, I'd want this to be a Flow from DAO
+            // For now, I'll just fetch it once or use a state flow that I update manually
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    } else {
+        MutableStateFlow(null)
+    }
+
     val sets: StateFlow<List<WorkoutSetUiModel>> = if (isArgumentValid) {
         if (sessionId == 0L) {
             repository.getSetsForExercise(exerciseId, 0L).map { list ->
@@ -92,6 +103,22 @@ class WorkoutLoggingViewModel @Inject constructor(
         MutableStateFlow(emptyList())
     }
 
+    init {
+        updateEngineState()
+        setExerciseActive()
+    }
+
+    private fun setExerciseActive() {
+        if (sessionId > 0) {
+            viewModelScope.launch {
+                val sessionExercise = sessionRepository.getSessionExercise(sessionId, exerciseId)
+                if (sessionExercise != null && sessionExercise.status == "PLANNED") {
+                    sessionRepository.updateSessionExerciseStatus(sessionExercise.sessionExerciseId, "ACTIVE")
+                }
+            }
+        }
+    }
+
     fun addSet(setType: String = "Working") {
         if (!isArgumentValid) return
         viewModelScope.launch {
@@ -119,7 +146,31 @@ class WorkoutLoggingViewModel @Inject constructor(
                             completed = false
                         )
                     )
+                    updateEngineState(currentSets.size + 1)
                 }
+            }
+        }
+    }
+
+    fun updateExerciseNotes(newNotes: String) {
+        if (sessionId > 0) {
+            viewModelScope.launch {
+                val sessionExercise = sessionRepository.getSessionExercise(sessionId, exerciseId)
+                if (sessionExercise != null) {
+                    sessionRepository.updateSessionExerciseNotes(sessionExercise.sessionExerciseId, newNotes)
+                }
+            }
+        }
+    }
+
+    private fun updateEngineState(setNumber: Int? = null) {
+        if (sessionId > 0) {
+            viewModelScope.launch {
+                val currentSets = sessionRepository.getSetsForExercise(
+                    sessionRepository.getSessionExercise(sessionId, exerciseId)?.sessionExerciseId ?: return@launch
+                ).first()
+                val completedCount = currentSets.count { it.completed }
+                sessionRepository.updateEngineState(sessionId, exerciseId, setNumber, completedCount)
             }
         }
     }
@@ -188,6 +239,7 @@ class WorkoutLoggingViewModel @Inject constructor(
                             notes = uiModel.notes,
                             completed = uiModel.isCompleted
                         ))
+                        updateEngineState()
                     }
                 }
             }
@@ -203,7 +255,10 @@ class WorkoutLoggingViewModel @Inject constructor(
                 val sessionExercise = sessionRepository.getSessionExercise(sessionId, exerciseId)
                 if (sessionExercise != null) {
                     val original = sessionRepository.getSetsForExercise(sessionExercise.sessionExerciseId).first().find { it.sessionSetId == uiModel.id }
-                    original?.let { sessionRepository.deleteSessionSet(it) }
+                    original?.let { 
+                        sessionRepository.deleteSessionSet(it)
+                        updateEngineState()
+                    }
                 }
             }
         }

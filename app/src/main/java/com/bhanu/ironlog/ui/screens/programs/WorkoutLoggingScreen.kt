@@ -32,6 +32,7 @@ fun WorkoutLoggingScreen(
     }
 
     val exercise by viewModel.exercise.collectAsState()
+    val sessionExercise by viewModel.sessionExercise.collectAsState()
     val sets by viewModel.sets.collectAsState()
     val previousSets by viewModel.previousSets.collectAsState()
     val session by viewModel.session.collectAsState()
@@ -84,6 +85,15 @@ fun WorkoutLoggingScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if (sessionId > 0 && sessionExercise != null) {
+                    item {
+                        ExerciseNotesEditor(
+                            notes = sessionExercise!!.notes,
+                            onNotesChange = { viewModel.updateExerciseNotes(it) }
+                        )
+                    }
+                }
+
                 itemsIndexed(sets, key = { _, s -> s.id }) { index, set ->
                     val prevSet = previousSets.getOrNull(index)
                     SetItem(
@@ -105,6 +115,27 @@ fun WorkoutLoggingScreen(
             }
         }
     }
+}
+
+@Composable
+fun ExerciseNotesEditor(
+    notes: String,
+    onNotesChange: (String) -> Unit
+) {
+    var text by remember(notes) { mutableStateOf(notes) }
+    
+    OutlinedTextField(
+        value = text,
+        onValueChange = { 
+            text = it
+            onNotesChange(it)
+        },
+        label = { Text("Exercise Notes") },
+        modifier = Modifier.fillMaxWidth(),
+        placeholder = { Text("Add instructions or thoughts...") },
+        maxLines = 3,
+        shape = MaterialTheme.shapes.large
+    )
 }
 
 @Composable

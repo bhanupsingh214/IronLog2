@@ -19,8 +19,23 @@ interface WorkoutSessionDao {
     @Query("SELECT * FROM workout_session_logs WHERE sessionId = :sessionId")
     fun getSessionById(sessionId: Long): Flow<WorkoutSession?>
 
+    @Query("SELECT * FROM workout_session_logs WHERE status = 'ACTIVE' LIMIT 1")
+    fun getActiveSession(): Flow<WorkoutSession?>
+
     @Query("SELECT * FROM workout_session_logs WHERE sessionId = :sessionId")
     suspend fun getSessionByIdOnce(sessionId: Long): WorkoutSession?
+
+    @Query("UPDATE workout_session_logs SET currentExerciseId = :exerciseId, currentSetNumber = :setNumber, completedSetsCount = :completedSets WHERE sessionId = :sessionId")
+    suspend fun updateEngineState(sessionId: Long, exerciseId: Long?, setNumber: Int?, completedSets: Int)
+
+    @Query("UPDATE session_exercises SET status = :status WHERE sessionExerciseId = :sessionExerciseId")
+    suspend fun updateSessionExerciseStatus(sessionExerciseId: Long, status: String)
+
+    @Query("UPDATE session_exercises SET notes = :notes WHERE sessionExerciseId = :sessionExerciseId")
+    suspend fun updateSessionExerciseNotes(sessionExerciseId: Long, notes: String)
+
+    @Query("UPDATE session_exercises SET restTimerSeconds = :seconds WHERE sessionExerciseId = :sessionExerciseId")
+    suspend fun updateSessionExerciseRestTimer(sessionExerciseId: Long, seconds: Int)
 
     @Query("SELECT * FROM workout_session_logs WHERE workoutDayId = :dayId AND status = 'ACTIVE' LIMIT 1")
     suspend fun getActiveSessionByDay(dayId: Long): WorkoutSession?

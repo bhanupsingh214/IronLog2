@@ -26,6 +26,8 @@ import com.bhanu.ironlog.ui.components.ExerciseSessionItem
 import com.bhanu.ironlog.ui.components.WorkoutProgress
 import com.bhanu.ironlog.ui.components.formatTimer
 import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,6 +50,16 @@ fun SessionExercisesScreen(
     
     val achievements by viewModel.achievements.collectAsState()
     val showCelebration by viewModel.showCelebration.collectAsState()
+    val showBackgroundDialog by viewModel.showBackgroundDialog.collectAsState()
+    val finishSummary by viewModel.finishSummary.collectAsState()
+    
+    var showFinishConfirmation by remember { mutableStateOf(false) }
+    var showDiscardConfirmation by remember { mutableStateOf(false) }
+
+    // Intercept Back Navigation
+    androidx.activity.compose.BackHandler {
+        viewModel.onLeaveSession()
+    }
 
     // Handle Finish Navigation
     LaunchedEffect(Unit) {
@@ -69,12 +81,8 @@ fun SessionExercisesScreen(
         return
     }
 
-    val completedIds = remember(session) {
-        session?.completedExerciseIds?.split(",")?.filter { it.isNotBlank() }?.toSet() ?: emptySet()
-    }
-
-    val actualCompletedCount = remember(completedIds, exercises) {
-        exercises.count { completedIds.contains(it.template.id.toString()) }
+    val actualCompletedCount = remember(exercises) {
+        exercises.count { it.sessionExercise.status == "COMPLETED" }
     }
 
     Scaffold(
@@ -87,7 +95,7 @@ fun SessionExercisesScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = { viewModel.onLeaveSession() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -102,16 +110,26 @@ fun SessionExercisesScreen(
         },
         bottomBar = {
             Surface(tonalElevation = 3.dp) {
-                Button(
-                    onClick = { 
-                        viewModel.finishWorkout()
-                    },
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
-                        .navigationBarsPadding()
+                        .navigationBarsPadding(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Finish Workout")
+                    OutlinedButton(
+                        onClick = { showDiscardConfirmation = true },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Discard")
+                    }
+                    Button(
+                        onClick = { showFinishConfirmation = true },
+                        modifier = Modifier.weight(2f)
+                    ) {
+                        Text("Finish Workout")
+                    }
                 }
             }
         }
@@ -157,17 +175,94 @@ fun SessionExercisesScreen(
                     }
 
                     items(exercises, key = { it.sessionExercise.sessionExerciseId }) { item ->
-                    val isCompleted = completedIds.contains(item.template.id.toString())
+                    val isCompleted = item.sessionExercise.status == "COMPLETED"
                     ExerciseSessionItem(
                         exercise = item.template,
                         isCompleted = isCompleted,
                         onToggleComplete = { viewModel.toggleExerciseCompletion(item.template.id) },
-                        onClick = { onNavigateToLogging(item.template.id, session?.sessionId ?: 0L) }
+                        onClick = { onNavigateToLogging(item.template.id, session?.sessionId ?: 0L) },
+                        notes = item.sessionExercise.notes
                     )
                 }
                 }
             }
         }
+    }
+
+    if (showFinishConfirmation && finishSummary != null) {
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        AlertDialog(
+            onDismissRequest = { showFinishConfirmation = false },
+            title = { Text("Finish Workout?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Ready to wrap up your session?")
+                    HorizontalDivider(thickness = 0.5.dp)
+                    
+                    SummaryRowItem("Duration", formatTimer(finishSummary!!.durationSeconds))
+                    SummaryRowItem("Completed", "${finishSummary!!.completedExercises} exercises")
+                    SummaryRowItem("Total Sets", "${finishSummary!!.totalSets} sets")
+                    SummaryRowItem("Total Volume", String.format(Locale.getDefault(), "%,.0f kg", finishSummary!!.totalVolume))
+                    SummaryRowItem("Started", timeFormat.format(Date(finishSummary!!.startTime)))
+                    SummaryRowItem("Finished", timeFormat.format(Date(finishSummary!!.endTime)))
+                }
+            },
+            confirmButton = {
+                Button(onClick = { 
+                    viewModel.finishWorkout()
+                    showFinishConfirmation = false
+                }) {
+                    Text("Finish")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFinishConfirmation = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showDiscardConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDiscardConfirmation = false },
+            title = { Text("Discard Workout?") },
+            text = { Text("Workout progress will be lost. This action cannot be undone.") },
+            confirmButton = {
+                Button(
+                    onClick = { 
+                        viewModel.discardWorkout()
+                        showDiscardConfirmation = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Discard")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardConfirmation = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showBackgroundDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onBackgroundDialogConfirm(stay = true) },
+            title = { Text("Workout continues in the background") },
+            text = { Text("Your workout remains active until you finish or discard it.") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.onBackgroundDialogConfirm(stay = false) }) {
+                    Text("Continue")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onBackgroundDialogConfirm(stay = true) }) {
+                    Text("Stay in Workout")
+                }
+            }
+        )
     }
 
     if (showCelebration) {
@@ -225,4 +320,15 @@ fun PRCelebrationDialog(
             }
         }
     )
+}
+
+@Composable
+fun SummaryRowItem(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+    }
 }

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bhanu.ironlog.data.local.entity.ExerciseEntity
 import com.bhanu.ironlog.data.local.entity.WorkoutDayEntity
+import com.bhanu.ironlog.data.local.entity.WorkoutSession
 import com.bhanu.ironlog.data.local.pojo.ProgramWithStats
 import com.bhanu.ironlog.data.local.pojo.WorkoutDayWithStats
 import com.bhanu.ironlog.data.repository.ProgramRepository
@@ -43,6 +44,14 @@ class WorkoutViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
+
+    val activeSession: StateFlow<WorkoutSession?> = sessionRepository.activeWorkoutSession
+
+    fun discardSession(sessionId: Long) {
+        viewModelScope.launch {
+            sessionRepository.discardSession(sessionId)
+        }
+    }
 
     fun startSession(day: WorkoutDayEntity, onSessionStarted: (Long) -> Unit) {
         viewModelScope.launch {

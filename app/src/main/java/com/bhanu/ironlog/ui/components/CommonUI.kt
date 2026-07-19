@@ -99,7 +99,8 @@ fun ExerciseSessionItem(
     exercise: ExerciseEntity,
     isCompleted: Boolean,
     onToggleComplete: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    notes: String = ""
 ) {
     ElevatedCard(
         modifier = Modifier
@@ -130,6 +131,16 @@ fun ExerciseSessionItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (notes.isNotBlank()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = notes,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 2,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
             }
             Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outline)
         }

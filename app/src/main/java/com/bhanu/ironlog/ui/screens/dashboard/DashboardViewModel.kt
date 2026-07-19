@@ -85,6 +85,17 @@ class DashboardViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
+    val activeSession: StateFlow<WorkoutSession?> = sessionRepository.activeWorkoutSession
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val currentExerciseName: StateFlow<String?> = activeSession.flatMapLatest { session ->
+        if (session?.currentExerciseId != null) {
+            programRepository.getExercise(session.currentExerciseId).map { it?.name }
+        } else {
+            flowOf(null)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     private val _navigateToWorkout = MutableSharedFlow<Unit>()
     val navigateToWorkout = _navigateToWorkout.asSharedFlow()
 

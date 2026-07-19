@@ -74,7 +74,7 @@ interface ProgramDao {
     @Query("SELECT * FROM exercises WHERE dayId = :dayId")
     suspend fun getExercisesForDay(dayId: Long): List<ExerciseEntity>
 
-    @Query("SELECT * FROM exercises WHERE dayId = :dayId AND enabled = 1")
+    @Query("SELECT * FROM exercises WHERE dayId = :dayId AND enabled = 1 ORDER BY `order` ASC")
     suspend fun getEnabledExercisesForDay(dayId: Long): List<ExerciseEntity>
 
     @Query("SELECT * FROM exercise_sets WHERE exerciseId = :exerciseId")

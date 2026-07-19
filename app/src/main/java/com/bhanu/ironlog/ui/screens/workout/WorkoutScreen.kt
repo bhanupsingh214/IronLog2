@@ -29,6 +29,9 @@ fun WorkoutScreen(
 ) {
     val activeProgram by viewModel.activeProgram.collectAsState()
     val workoutDays by viewModel.workoutDays.collectAsState()
+    val activeSession by viewModel.activeSession.collectAsState()
+
+    var dayToStart by remember { mutableStateOf<WorkoutDayEntity?>(null) }
 
     Scaffold(
         topBar = {
@@ -63,14 +66,50 @@ fun WorkoutScreen(
                     WorkoutDayItemForSession(
                         item = item,
                         onClick = { 
-                            viewModel.startSession(item.day) { sessionId ->
-                                onNavigateToSessionExercises(item.day.id, sessionId)
+                            if (activeSession != null) {
+                                dayToStart = item.day
+                            } else {
+                                viewModel.startSession(item.day) { sessionId ->
+                                    onNavigateToSessionExercises(item.day.id, sessionId)
+                                }
                             }
                         }
                     )
                 }
             }
         }
+    }
+
+    if (dayToStart != null && activeSession != null) {
+        AlertDialog(
+            onDismissRequest = { dayToStart = null },
+            title = { Text("Workout already in progress") },
+            text = { Text("You have an active session for ${activeSession!!.dayName}. What would you like to do?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    onNavigateToSessionExercises(activeSession!!.workoutDayId, activeSession!!.sessionId)
+                    dayToStart = null
+                }) {
+                    Text("Resume Workout")
+                }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = {
+                        viewModel.discardSession(activeSession!!.sessionId)
+                        viewModel.startSession(dayToStart!!) { sessionId ->
+                            onNavigateToSessionExercises(dayToStart!!.id, sessionId)
+                        }
+                        dayToStart = null
+                    }) {
+                        Text("Discard & Start New", color = MaterialTheme.colorScheme.error)
+                    }
+                    TextButton(onClick = { dayToStart = null }) {
+                        Text("Cancel")
+                    }
+                }
+            }
+        )
     }
 }
 
