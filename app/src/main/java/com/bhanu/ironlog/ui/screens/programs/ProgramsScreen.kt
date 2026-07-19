@@ -316,7 +316,7 @@ fun ProgramItem(
             }
 
             Spacer(Modifier.height(12.dp))
-            val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+            val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("en", "IN"))
             Text(
                 text = "Last modified: ${dateFormat.format(Date(item.program.lastModifiedAt))}",
                 style = MaterialTheme.typography.labelSmall,

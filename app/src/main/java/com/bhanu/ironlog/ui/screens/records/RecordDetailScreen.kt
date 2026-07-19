@@ -93,7 +93,7 @@ fun DetailContent(
     isE1RM: Boolean,
     onToggleE1RM: (Boolean) -> Unit
 ) {
-    val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("en", "IN"))
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -187,7 +187,7 @@ fun ComparisonSection(
             }
             
             Spacer(Modifier.height(8.dp))
-            val dateFormat = SimpleDateFormat("EEEE, MMM dd, yyyy", Locale.getDefault())
+            val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("en", "IN"))
             Text(
                 text = "Achieved on ${dateFormat.format(Date(current.date))}",
                 style = MaterialTheme.typography.bodySmall,
@@ -218,7 +218,7 @@ fun ProgressionChartCard(
 
 @Composable
 fun SummarySection(summary: RecordSummary) {
-    val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("en", "IN"))
     
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
@@ -250,7 +250,7 @@ fun SummaryStat(label: String, value: String) {
 
 @Composable
 fun HistoryItem(entry: ExerciseStrengthHistory) {
-    val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("en", "IN"))
     
     Card(
         modifier = Modifier.fillMaxWidth(),

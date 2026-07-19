@@ -1,5 +1,6 @@
 package com.bhanu.ironlog.ui.screens.progress
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -332,7 +333,7 @@ fun VolumeTrendSection(
                             valueFormatter = { value, _ ->
                                 val index = value.toInt()
                                 if (index in history.indices) {
-                                    SimpleDateFormat("MMM d", Locale.getDefault()).format(Date(history[index].date))
+                                    SimpleDateFormat("dd/MM", Locale("en", "IN")).format(Date(history[index].date))
                                 } else ""
                             }
                         ),

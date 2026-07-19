@@ -87,6 +87,22 @@ interface WorkoutSessionDao {
     fun getCompletedSessionsWithVolume(): Flow<List<WorkoutSessionWithVolume>>
 
     @Query("""
+        SELECT sess.*, 
+               IFNULL(SUM(s.weight * s.reps), 0) as totalVolume,
+               (SELECT COUNT(*) FROM session_exercises WHERE sessionId = sess.sessionId) as exerciseCount,
+               (SELECT COUNT(*) FROM session_sets ss JOIN session_exercises ex ON ss.sessionExerciseId = ex.sessionExerciseId WHERE ex.sessionId = sess.sessionId) as setCount,
+               (SELECT COUNT(*) FROM personal_records WHERE weightPRSessionId = sess.sessionId OR estimated1RMSessionId = sess.sessionId) as prCount,
+               (SELECT GROUP_CONCAT(name, ', ') FROM exercises e JOIN session_exercises se ON e.id = se.exerciseTemplateId WHERE se.sessionId = sess.sessionId) as exerciseNames
+        FROM workout_session_logs sess
+        LEFT JOIN session_exercises e ON sess.sessionId = e.sessionId
+        LEFT JOIN session_sets s ON e.sessionExerciseId = s.sessionExerciseId
+        WHERE sess.status = 'COMPLETED'
+        GROUP BY sess.sessionId
+        ORDER BY sess.createdAt DESC
+    """)
+    fun getCompletedSessionsWithStats(): Flow<List<WorkoutSessionWithStats>>
+
+    @Query("""
         SELECT SUM(s.weight * s.reps) 
         FROM session_sets s 
         JOIN session_exercises e ON s.sessionExerciseId = e.sessionExerciseId 

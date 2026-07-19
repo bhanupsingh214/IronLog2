@@ -33,11 +33,13 @@ fun WorkoutDetailsScreen(
 
     val session by viewModel.session.collectAsState()
     val exercises by viewModel.exercises.collectAsState()
+    val stats by viewModel.workoutStats.collectAsState()
+    val prs by viewModel.personalRecords.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Workout Details") },
+                title = { Text(session?.dayName ?: "Workout Details") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -51,7 +53,7 @@ fun WorkoutDetailsScreen(
                 CircularProgressIndicator()
             }
         } else {
-            val currentSession = session ?: return@Scaffold // Double check
+            val currentSession = session ?: return@Scaffold
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -64,13 +66,21 @@ fun WorkoutDetailsScreen(
                         dayName = currentSession.dayName,
                         programName = currentSession.programName,
                         date = currentSession.createdAt,
-                        duration = currentSession.durationSeconds
+                        duration = currentSession.durationSeconds,
+                        stats = stats
                     )
                 }
 
                 items(exercises, key = { it.sessionExercise.sessionExerciseId }) { exercise ->
-                    ExerciseDetailItem(exercise)
+                    val exercisePRs = prs.filter { it.exerciseTemplateId == exercise.template.id }
+                    ExerciseDetailItem(exercise, exercisePRs, currentSession.sessionId)
                 }
+                
+                item {
+                    BottomSummarySection(stats)
+                }
+                
+                item { Spacer(Modifier.height(32.dp)) }
             }
         }
     }
@@ -81,33 +91,48 @@ fun SessionSummaryHeader(
     dayName: String,
     programName: String,
     date: Long,
-    duration: Long
+    duration: Long,
+    stats: WorkoutStats?
 ) {
-    val dateFormat = SimpleDateFormat("EEEE, MMM dd, yyyy", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("en", "IN"))
     
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Text(text = dayName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text(text = programName, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(8.dp))
-            HorizontalDivider()
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(16.dp))
+            
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column {
-                    Text("Date", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                    Text(dateFormat.format(Date(date)), style = MaterialTheme.typography.bodyMedium)
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("Duration", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                    Text(formatTimer(duration), style = MaterialTheme.typography.bodyMedium)
-                }
+                SummaryStatItem("Date", dateFormat.format(Date(date)))
+                SummaryStatItem("Duration", formatTimer(duration))
+            }
+            
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(thickness = 0.5.dp)
+            Spacer(Modifier.height(12.dp))
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                SummaryStatItem("Volume", String.format(Locale.getDefault(), "%,.0f kg", stats?.totalVolume ?: 0.0))
+                SummaryStatItem("PRs", (stats?.prCount ?: 0).toString())
             }
         }
     }
 }
 
 @Composable
-fun ExerciseDetailItem(item: SessionExerciseWithTemplateAndSets) {
+fun SummaryStatItem(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+        Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun ExerciseDetailItem(
+    item: SessionExerciseWithTemplateAndSets,
+    prs: List<com.bhanu.ironlog.data.local.entity.PersonalRecordEntity>,
+    sessionId: Long
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = item.template.name,
@@ -127,6 +152,8 @@ fun ExerciseDetailItem(item: SessionExerciseWithTemplateAndSets) {
         ) {
             Column(Modifier.padding(8.dp)) {
                 item.sets.forEach { set ->
+                    val isWeightPR = prs.any { it.weightPRSessionId == sessionId && it.weightPR == set.weight }
+                    
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -139,11 +166,27 @@ fun ExerciseDetailItem(item: SessionExerciseWithTemplateAndSets) {
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold
                         )
-                        Text(
-                            text = "${set.weight}kg x ${set.reps}",
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "${set.weight}kg x ${set.reps}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            if (isWeightPR) {
+                                Spacer(Modifier.width(8.dp))
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    shape = MaterialTheme.shapes.extraSmall
+                                ) {
+                                    Text(
+                                        "PR",
+                                        modifier = Modifier.padding(horizontal = 4.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
                         if (set.rpe != null) {
                             Text(
                                 text = "@ RPE ${set.rpe}",
@@ -153,6 +196,33 @@ fun ExerciseDetailItem(item: SessionExerciseWithTemplateAndSets) {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun BottomSummarySection(stats: WorkoutStats?) {
+    if (stats == null) return
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text("Total Volume", style = MaterialTheme.typography.labelSmall)
+                Text(String.format(Locale.getDefault(), "%,.0f kg", stats.totalVolume), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text("Total Sets", style = MaterialTheme.typography.labelSmall)
+                Text("${stats.totalSets} sets", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(4.dp))
+                Text("Avg. Intensity", style = MaterialTheme.typography.labelSmall)
+                Text(String.format(Locale.getDefault(), "%,.1f kg/rep", stats.averageIntensity), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
             }
         }
     }

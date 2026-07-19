@@ -21,6 +21,9 @@ class WorkoutSessionRepository @Inject constructor(
 
     fun getCompletedSessions(): Flow<List<WorkoutSession>> = workoutSessionDao.getCompletedSessions()
 
+    fun getCompletedSessionsWithStats(): Flow<List<WorkoutSessionWithStats>> = 
+        workoutSessionDao.getCompletedSessionsWithStats()
+
     fun getCompletedSessionsWithVolume(): Flow<List<WorkoutSessionWithVolume>> = 
         workoutSessionDao.getCompletedSessionsWithVolume()
 

@@ -44,6 +44,9 @@ fun SetupNavGraph(navController: NavHostController) {
                 },
                 onNavigateToRecords = {
                     navController.navigate(Screen.Records.route)
+                },
+                onNavigateToHistory = {
+                    navController.navigate(Screen.History.route)
                 }
             )
         }
@@ -123,6 +126,7 @@ fun SetupNavGraph(navController: NavHostController) {
         }
         composable(route = Screen.History.route) {
             HistoryScreen(
+                onBack = { navController.popBackStack() },
                 onNavigateToDetails = { sessionId ->
                     navController.navigate(Screen.WorkoutDetails.passSessionId(sessionId))
                 }

@@ -112,7 +112,7 @@ fun RecordCard(
     record: PRWithExerciseName,
     onClick: () -> Unit
 ) {
-    val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("en", "IN"))
     val isNew = record.pr.updatedAt > (System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000)
 
     ElevatedCard(
