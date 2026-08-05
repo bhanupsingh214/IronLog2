@@ -1,10 +1,13 @@
 package com.bhanu.ironlog.ui.screens.workout
 
 import android.widget.Toast
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -12,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -36,6 +40,7 @@ fun SessionExercisesScreen(
     onBack: () -> Unit,
     onFinish: () -> Unit,
     onNavigateToLogging: (Long, Long) -> Unit,
+    onNavigateToDetails: (Long) -> Unit,
     viewModel: SessionExercisesViewModel = hiltViewModel()
 ) {
     if (!viewModel.isArgumentValid) {
@@ -52,14 +57,19 @@ fun SessionExercisesScreen(
     val achievements by viewModel.achievements.collectAsState()
     val showCelebration by viewModel.showCelebration.collectAsState()
     val showBackgroundDialog by viewModel.showBackgroundDialog.collectAsState()
-    val finishSummary by viewModel.finishSummary.collectAsState()
     
-    var showFinishConfirmation by remember { mutableStateOf(false) }
+    val completionState by viewModel.completionState.collectAsState()
+    val completionSummary by viewModel.completionSummary.collectAsState()
+    
     var showDiscardConfirmation by remember { mutableStateOf(false) }
 
     // Intercept Back Navigation
     androidx.activity.compose.BackHandler {
-        viewModel.onLeaveSession()
+        if (completionState == WorkoutCompletionState.ACTIVE) {
+            viewModel.onLeaveSession()
+        } else if (completionState == WorkoutCompletionState.COMPLETED) {
+            viewModel.dismissSummary()
+        }
     }
 
     // Handle Finish Navigation
@@ -82,145 +92,164 @@ fun SessionExercisesScreen(
         return
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(session?.dayName ?: "Workout", style = MaterialTheme.typography.titleMedium)
-                        Text(session?.programName ?: "", style = MaterialTheme.typography.bodySmall)
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = { viewModel.onLeaveSession() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    Text(
-                        text = formatTimer(timerSeconds),
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(end = 16.dp)
-                    )
-                }
-            )
-        },
-        bottomBar = {
-            Surface(tonalElevation = 3.dp) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .navigationBarsPadding(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = { showDiscardConfirmation = true },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                    ) {
-                        Text("Discard")
-                    }
-                    Button(
-                        onClick = { showFinishConfirmation = true },
-                        modifier = Modifier.weight(2f)
-                    ) {
-                        Text("Finish Workout")
-                    }
-                }
-            }
-        }
-    ) { padding ->
-        when {
-            session == null && !loadingTimedOut -> {
-                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
-            session == null && loadingTimedOut -> {
-                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Session not found", color = MaterialTheme.colorScheme.error)
-                        Spacer(Modifier.height(8.dp))
-                        Button(onClick = onBack) { Text("Go Back") }
-                    }
-                }
-            }
-            exercises.isEmpty() -> {
-                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.FitnessCenter, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline)
-                        Spacer(Modifier.height(16.dp))
-                        Text("No exercises in this session", color = MaterialTheme.colorScheme.outline)
-                        Text("Add exercises to your program template first", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
-                    }
-                }
-            }
-            else -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item {
-                        progress?.let {
-                            WorkoutProgress(
-                                completedExercises = it.completedExercises,
-                                totalExercises = it.totalExercises,
-                                completedSets = it.completedSets,
-                                totalSets = it.totalSets
-                            )
+    Box(modifier = Modifier.fillMaxSize()) {
+        AnimatedContent(
+            targetState = completionState,
+            transitionSpec = {
+                fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
+            },
+            label = "WorkoutCompletionTransition"
+        ) { state ->
+            if (state == WorkoutCompletionState.COMPLETED && completionSummary != null) {
+                WorkoutCompleteScreen(
+                    summary = completionSummary!!,
+                    onDone = { viewModel.dismissSummary() },
+                    onViewDetails = { onNavigateToDetails(completionSummary!!.sessionId) }
+                )
+            } else {
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = {
+                                Column {
+                                    Text(session?.dayName ?: "Workout", style = MaterialTheme.typography.titleMedium)
+                                    Text(session?.programName ?: "", style = MaterialTheme.typography.bodySmall)
+                                }
+                            },
+                            navigationIcon = {
+                                IconButton(onClick = { viewModel.onLeaveSession() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                                }
+                            },
+                            actions = {
+                                Text(
+                                    text = formatTimer(timerSeconds),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.padding(end = 16.dp)
+                                )
+                            }
+                        )
+                    },
+                    bottomBar = {
+                        Surface(tonalElevation = 3.dp) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
+                                    .navigationBarsPadding(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = { showDiscardConfirmation = true },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                                ) {
+                                    Text("Discard")
+                                }
+                                Button(
+                                    onClick = { viewModel.initiateFinish() },
+                                    modifier = Modifier.weight(2f)
+                                ) {
+                                    Text("Finish Workout")
+                                }
+                            }
                         }
                     }
+                ) { padding ->
+                    when {
+                        session == null && !loadingTimedOut -> {
+                            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                        session == null && loadingTimedOut -> {
+                            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("Session not found", color = MaterialTheme.colorScheme.error)
+                                    Spacer(Modifier.height(8.dp))
+                                    Button(onClick = onBack) { Text("Go Back") }
+                                }
+                            }
+                        }
+                        exercises.isEmpty() -> {
+                            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(Icons.Default.FitnessCenter, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline)
+                                    Spacer(Modifier.height(16.dp))
+                                    Text("No exercises in this session", color = MaterialTheme.colorScheme.outline)
+                                    Text("Add exercises to your program template first", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                                }
+                            }
+                        }
+                        else -> {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(padding),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                item {
+                                    progress?.let {
+                                        WorkoutProgress(
+                                            completedExercises = it.completedExercises,
+                                            totalExercises = it.totalExercises,
+                                            completedSets = it.completedSets,
+                                            totalSets = it.totalSets
+                                        )
+                                    }
+                                }
 
-                    items(exercises, key = { it.sessionExercise.sessionExerciseId }) { item ->
-                    val isCompleted = item.sessionExercise.status == "COMPLETED"
-                    ExerciseSessionItem(
-                        exercise = item.template,
-                        isCompleted = isCompleted,
-                        onToggleComplete = { viewModel.toggleExerciseCompletion(item.template.id) },
-                        onClick = { onNavigateToLogging(item.template.id, session?.sessionId ?: 0L) },
-                        notes = item.sessionExercise.notes
-                    )
-                }
+                                items(exercises, key = { it.sessionExercise.sessionExerciseId }) { item ->
+                                    val isCompleted = item.sessionExercise.status == "COMPLETED"
+                                    ExerciseSessionItem(
+                                        exercise = item.template,
+                                        isCompleted = isCompleted,
+                                        onToggleComplete = { viewModel.toggleExerciseCompletion(item.template.id) },
+                                        onClick = { onNavigateToLogging(item.template.id, session?.sessionId ?: 0L) },
+                                        notes = item.sessionExercise.notes
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
-    if (showFinishConfirmation && finishSummary != null) {
-        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    if (completionState == WorkoutCompletionState.CONFIRMING_FINISH && completionSummary != null) {
         AlertDialog(
-            onDismissRequest = { showFinishConfirmation = false },
+            onDismissRequest = { viewModel.cancelFinish() },
             title = { Text("Finish Workout?") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Ready to wrap up your session?")
+                    Text(completionSummary!!.workoutName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     HorizontalDivider(thickness = 0.5.dp)
-                    
-                    SummaryRowItem("Duration", formatTimer(finishSummary!!.durationSeconds))
-                    SummaryRowItem("Completed", "${finishSummary!!.completedExercises} exercises")
-                    SummaryRowItem("Total Sets", "${finishSummary!!.totalSets} sets")
-                    SummaryRowItem("Total Volume", String.format(Locale.getDefault(), "%,.0f kg", finishSummary!!.totalVolume))
-                    SummaryRowItem("Started", timeFormat.format(Date(finishSummary!!.startTime)))
-                    SummaryRowItem("Finished", timeFormat.format(Date(finishSummary!!.endTime)))
+                    SummaryRowItem("Exercises", "${completionSummary!!.exercisesCompleted}")
+                    SummaryRowItem("Sets", "${completionSummary!!.setsCompleted}")
+                    SummaryRowItem("Duration", formatTimer(completionSummary!!.durationSeconds))
+                    SummaryRowItem("Volume", String.format(Locale.getDefault(), "%,.0f kg", completionSummary!!.totalVolume))
                 }
             },
             confirmButton = {
-                Button(onClick = { 
-                    viewModel.finishWorkout()
-                    showFinishConfirmation = false
-                }) {
-                    Text("Finish")
+                Button(onClick = { viewModel.finishWorkout() }) {
+                    Text("Finish Workout")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showFinishConfirmation = false }) {
+                TextButton(onClick = { viewModel.cancelFinish() }) {
                     Text("Cancel")
                 }
             }
+        )
+    }
+
+    if (completionState == WorkoutCompletionState.COMPLETED && completionSummary != null) {
+        WorkoutCompleteScreen(
+            summary = completionSummary!!,
+            onDone = { viewModel.dismissSummary() },
+            onViewDetails = { onNavigateToDetails(completionSummary!!.sessionId) }
         )
     }
 
@@ -265,62 +294,139 @@ fun SessionExercisesScreen(
             }
         )
     }
-
-    if (showCelebration) {
-        PRCelebrationDialog(
-            achievements = achievements,
-            onDismiss = { viewModel.onCelebrationDismissed() }
-        )
-    }
 }
 
 @Composable
-fun PRCelebrationDialog(
-    achievements: List<Achievement>,
-    onDismiss: () -> Unit
+fun WorkoutCompleteScreen(
+    summary: com.bhanu.ironlog.data.local.pojo.WorkoutCompletionSummary,
+    onDone: () -> Unit,
+    onViewDetails: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    Icons.Default.EmojiEvents,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(Modifier.height(8.dp))
-                Text("New Personal Records!", fontWeight = FontWeight.Bold)
-            }
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                achievements.forEach { achievement ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(achievement.exerciseName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                            val typeLabel = if (achievement.type == AchievementType.WEIGHT_PR) "New Max Weight" else "New Est. 1RM"
-                            Text(typeLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
-                        }
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = null,
+                modifier = Modifier.size(80.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            
+            Spacer(Modifier.height(16.dp))
+            
+            Text(
+                text = "Workout Complete!",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Text(
+                text = summary.workoutName,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            Spacer(Modifier.height(32.dp))
+            
+            ElevatedCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.extraLarge
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        StatItem(
+                            label = "Duration",
+                            value = formatTimer(summary.durationSeconds),
+                            modifier = Modifier.weight(1f)
+                        )
+                        StatItem(
+                            label = "Volume",
+                            value = String.format(Locale.getDefault(), "%,.0f kg", summary.totalVolume),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    
+                    HorizontalDivider(thickness = 0.5.dp)
+                    
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        StatItem(
+                            label = "Exercises",
+                            value = "${summary.exercisesCompleted}/${summary.totalExercises}",
+                            modifier = Modifier.weight(1f)
+                        )
+                        StatItem(
+                            label = "Sets",
+                            value = "${summary.setsCompleted}/${summary.totalSets}",
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    if (summary.skippedExercises > 0) {
                         Text(
-                            String.format(Locale.getDefault(), "%.1f kg", achievement.value),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
+                            text = "${summary.skippedExercises} exercises skipped",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                    
+                    Spacer(Modifier.height(8.dp))
+                    
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "Completion",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                        LinearProgressIndicator(
+                            progress = { summary.completionPercentage },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp)
+                                .clip(CircleShape),
+                            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
                         )
                     }
                 }
             }
-        },
-        confirmButton = {
-            Button(onClick = onDismiss) {
-                Text("Awesome!")
+            
+            Spacer(Modifier.height(48.dp))
+            
+            Button(
+                onClick = onDone,
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large
+            ) {
+                Text("Done")
+            }
+            
+            TextButton(
+                onClick = onViewDetails,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("View Workout Details")
             }
         }
-    )
+    }
+}
+
+@Composable
+fun StatItem(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+        Text(text = value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+    }
 }
 
 @Composable

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bhanu.ironlog.data.local.entity.WorkoutSession
 import com.bhanu.ironlog.data.local.pojo.SessionExerciseWithTemplate
+import com.bhanu.ironlog.data.local.pojo.WorkoutCompletionSummary
 import com.bhanu.ironlog.data.local.pojo.WorkoutProgress
 import com.bhanu.ironlog.data.repository.ProgramRepository
 import com.bhanu.ironlog.data.repository.WorkoutSessionRepository
@@ -94,27 +95,45 @@ class SessionExercisesViewModel @Inject constructor(
     private val _showBackgroundDialog = MutableStateFlow(false)
     val showBackgroundDialog = _showBackgroundDialog.asStateFlow()
 
+    private val _completionState = MutableStateFlow(WorkoutCompletionState.ACTIVE)
+    val completionState = _completionState.asStateFlow()
+
     @OptIn(ExperimentalCoroutinesApi::class)
-    val finishSummary: StateFlow<WorkoutSummary?> = session.flatMapLatest { sess ->
-        if (sess == null) return@flatMapLatest flowOf(null)
-        
-        sessionRepository.getExercisesWithSetsForSession(sess.sessionId).map { exerciseList ->
-            val totalVolume = exerciseList.sumOf { ex -> ex.sets.sumOf { it.weight * it.reps } }
-            val totalSets = exerciseList.sumOf { it.sets.size }
-            val completedExercises = exerciseList.count { 
-                it.sessionExercise.status == "COMPLETED" || it.sessionExercise.status == "SKIPPED" 
-            }
-            
-            WorkoutSummary(
-                durationSeconds = (System.currentTimeMillis() - sess.startTime) / 1000,
-                completedExercises = completedExercises,
-                totalSets = totalSets,
-                totalVolume = totalVolume,
-                startTime = sess.startTime,
-                endTime = System.currentTimeMillis()
-            )
+    val completionSummary: StateFlow<WorkoutCompletionSummary?> = completionState.flatMapLatest { state ->
+        if (state == WorkoutCompletionState.COMPLETED || state == WorkoutCompletionState.CONFIRMING_FINISH) {
+            sessionRepository.getWorkoutCompletionSummary(sessionId)
+        } else {
+            flowOf(null)
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    fun initiateFinish() {
+        _completionState.value = WorkoutCompletionState.CONFIRMING_FINISH
+    }
+
+    fun cancelFinish() {
+        _completionState.value = WorkoutCompletionState.ACTIVE
+    }
+
+    fun finishWorkout() {
+        viewModelScope.launch {
+            // 1. Process PRs before closing session
+            prEngine.processSessionPRs(sessionId)
+            
+            // 2. Finish Session in DB
+            sessionRepository.finishSession(sessionId)
+            
+            // 3. Move to completed state
+            _completionState.value = WorkoutCompletionState.COMPLETED
+        }
+    }
+
+    fun dismissSummary() {
+        _completionState.value = WorkoutCompletionState.SUMMARY_DISMISSED
+        viewModelScope.launch {
+            _finishSignal.emit(Unit)
+        }
+    }
 
     fun onLeaveSession() {
         viewModelScope.launch {
@@ -163,41 +182,11 @@ class SessionExercisesViewModel @Inject constructor(
         }
     }
 
-    fun finishWorkout() {
-        viewModelScope.launch {
-            // 1. Process PRs before closing session
-            val newAchievements = prEngine.processSessionPRs(sessionId)
-            
-            // 2. Finish Session
-            sessionRepository.finishSession(sessionId)
-            
-            // 3. Show celebration if needed
-            if (newAchievements.isNotEmpty()) {
-                _achievements.value = newAchievements
-                _showCelebration.value = true
-            } else {
-                // If no PRs, we'll signal to navigate away
-                _finishSignal.emit(Unit)
-            }
-        }
-    }
-
     private val _finishSignal = MutableSharedFlow<Unit>()
     val finishSignal = _finishSignal.asSharedFlow()
 
     fun onCelebrationDismissed() {
         _showCelebration.value = false
-        viewModelScope.launch {
-            _finishSignal.emit(Unit)
-        }
+        dismissSummary()
     }
 }
-
-data class WorkoutSummary(
-    val durationSeconds: Long,
-    val completedExercises: Int,
-    val totalSets: Int,
-    val totalVolume: Double,
-    val startTime: Long,
-    val endTime: Long
-)

@@ -48,6 +48,42 @@ class WorkoutSessionRepository @Inject constructor(
 
     fun getActiveSessionFlow(): Flow<WorkoutSession?> = workoutSessionDao.getActiveSession()
 
+    fun getWorkoutCompletionSummary(sessionId: Long): Flow<WorkoutCompletionSummary?> =
+        workoutSessionDao.getExercisesWithSetsForSession(sessionId).map { list ->
+            val session = workoutSessionDao.getSessionByIdOnce(sessionId) ?: return@map null
+
+            val totalExercises = list.size
+            val completedExercises = list.count { it.sessionExercise.status == "COMPLETED" }
+            val skippedExercises = list.count { it.sessionExercise.status == "SKIPPED" }
+            val totalSets = list.sumOf { it.sets.size }
+            val completedSets = list.sumOf { it.sets.count { s -> s.completed } }
+            val totalVolume = list.sumOf { ex -> ex.sets.sumOf { s -> if (s.completed) s.weight * s.reps else 0.0 } }
+            
+            val percentage = if (totalExercises > 0) completedExercises.toFloat() / totalExercises else 0f
+            
+            val duration = if (session.status == "COMPLETED") {
+                session.durationSeconds
+            } else {
+                (System.currentTimeMillis() - session.startTime) / 1000
+            }
+
+            WorkoutCompletionSummary(
+                sessionId = sessionId,
+                workoutName = session.dayName,
+                programName = session.programName,
+                durationSeconds = duration,
+                totalVolume = totalVolume,
+                exercisesCompleted = completedExercises,
+                totalExercises = totalExercises,
+                setsCompleted = completedSets,
+                totalSets = totalSets,
+                skippedExercises = skippedExercises,
+                completionPercentage = percentage,
+                startTime = session.startTime,
+                endTime = session.endTime ?: System.currentTimeMillis()
+            )
+        }
+
     fun getWorkoutProgress(sessionId: Long): Flow<WorkoutProgress> = 
         workoutSessionDao.getExercisesWithSetsForSession(sessionId).map { list ->
             val totalExercises = list.size
@@ -55,7 +91,7 @@ class WorkoutSessionRepository @Inject constructor(
             val totalSets = list.sumOf { it.sets.size }
             val completedSets = list.sumOf { it.sets.count { s -> s.completed } }
             
-            val percentage = if (totalSets > 0) completedSets.toFloat() / totalSets else 0f
+            val percentage = if (totalExercises > 0) completedExercises.toFloat() / totalExercises else 0f
             
             WorkoutProgress(
                 completedExercises = completedExercises,
@@ -424,7 +460,11 @@ class WorkoutSessionRepository @Inject constructor(
             workoutSessionDao.updateSession(it.copy(
                 status = "COMPLETED",
                 endTime = endTime,
-                durationSeconds = duration
+                durationSeconds = duration,
+                timerState = "DISMISSED",
+                timerStartTime = null,
+                timerDurationSeconds = null,
+                timerPausedRemainingSeconds = null
             ))
         }
     }
