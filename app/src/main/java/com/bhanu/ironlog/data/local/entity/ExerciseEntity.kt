@@ -26,5 +26,7 @@ data class ExerciseEntity(
     val order: Int,
     val enabled: Boolean = true,
     val notes: String = "",
+    val restTimerSeconds: Int = 90,
+    val useDefaultRestTimer: Boolean = true,
     val createdAt: Long = System.currentTimeMillis()
 )

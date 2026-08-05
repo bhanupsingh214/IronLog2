@@ -150,6 +150,11 @@ class WorkoutLoggingViewModel @Inject constructor(
                         )
                     )
                     updateEngineState(currentSets.size + 1)
+                    if (setType == "Working") {
+                        viewModelScope.launch {
+                            sessionRepository.dismissRestTimer(sessionId)
+                        }
+                    }
                 }
             }
         }
@@ -209,6 +214,11 @@ class WorkoutLoggingViewModel @Inject constructor(
                                 createdAt = System.currentTimeMillis()
                             )
                         )
+                        if (lastSet.setType == "Working") {
+                            viewModelScope.launch {
+                                sessionRepository.dismissRestTimer(sessionId)
+                            }
+                        }
                     } else {
                         addSet()
                     }
@@ -232,7 +242,6 @@ class WorkoutLoggingViewModel @Inject constructor(
                 }
             } else {
                 sessionRepository.updateSet(
-                    sessionId = sessionId,
                     setId = uiModel.id,
                     weight = uiModel.weight,
                     reps = uiModel.reps,

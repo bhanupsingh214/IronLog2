@@ -1,22 +1,113 @@
 package com.bhanu.ironlog.ui.screens.profile
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 @Composable
-fun ProfileScreen() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+fun ProfileScreen(
+    viewModel: ProfileViewModel = hiltViewModel()
+) {
+    val settings by viewModel.settings.collectAsState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Profile",
-            style = MaterialTheme.typography.headlineMedium
+            text = "Profile & Settings",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        settings?.let { s ->
+            SettingsSection(title = "Workout Settings") {
+                SettingsToggleItem(
+                    title = "Auto Start Rest Timer",
+                    subtitle = "Timer starts after completing a working set",
+                    checked = s.autoStartTimer,
+                    onCheckedChange = { viewModel.updateSettings(s.copy(autoStartTimer = it)) }
+                )
+                
+                SettingsSliderItem(
+                    title = "Default Rest Duration",
+                    value = s.defaultRestTimerSeconds,
+                    onValueChange = { viewModel.updateSettings(s.copy(defaultRestTimerSeconds = it)) },
+                    valueRange = 30f..300f,
+                    steps = 17 // Every 15 seconds: (300-30)/15 - 1 = 17 steps
+                )
+
+                SettingsToggleItem(
+                    title = "Haptic Feedback",
+                    subtitle = "Vibrate when timer completes",
+                    checked = s.hapticFeedback,
+                    onCheckedChange = { viewModel.updateSettings(s.copy(hapticFeedback = it)) }
+                )
+
+                SettingsToggleItem(
+                    title = "Sound Alert",
+                    subtitle = "Play chime when timer completes",
+                    checked = s.soundAlert,
+                    onCheckedChange = { viewModel.updateSettings(s.copy(soundAlert = it)) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(text = title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(8.dp)) {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsToggleItem(title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = title, style = MaterialTheme.typography.bodyLarge)
+            Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+@Composable
+fun SettingsSliderItem(title: String, value: Int, onValueChange: (Int) -> Unit, valueRange: ClosedFloatingPointRange<Float>, steps: Int) {
+    Column(modifier = Modifier.padding(8.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(text = title, style = MaterialTheme.typography.bodyLarge)
+            Text(text = "$value sec", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        }
+        Slider(
+            value = value.toFloat(),
+            onValueChange = { onValueChange(it.toInt()) },
+            valueRange = valueRange,
+            steps = steps
         )
     }
 }

@@ -6,6 +6,8 @@ import com.bhanu.ironlog.data.local.entity.SessionExercise
 import com.bhanu.ironlog.data.local.entity.SessionSet
 import com.bhanu.ironlog.data.local.entity.WorkoutSession
 import com.bhanu.ironlog.data.local.pojo.*
+import com.bhanu.ironlog.data.model.RestTimerState
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import java.util.Calendar
 import javax.inject.Inject
@@ -14,7 +16,8 @@ import javax.inject.Singleton
 @Singleton
 class WorkoutSessionRepository @Inject constructor(
     private val workoutSessionDao: WorkoutSessionDao,
-    private val programDao: ProgramDao
+    private val programDao: ProgramDao,
+    private val workoutSettingsDao: com.bhanu.ironlog.data.local.dao.WorkoutSettingsDao
 ) {
     private val repositoryScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main)
 
@@ -24,6 +27,12 @@ class WorkoutSessionRepository @Inject constructor(
             started = SharingStarted.Eagerly,
             initialValue = null
         )
+
+    fun getWorkoutSettings(): Flow<com.bhanu.ironlog.data.local.entity.WorkoutSettingsEntity?> = 
+        workoutSettingsDao.getSettings()
+
+    suspend fun updateWorkoutSettings(settings: com.bhanu.ironlog.data.local.entity.WorkoutSettingsEntity) =
+        workoutSettingsDao.updateSettings(settings)
 
     fun getAllSessions(): Flow<List<WorkoutSession>> = workoutSessionDao.getAllSessions()
 
@@ -137,7 +146,8 @@ class WorkoutSessionRepository @Inject constructor(
                     exerciseTemplateId = exercise.id,
                     exerciseOrder = exercise.order,
                     notes = exercise.notes,
-                    status = "NOT_STARTED"
+                    status = "NOT_STARTED",
+                    restTimerSeconds = if (exercise.useDefaultRestTimer) 0 else exercise.restTimerSeconds
                 )
             )
 
@@ -157,7 +167,6 @@ class WorkoutSessionRepository @Inject constructor(
             }
         }
         
-        // Initialize current exercise
         if (exercises.isNotEmpty()) {
             workoutSessionDao.updateEngineState(sessionId, exercises.first().id, 1, 0)
         }
@@ -166,7 +175,6 @@ class WorkoutSessionRepository @Inject constructor(
     }
 
     suspend fun updateSet(
-        sessionId: Long,
         setId: Long,
         weight: Double,
         reps: Int,
@@ -175,7 +183,6 @@ class WorkoutSessionRepository @Inject constructor(
     ) {
         val set = workoutSessionDao.getSessionSetById(setId) ?: return
         
-        // Validation
         val validWeight = weight.coerceAtLeast(0.0)
         val validReps = reps.coerceAtLeast(0)
         val validRpe = rpe?.coerceIn(0.0, 10.0)
@@ -195,7 +202,10 @@ class WorkoutSessionRepository @Inject constructor(
         
         workoutSessionDao.updateSessionSet(set.copy(completed = newCompletion))
         
-        // Auto Exercise State Machine
+        if (newCompletion && set.setType == "Working") {
+            handleAutoStartTimer(sessionId, set.sessionExerciseId)
+        }
+
         val exercises = workoutSessionDao.getExercisesWithSetsForSessionList(sessionId)
         val sessionExercise = exercises.find { it.sessionExercise.sessionExerciseId == set.sessionExerciseId } ?: return
         
@@ -219,6 +229,129 @@ class WorkoutSessionRepository @Inject constructor(
         updateEngineCompletedCount(sessionId)
     }
 
+    private suspend fun handleAutoStartTimer(sessionId: Long, sessionExerciseId: Long) {
+        val settings = workoutSettingsDao.getSettingsOnce() ?: com.bhanu.ironlog.data.local.entity.WorkoutSettingsEntity()
+        if (!settings.autoStartTimer) return
+
+        val exercises = workoutSessionDao.getExercisesWithSetsForSessionList(sessionId)
+        val exercise = exercises.find { it.sessionExercise.sessionExerciseId == sessionExerciseId } ?: return
+        
+        val duration = if (exercise.sessionExercise.restTimerSeconds > 0) {
+            exercise.sessionExercise.restTimerSeconds
+        } else {
+            settings.defaultRestTimerSeconds
+        }
+
+        startRestTimer(sessionId, duration)
+    }
+
+    suspend fun startRestTimer(sessionId: Long, durationSeconds: Int) {
+        val session = workoutSessionDao.getSessionByIdOnce(sessionId) ?: return
+        workoutSessionDao.updateSession(session.copy(
+            timerStartTime = System.currentTimeMillis(),
+            timerDurationSeconds = durationSeconds,
+            timerState = "RUNNING",
+            timerPausedRemainingSeconds = null
+        ))
+    }
+
+    suspend fun pauseRestTimer(sessionId: Long) {
+        val session = workoutSessionDao.getSessionByIdOnce(sessionId) ?: return
+        if (session.timerState != "RUNNING") return
+        
+        val elapsed = (System.currentTimeMillis() - (session.timerStartTime ?: 0L)) / 1000
+        val remaining = (session.timerDurationSeconds ?: 0) - elapsed.toInt()
+        
+        workoutSessionDao.updateSession(session.copy(
+            timerState = "PAUSED",
+            timerPausedRemainingSeconds = remaining.coerceAtLeast(0)
+        ))
+    }
+
+    suspend fun resumeRestTimer(sessionId: Long) {
+        val session = workoutSessionDao.getSessionByIdOnce(sessionId) ?: return
+        if (session.timerState != "PAUSED") return
+        
+        val remaining = session.timerPausedRemainingSeconds ?: 0
+        workoutSessionDao.updateSession(session.copy(
+            timerStartTime = System.currentTimeMillis() - ((session.timerDurationSeconds ?: 0) - remaining) * 1000,
+            timerState = "RUNNING",
+            timerPausedRemainingSeconds = null
+        ))
+    }
+
+    suspend fun adjustRestTimer(sessionId: Long, addSeconds: Int) {
+        val session = workoutSessionDao.getSessionByIdOnce(sessionId) ?: return
+        if (session.timerState != "RUNNING" && session.timerState != "PAUSED") return
+        
+        val newDuration = (session.timerDurationSeconds ?: 0) + addSeconds
+        workoutSessionDao.updateSession(session.copy(
+            timerDurationSeconds = newDuration.coerceAtLeast(1)
+        ))
+    }
+
+    suspend fun dismissRestTimer(sessionId: Long) {
+        val session = workoutSessionDao.getSessionByIdOnce(sessionId) ?: return
+        if (session.timerState == "IDLE" || session.timerState == "DISMISSED") return
+        
+        workoutSessionDao.updateSession(session.copy(
+            timerState = "DISMISSED",
+            timerStartTime = null,
+            timerDurationSeconds = null,
+            timerPausedRemainingSeconds = null
+        ))
+    }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun getActiveRestTimer(sessionId: Long): Flow<RestTimerInfo> = 
+        workoutSessionDao.getSessionById(sessionId).flatMapLatest { session ->
+            if (session == null || session.timerState == "IDLE" || session.timerState == "DISMISSED") {
+                return@flatMapLatest flowOf(RestTimerInfo())
+            }
+            
+            tickerFlow(1000).map {
+                val now = System.currentTimeMillis()
+                val startTime = session.timerStartTime ?: 0L
+                val duration = session.timerDurationSeconds ?: 0
+                
+                when (session.timerState) {
+                    "PAUSED" -> {
+                        RestTimerInfo(
+                            state = RestTimerState.PAUSED,
+                            remainingSeconds = session.timerPausedRemainingSeconds ?: 0,
+                            totalDurationSeconds = duration
+                        )
+                    }
+                    "RUNNING", "COMPLETED" -> {
+                        val elapsed = (now - startTime) / 1000
+                        val remaining = duration - elapsed.toInt()
+                        if (remaining > 0) {
+                            RestTimerInfo(
+                                state = RestTimerState.RUNNING,
+                                remainingSeconds = remaining,
+                                totalDurationSeconds = duration
+                            )
+                        } else {
+                            RestTimerInfo(
+                                state = RestTimerState.COMPLETED,
+                                remainingSeconds = 0,
+                                totalDurationSeconds = duration,
+                                elapsedGraceSeconds = (-remaining).toInt()
+                            )
+                        }
+                    }
+                    else -> RestTimerInfo()
+                }
+            }
+        }
+
+    private fun tickerFlow(periodMillis: Long) = flow {
+        while (true) {
+            emit(Unit)
+            delay(periodMillis)
+        }
+    }
+
     suspend fun skipExercise(sessionId: Long, exerciseTemplateId: Long) {
         val sessionExercise = workoutSessionDao.getSessionExercise(sessionId, exerciseTemplateId) ?: return
         workoutSessionDao.updateSessionExerciseStatus(sessionExercise.sessionExerciseId, "SKIPPED")
@@ -229,6 +362,17 @@ class WorkoutSessionRepository @Inject constructor(
         val sessionExercise = workoutSessionDao.getSessionExercise(sessionId, exerciseTemplateId) ?: return
         workoutSessionDao.updateSessionExerciseStatus(sessionExercise.sessionExerciseId, "COMPLETED")
         moveToNextUnfinishedExercise(sessionId)
+    }
+
+    suspend fun toggleExerciseCompletion(sessionId: Long, exerciseTemplateId: Long) {
+        val sessionExercise = workoutSessionDao.getSessionExercise(sessionId, exerciseTemplateId) ?: return
+        val newStatus = if (sessionExercise.status == "COMPLETED") "NOT_STARTED" else "COMPLETED"
+        workoutSessionDao.updateSessionExerciseStatus(sessionExercise.sessionExerciseId, newStatus)
+        
+        // If completing, maybe move to next unfinished
+        if (newStatus == "COMPLETED") {
+            moveToNextUnfinishedExercise(sessionId)
+        }
     }
 
     suspend fun moveToNextUnfinishedExercise(sessionId: Long) {

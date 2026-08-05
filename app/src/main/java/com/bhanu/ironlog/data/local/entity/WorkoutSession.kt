@@ -23,5 +23,11 @@ data class WorkoutSession(
     val currentExerciseId: Long? = null,
     val currentSetNumber: Int? = null,
     val completedSetsCount: Int = 0,
-    val hasShownBackgroundDialog: Boolean = false
+    val hasShownBackgroundDialog: Boolean = false,
+    
+    // Rest Timer State
+    val timerStartTime: Long? = null,
+    val timerDurationSeconds: Int? = null,
+    val timerState: String = "IDLE", // IDLE, RUNNING, PAUSED, COMPLETED, DISMISSED
+    val timerPausedRemainingSeconds: Int? = null
 )
