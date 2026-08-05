@@ -81,7 +81,6 @@ fun WorkoutProgress(
     totalSets: Int = 0
 ) {
     val exerciseProgress = if (totalExercises > 0) completedExercises.toFloat() / totalExercises else 0f
-    val setProgress = if (totalSets > 0) completedSets.toFloat() / totalSets else 0f
     
     Column(Modifier.fillMaxWidth().padding(16.dp)) {
         Row(
@@ -90,13 +89,13 @@ fun WorkoutProgress(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("Workout Progress", style = MaterialTheme.typography.titleSmall)
-            Text("${(setProgress * 100).toInt()}%", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+            Text("${(exerciseProgress * 100).toInt()}%", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
         }
         
         Spacer(Modifier.height(8.dp))
         
         LinearProgressIndicator(
-            progress = { setProgress },
+            progress = { exerciseProgress },
             modifier = Modifier.fillMaxWidth(),
             strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
         )
