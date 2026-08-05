@@ -180,6 +180,8 @@ class WorkoutSessionRepository @Inject constructor(
                 SessionExercise(
                     sessionId = sessionId,
                     exerciseTemplateId = exercise.id,
+                    exerciseName = exercise.name,
+                    muscleGroup = exercise.muscleGroup,
                     exerciseOrder = exercise.order,
                     notes = exercise.notes,
                     status = "NOT_STARTED",
@@ -238,7 +240,7 @@ class WorkoutSessionRepository @Inject constructor(
         
         workoutSessionDao.updateSessionSet(set.copy(completed = newCompletion))
         
-        if (newCompletion && set.setType == "Working") {
+        if (newCompletion && (set.setType == "Working" || set.setType == "Back-off")) {
             handleAutoStartTimer(sessionId, set.sessionExerciseId)
         }
 
@@ -457,6 +459,14 @@ class WorkoutSessionRepository @Inject constructor(
             val isHistorical = it.startTime < endTime - 12 * 3600 * 1000
             val duration = if (isHistorical) 0L else (endTime - it.startTime) / 1000
 
+            // Issue 1 Fix: Mark all unfinished exercises as SKIPPED
+            val exercises = workoutSessionDao.getExercisesForSessionList(sessionId)
+            for (exercise in exercises) {
+                if (exercise.status != "COMPLETED" && exercise.status != "SKIPPED") {
+                    workoutSessionDao.updateSessionExerciseStatus(exercise.sessionExerciseId, "SKIPPED")
+                }
+            }
+
             workoutSessionDao.updateSession(it.copy(
                 status = "COMPLETED",
                 endTime = endTime,
@@ -502,6 +512,9 @@ class WorkoutSessionRepository @Inject constructor(
 
     fun getExercisesWithSetsForSession(sessionId: Long): Flow<List<SessionExerciseWithTemplateAndSets>> =
         workoutSessionDao.getExercisesWithSetsForSession(sessionId)
+
+    fun getHistoricalExercisesWithSets(sessionId: Long): Flow<List<SessionExerciseWithSets>> =
+        workoutSessionDao.getHistoricalExercisesWithSets(sessionId)
 
     fun getSetsForExercise(sessionExerciseId: Long): Flow<List<SessionSet>> = 
         workoutSessionDao.getSetsForExercise(sessionExerciseId)

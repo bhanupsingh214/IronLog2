@@ -1,20 +1,25 @@
 package com.bhanu.ironlog.ui.screens.history
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.bhanu.ironlog.data.local.pojo.SessionExerciseWithTemplateAndSets
+import com.bhanu.ironlog.data.local.pojo.SessionExerciseWithSets
+import com.bhanu.ironlog.data.local.pojo.WorkoutDetails
 import com.bhanu.ironlog.ui.components.ErrorScreen
 import com.bhanu.ironlog.ui.components.formatTimer
 import java.text.SimpleDateFormat
@@ -31,15 +36,12 @@ fun WorkoutDetailsScreen(
         return
     }
 
-    val session by viewModel.session.collectAsState()
-    val exercises by viewModel.exercises.collectAsState()
-    val stats by viewModel.workoutStats.collectAsState()
-    val prs by viewModel.personalRecords.collectAsState()
+    val workoutDetails by viewModel.workoutDetails.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(session?.dayName ?: "Workout Details") },
+                title = { Text("Workout Details") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -48,12 +50,12 @@ fun WorkoutDetailsScreen(
             )
         }
     ) { padding ->
-        if (session == null) {
+        if (workoutDetails == null) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         } else {
-            val currentSession = session ?: return@Scaffold
+            val details = workoutDetails!!
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -62,22 +64,24 @@ fun WorkoutDetailsScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item {
-                    SessionSummaryHeader(
-                        dayName = currentSession.dayName,
-                        programName = currentSession.programName,
-                        date = currentSession.createdAt,
-                        duration = currentSession.durationSeconds,
-                        stats = stats
+                    WorkoutDetailsHeader(details)
+                }
+
+                item {
+                    WorkoutDetailsSummaryCard(details)
+                }
+
+                item {
+                    Text(
+                        text = "Exercises",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 8.dp)
                     )
                 }
 
-                items(exercises, key = { it.sessionExercise.sessionExerciseId }) { exercise ->
-                    val exercisePRs = prs.filter { it.exerciseTemplateId == exercise.template.id }
-                    ExerciseDetailItem(exercise, exercisePRs, currentSession.sessionId)
-                }
-                
-                item {
-                    BottomSummarySection(stats)
+                items(details.exercises, key = { it.sessionExercise.sessionExerciseId }) { exercise ->
+                    HistoricalExerciseItem(exercise)
                 }
                 
                 item { Spacer(Modifier.height(32.dp)) }
@@ -87,112 +91,217 @@ fun WorkoutDetailsScreen(
 }
 
 @Composable
-fun SessionSummaryHeader(
-    dayName: String,
-    programName: String,
-    date: Long,
-    duration: Long,
-    stats: WorkoutStats?
-) {
+fun WorkoutDetailsHeader(details: WorkoutDetails) {
     val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("en", "IN"))
+    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
     
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp)) {
-            Text(text = dayName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(text = programName, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(16.dp))
-            
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                SummaryStatItem("Date", dateFormat.format(Date(date)))
-                SummaryStatItem("Duration", formatTimer(duration))
-            }
-            
-            Spacer(Modifier.height(12.dp))
-            HorizontalDivider(thickness = 0.5.dp)
-            Spacer(Modifier.height(12.dp))
-            
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                SummaryStatItem("Volume", String.format(Locale.getDefault(), "%,.0f kg", stats?.totalVolume ?: 0.0))
-                SummaryStatItem("PRs", (stats?.prCount ?: 0).toString())
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = details.session.dayName,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+        
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = details.session.programName,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(Modifier.width(8.dp))
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                modifier = Modifier.size(4.dp)
+            ) {}
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = details.session.dayName,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        
+        Spacer(Modifier.height(24.dp))
+        
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            DetailStat("Date", dateFormat.format(Date(details.session.createdAt)))
+            DetailStat("Duration", formatTimer(details.session.durationSeconds))
+        }
+        
+        Spacer(Modifier.height(16.dp))
+        
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            DetailStat("Start Time", timeFormat.format(Date(details.session.startTime)))
+            details.session.endTime?.let {
+                DetailStat("End Time", timeFormat.format(Date(it)))
             }
         }
     }
 }
 
 @Composable
-fun SummaryStatItem(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-        Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+fun DetailStat(label: String, value: String) {
+    Column {
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+        Text(text = value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
-fun ExerciseDetailItem(
-    item: SessionExerciseWithTemplateAndSets,
-    prs: List<com.bhanu.ironlog.data.local.entity.PersonalRecordEntity>,
-    sessionId: Long
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = item.template.name,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
+fun WorkoutDetailsSummaryCard(details: WorkoutDetails) {
+    val summary = details.summary
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
-        Text(
-            text = "${item.template.muscleGroup} • ${item.template.equipment}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(8.dp))
-        
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-        ) {
-            Column(Modifier.padding(8.dp)) {
-                item.sets.forEach { set ->
-                    val isWeightPR = prs.any { it.weightPRSessionId == sessionId && it.weightPR == set.weight }
-                    
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                SummaryStat(
+                    label = "Exercises",
+                    value = "${summary.exercisesCompleted}/${summary.totalExercises}",
+                    modifier = Modifier.weight(1f)
+                )
+                SummaryStat(
+                    label = "Sets",
+                    value = "${summary.setsCompleted}/${summary.totalSets}",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            
+            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+            
+            Row(modifier = Modifier.fillMaxWidth()) {
+                SummaryStat(
+                    label = "Volume",
+                    value = String.format(Locale.getDefault(), "%,.0f kg", summary.totalVolume),
+                    modifier = Modifier.weight(1f)
+                )
+                SummaryStat(
+                    label = "Completion",
+                    value = "${(summary.completionPercentage * 100).toInt()}%",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            if (summary.skippedExercises > 0) {
+                Text(
+                    text = "${summary.skippedExercises} exercises skipped",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SummaryStat(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+        Text(text = value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun HistoricalExerciseItem(item: SessionExerciseWithSets) {
+    var expanded by remember { mutableStateOf(false) }
+    val exercise = item.sessionExercise
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = !expanded },
+        colors = CardDefaults.cardColors(
+            containerColor = if (exercise.status == "SKIPPED") 
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+            else MaterialTheme.colorScheme.surface
+        ),
+        border = if (exercise.status == "SKIPPED") null 
+                 else CardDefaults.outlinedCardBorder()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = exercise.exerciseName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = exercise.status,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = when (exercise.status) {
+                            "COMPLETED" -> MaterialTheme.colorScheme.primary
+                            "SKIPPED" -> MaterialTheme.colorScheme.error
+                            else -> MaterialTheme.colorScheme.outline
+                        }
+                    )
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.outline
+                )
+            }
+            
+            AnimatedVisibility(visible = expanded) {
+                Column(
+                    modifier = Modifier
+                        .padding(top = 16.dp)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (exercise.notes.isNotBlank()) {
                         Text(
-                            text = "Set ${set.setNumber}",
-                            modifier = Modifier.width(60.dp),
+                            text = "Notes: ${exercise.notes}",
                             style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 8.dp)
                         )
-                        Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                    }
+
+                    item.sets.forEach { set ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
                             Text(
-                                text = "${set.weight}kg x ${set.reps}",
-                                style = MaterialTheme.typography.bodyMedium
+                                text = "Set ${set.setNumber}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.width(60.dp)
                             )
-                            if (isWeightPR) {
-                                Spacer(Modifier.width(8.dp))
-                                Surface(
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    shape = MaterialTheme.shapes.extraSmall
-                                ) {
-                                    Text(
-                                        "PR",
-                                        modifier = Modifier.padding(horizontal = 4.dp),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                            
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                SetDataPoint(label = "kg", value = String.format(Locale.getDefault(), "%.1f", set.weight))
+                                SetDataPoint(label = "reps", value = set.reps.toString())
+                                set.rpe?.let {
+                                    SetDataPoint(label = "RPE", value = it.toString())
                                 }
                             }
-                        }
-                        if (set.rpe != null) {
-                            Text(
-                                text = "@ RPE ${set.rpe}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
+                            
+                            if (set.completed) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = "Completed",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -202,28 +311,10 @@ fun ExerciseDetailItem(
 }
 
 @Composable
-fun BottomSummarySection(stats: WorkoutStats?) {
-    if (stats == null) return
-    
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                Text("Total Volume", style = MaterialTheme.typography.labelSmall)
-                Text(String.format(Locale.getDefault(), "%,.0f kg", stats.totalVolume), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Text("Total Sets", style = MaterialTheme.typography.labelSmall)
-                Text("${stats.totalSets} sets", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(4.dp))
-                Text("Avg. Intensity", style = MaterialTheme.typography.labelSmall)
-                Text(String.format(Locale.getDefault(), "%,.1f kg/rep", stats.averageIntensity), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-            }
-        }
+fun SetDataPoint(label: String, value: String) {
+    Row(verticalAlignment = Alignment.Bottom) {
+        Text(text = value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.width(2.dp))
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
     }
 }

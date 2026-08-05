@@ -59,6 +59,10 @@ interface WorkoutSessionDao {
 
     @Transaction
     @Query("SELECT * FROM session_exercises WHERE sessionId = :sessionId ORDER BY exerciseOrder ASC")
+    fun getHistoricalExercisesWithSets(sessionId: Long): Flow<List<SessionExerciseWithSets>>
+
+    @Transaction
+    @Query("SELECT * FROM session_exercises WHERE sessionId = :sessionId ORDER BY exerciseOrder ASC")
     suspend fun getExercisesWithSetsForSessionList(sessionId: Long): List<SessionExerciseWithTemplateAndSets>
 
     @Query("SELECT * FROM session_exercises WHERE sessionId = :sessionId ORDER BY exerciseOrder ASC")
