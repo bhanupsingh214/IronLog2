@@ -25,7 +25,7 @@ data class SessionExercise(
     val exerciseOrder: Int,
     val isSwapped: Boolean = false,
     val originalExerciseId: Long? = null,
-    val status: String = "PLANNED", // PLANNED, ACTIVE, COMPLETED, SKIPPED, REPLACED
+    val status: String = "NOT_STARTED", // NOT_STARTED, IN_PROGRESS, COMPLETED, SKIPPED
     val notes: String = "",
     val restTimerSeconds: Int = 0
 )
