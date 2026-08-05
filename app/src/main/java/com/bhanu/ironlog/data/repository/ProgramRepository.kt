@@ -66,7 +66,14 @@ class ProgramRepository @Inject constructor(
             // 3. Duplicate Exercises
             val exercises = programDao.getExercisesForDay(day.id)
             for (exercise in exercises) {
-                val newExerciseId = programDao.insertExercise(exercise.copy(id = 0, dayId = newDayId))
+                val newExerciseId = programDao.insertExercise(
+                    exercise.copy(
+                        id = 0, 
+                        dayId = newDayId,
+                        restTimerSeconds = exercise.restTimerSeconds,
+                        useDefaultRestTimer = exercise.useDefaultRestTimer
+                    )
+                )
                 
                 // 4. Duplicate Sets
                 val sets = programDao.getSetsForExercise(exercise.id)
@@ -185,6 +192,8 @@ class ProgramRepository @Inject constructor(
                 id = 0,
                 name = "${exercise.name} (Copy)",
                 order = maxOrder + 1,
+                restTimerSeconds = exercise.restTimerSeconds,
+                useDefaultRestTimer = exercise.useDefaultRestTimer,
                 createdAt = System.currentTimeMillis()
             )
         )

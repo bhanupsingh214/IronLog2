@@ -7,6 +7,7 @@ import com.bhanu.ironlog.data.local.dao.ProgramDao
 import com.bhanu.ironlog.data.local.dao.SessionDao
 import com.bhanu.ironlog.data.local.dao.WorkoutSessionDao
 import com.bhanu.ironlog.data.local.dao.PersonalRecordDao
+import com.bhanu.ironlog.data.local.dao.WorkoutSettingsDao
 import com.bhanu.ironlog.data.local.entity.*
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
@@ -22,9 +23,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         WorkoutSession::class,
         SessionExercise::class,
         SessionSet::class,
-        PersonalRecordEntity::class
+        PersonalRecordEntity::class,
+        WorkoutSettingsEntity::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -33,6 +35,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
     abstract fun workoutSessionDao(): WorkoutSessionDao
     abstract fun personalRecordDao(): PersonalRecordDao
+    abstract fun workoutSettingsDao(): WorkoutSettingsDao
 
     companion object {
         val MIGRATION_6_7 = object : Migration(6, 7) {
@@ -126,6 +129,32 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE `session_exercises` ADD COLUMN `status` TEXT NOT NULL DEFAULT 'PLANNED'")
                 db.execSQL("ALTER TABLE `session_exercises` ADD COLUMN `notes` TEXT NOT NULL DEFAULT ''")
                 db.execSQL("ALTER TABLE `session_exercises` ADD COLUMN `restTimerSeconds` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // ExerciseEntity changes
+                db.execSQL("ALTER TABLE `exercises` ADD COLUMN `restTimerSeconds` INTEGER NOT NULL DEFAULT 90")
+                db.execSQL("ALTER TABLE `exercises` ADD COLUMN `useDefaultRestTimer` INTEGER NOT NULL DEFAULT 1")
+                
+                // WorkoutSession changes
+                db.execSQL("ALTER TABLE `workout_session_logs` ADD COLUMN `timerStartTime` INTEGER")
+                db.execSQL("ALTER TABLE `workout_session_logs` ADD COLUMN `timerDurationSeconds` INTEGER")
+                db.execSQL("ALTER TABLE `workout_session_logs` ADD COLUMN `timerState` TEXT NOT NULL DEFAULT 'IDLE'")
+                db.execSQL("ALTER TABLE `workout_session_logs` ADD COLUMN `timerPausedRemainingSeconds` INTEGER")
+
+                // New WorkoutSettings table
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `workout_settings` (
+                        `id` INTEGER PRIMARY KEY NOT NULL, 
+                        `defaultRestTimerSeconds` INTEGER NOT NULL DEFAULT 90, 
+                        `autoStartTimer` INTEGER NOT NULL DEFAULT 1, 
+                        `hapticFeedback` INTEGER NOT NULL DEFAULT 1, 
+                        `soundAlert` INTEGER NOT NULL DEFAULT 1
+                    )
+                """)
+                db.execSQL("INSERT OR IGNORE INTO `workout_settings` (id) VALUES (1)")
             }
         }
     }

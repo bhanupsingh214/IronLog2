@@ -66,7 +66,9 @@ class ExercisesViewModel @Inject constructor(
         muscleGroup: String,
         equipment: String,
         exerciseType: String,
-        notes: String
+        notes: String,
+        restTimerSeconds: Int = 90,
+        useDefaultRestTimer: Boolean = true
     ) {
         viewModelScope.launch {
             repository.insertExercise(
@@ -77,6 +79,8 @@ class ExercisesViewModel @Inject constructor(
                     equipment = equipment,
                     exerciseType = exerciseType,
                     notes = notes,
+                    restTimerSeconds = restTimerSeconds,
+                    useDefaultRestTimer = useDefaultRestTimer,
                     order = 0 // Repository will handle actual order
                 )
             )

@@ -4,6 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -105,8 +107,8 @@ fun ExercisesScreen(
     if (showAddDialog) {
         ExerciseDialog(
             onDismiss = { showAddDialog = false },
-            onSave = { name, muscle, equipment, type, notes ->
-                viewModel.addExercise(name, muscle, equipment, type, notes)
+            onSave = { name, muscle, equipment, type, notes, restTimer, useDefault ->
+                viewModel.addExercise(name, muscle, equipment, type, notes, restTimer, useDefault)
                 showAddDialog = false
             }
         )
@@ -116,14 +118,16 @@ fun ExercisesScreen(
         ExerciseDialog(
             initialExercise = exercise,
             onDismiss = { exerciseToEdit = null },
-            onSave = { name, muscle, equipment, type, notes ->
+            onSave = { name, muscle, equipment, type, notes, restTimer, useDefault ->
                 viewModel.updateExercise(
                     exercise.copy(
                         name = name,
                         muscleGroup = muscle,
                         equipment = equipment,
                         exerciseType = type,
-                        notes = notes
+                        notes = notes,
+                        restTimerSeconds = restTimer,
+                        useDefaultRestTimer = useDefault
                     )
                 )
                 exerciseToEdit = null
@@ -254,13 +258,15 @@ fun ExerciseItem(
 fun ExerciseDialog(
     initialExercise: ExerciseEntity? = null,
     onDismiss: () -> Unit,
-    onSave: (String, String, String, String, String) -> Unit
+    onSave: (String, String, String, String, String, Int, Boolean) -> Unit
 ) {
     var name by remember { mutableStateOf(initialExercise?.name ?: "") }
     var muscle by remember { mutableStateOf(initialExercise?.muscleGroup ?: "") }
     var equipment by remember { mutableStateOf(initialExercise?.equipment ?: "") }
     var type by remember { mutableStateOf(initialExercise?.exerciseType ?: "Compound") }
     var notes by remember { mutableStateOf(initialExercise?.notes ?: "") }
+    var restTimer by remember { mutableIntStateOf(initialExercise?.restTimerSeconds ?: 90) }
+    var useDefault by remember { mutableStateOf(initialExercise?.useDefaultRestTimer ?: true) }
 
     var expandedType by remember { mutableStateOf(false) }
     val types = listOf("Compound", "Isolation", "Cardio")
@@ -269,7 +275,10 @@ fun ExerciseDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (initialExercise == null) "Add Exercise" else "Edit Exercise") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -325,11 +334,41 @@ fun ExerciseDialog(
                     label = { Text("Notes (Optional)") },
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                HorizontalDivider()
+                
+                Text("Rest Timer", style = MaterialTheme.typography.titleSmall)
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(selected = useDefault, onClick = { useDefault = true })
+                    Text("Use Global Default", style = MaterialTheme.typography.bodyMedium)
+                }
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(selected = !useDefault, onClick = { useDefault = false })
+                    Text("Custom Timer", style = MaterialTheme.typography.bodyMedium)
+                }
+                
+                if (!useDefault) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = if (restTimer == 0) "" else restTimer.toString(),
+                            onValueChange = { restTimer = it.toIntOrNull() ?: 0 },
+                            label = { Text("Seconds") },
+                            modifier = Modifier.width(100.dp),
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                        )
+                        Text("sec", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
             }
         },
         confirmButton = {
             Button(
-                onClick = { onSave(name, muscle, equipment, type, notes) },
+                onClick = { onSave(name, muscle, equipment, type, notes, restTimer, useDefault) },
                 enabled = name.isNotBlank()
             ) {
                 Text("Save")

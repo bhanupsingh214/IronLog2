@@ -101,7 +101,9 @@ class SessionExercisesViewModel @Inject constructor(
         sessionRepository.getExercisesWithSetsForSession(sess.sessionId).map { exerciseList ->
             val totalVolume = exerciseList.sumOf { ex -> ex.sets.sumOf { it.weight * it.reps } }
             val totalSets = exerciseList.sumOf { it.sets.size }
-            val completedExercises = sess.completedExerciseIds.split(",").filter { it.isNotBlank() }.size
+            val completedExercises = exerciseList.count { 
+                it.sessionExercise.status == "COMPLETED" || it.sessionExercise.status == "SKIPPED" 
+            }
             
             WorkoutSummary(
                 durationSeconds = (System.currentTimeMillis() - sess.startTime) / 1000,
@@ -157,31 +159,7 @@ class SessionExercisesViewModel @Inject constructor(
 
     fun toggleExerciseCompletion(exerciseId: Long) {
         viewModelScope.launch {
-            val currentSession = session.value ?: return@launch
-            val completedIds = currentSession.completedExerciseIds.split(",")
-                .filter { it.isNotBlank() }
-                .toMutableSet()
-            
-            val idStr = exerciseId.toString()
-            val newStatus: String
-            if (completedIds.contains(idStr)) {
-                completedIds.remove(idStr)
-                newStatus = "PLANNED"
-            } else {
-                completedIds.add(idStr)
-                newStatus = "COMPLETED"
-            }
-            
-            // 1. Update Session metadata
-            sessionRepository.updateSession(currentSession.copy(
-                completedExerciseIds = completedIds.joinToString(",")
-            ))
-
-            // 2. Update individual exercise snapshot
-            val sessionExercise = sessionRepository.getSessionExercise(sessionId, exerciseId)
-            if (sessionExercise != null) {
-                sessionRepository.updateSessionExerciseStatus(sessionExercise.sessionExerciseId, newStatus)
-            }
+            sessionRepository.toggleExerciseCompletion(sessionId, exerciseId)
         }
     }
 

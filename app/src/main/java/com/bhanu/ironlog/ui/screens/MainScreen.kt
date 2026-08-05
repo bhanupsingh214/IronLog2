@@ -9,16 +9,20 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import android.media.RingtoneManager
+import android.net.Uri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.bhanu.ironlog.ui.navigation.Screen
 import com.bhanu.ironlog.ui.navigation.SetupNavGraph
+import com.bhanu.ironlog.data.model.RestTimerState
 
 @Composable
 fun MainScreen(
@@ -26,6 +30,29 @@ fun MainScreen(
 ) {
     val navController = rememberNavController()
     val activeSession by viewModel.activeSession.collectAsState()
+    val restTimer by viewModel.restTimer.collectAsState()
+    val settings by viewModel.workoutSettings.collectAsState()
+
+    val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
+
+    // Rest Timer Completion Alert
+    LaunchedEffect(restTimer?.state) {
+        if (restTimer?.state == RestTimerState.COMPLETED) {
+            if (settings?.hapticFeedback == true) {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            }
+            if (settings?.soundAlert == true) {
+                try {
+                    val notification: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                    val r = RingtoneManager.getRingtone(context, notification)
+                    r.play()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
 
     val screens = listOf(
         Screen.Dashboard,
@@ -101,6 +128,17 @@ fun MainScreen(
                 .fillMaxSize()
         ) {
             SetupNavGraph(navController = navController)
+            
+            restTimer?.let { timer ->
+                com.bhanu.ironlog.ui.components.RestTimerOverlay(
+                    timerInfo = timer,
+                    onPause = { viewModel.pauseTimer() },
+                    onResume = { viewModel.resumeTimer() },
+                    onAdjust = { viewModel.adjustTimer(it) },
+                    onSkip = { viewModel.skipTimer() },
+                    onDismiss = { viewModel.dismissTimer() }
+                )
+            }
         }
     }
 }
