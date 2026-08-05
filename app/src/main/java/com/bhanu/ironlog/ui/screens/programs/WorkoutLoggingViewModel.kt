@@ -150,10 +150,8 @@ class WorkoutLoggingViewModel @Inject constructor(
                         )
                     )
                     updateEngineState(currentSets.size + 1)
-                    if (setType == "Working") {
-                        viewModelScope.launch {
-                            sessionRepository.dismissRestTimer(sessionId)
-                        }
+                    viewModelScope.launch {
+                        sessionRepository.dismissRestTimer(sessionId)
                     }
                 }
             }
@@ -214,10 +212,8 @@ class WorkoutLoggingViewModel @Inject constructor(
                                 createdAt = System.currentTimeMillis()
                             )
                         )
-                        if (lastSet.setType == "Working") {
-                            viewModelScope.launch {
-                                sessionRepository.dismissRestTimer(sessionId)
-                            }
+                        viewModelScope.launch {
+                            sessionRepository.dismissRestTimer(sessionId)
                         }
                     } else {
                         addSet()

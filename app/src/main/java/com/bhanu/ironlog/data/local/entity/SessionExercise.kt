@@ -22,6 +22,8 @@ data class SessionExercise(
     val sessionExerciseId: Long = 0,
     val sessionId: Long,
     val exerciseTemplateId: Long,
+    val exerciseName: String = "",
+    val muscleGroup: String = "",
     val exerciseOrder: Int,
     val isSwapped: Boolean = false,
     val originalExerciseId: Long? = null,
