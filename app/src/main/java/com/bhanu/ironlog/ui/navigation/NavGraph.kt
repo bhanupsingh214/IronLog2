@@ -119,7 +119,16 @@ fun SetupNavGraph(navController: NavHostController) {
                 navArgument("sessionId") { type = NavType.LongType }
             )
         ) {
-            WorkoutLoggingScreen(onBack = { navController.popBackStack() })
+            WorkoutLoggingScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToExercise = { exerciseId ->
+                    val sessionId = it.arguments?.getLong("sessionId") ?: 0L
+                    navController.navigate(Screen.WorkoutLogging.passLogging(exerciseId, sessionId)) {
+                        // Replace current logging screen in backstack to prevent deep nesting
+                        popUpTo(Screen.WorkoutLogging.route) { inclusive = true }
+                    }
+                }
+            )
         }
         composable(route = Screen.ArchivedPrograms.route) {
             ArchivedProgramsScreen(onBack = { navController.popBackStack() })

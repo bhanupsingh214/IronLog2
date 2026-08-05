@@ -74,23 +74,42 @@ fun formatTimer(seconds: Long): String {
 }
 
 @Composable
-fun WorkoutProgress(completed: Int, total: Int) {
-    val progress = if (total > 0) completed.toFloat() / total else 0f
+fun WorkoutProgress(
+    completedExercises: Int,
+    totalExercises: Int,
+    completedSets: Int = 0,
+    totalSets: Int = 0
+) {
+    val exerciseProgress = if (totalExercises > 0) completedExercises.toFloat() / totalExercises else 0f
+    val setProgress = if (totalSets > 0) completedSets.toFloat() / totalSets else 0f
+    
     Column(Modifier.fillMaxWidth().padding(16.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Progress", style = MaterialTheme.typography.titleSmall)
-            Text("$completed of $total exercises", style = MaterialTheme.typography.bodySmall)
+            Text("Workout Progress", style = MaterialTheme.typography.titleSmall)
+            Text("${(setProgress * 100).toInt()}%", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
         }
+        
         Spacer(Modifier.height(8.dp))
+        
         LinearProgressIndicator(
-            progress = { progress },
+            progress = { setProgress },
             modifier = Modifier.fillMaxWidth(),
             strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
         )
+        
+        Spacer(Modifier.height(4.dp))
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("$completedExercises of $totalExercises exercises", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+            Text("$completedSets of $totalSets sets", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+        }
     }
 }
 

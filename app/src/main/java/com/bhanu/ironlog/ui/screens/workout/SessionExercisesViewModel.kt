@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bhanu.ironlog.data.local.entity.WorkoutSession
 import com.bhanu.ironlog.data.local.pojo.SessionExerciseWithTemplate
+import com.bhanu.ironlog.data.local.pojo.WorkoutProgress
 import com.bhanu.ironlog.data.repository.ProgramRepository
 import com.bhanu.ironlog.data.repository.WorkoutSessionRepository
 import com.bhanu.ironlog.data.service.Achievement
@@ -75,6 +76,15 @@ class SessionExercisesViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val progress: StateFlow<WorkoutProgress?> = session.flatMapLatest { sess ->
+        if (sess != null && sess.status == "ACTIVE") {
+            sessionRepository.getWorkoutProgress(sess.sessionId)
+        } else {
+            flowOf(null)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     private val _achievements = MutableStateFlow<List<Achievement>>(emptyList())
     val achievements = _achievements.asStateFlow()
 
@@ -130,6 +140,18 @@ class SessionExercisesViewModel @Inject constructor(
         viewModelScope.launch {
             sessionRepository.discardSession(sessionId)
             _finishSignal.emit(Unit)
+        }
+    }
+
+    fun skipExercise(exerciseId: Long) {
+        viewModelScope.launch {
+            sessionRepository.skipExercise(sessionId, exerciseId)
+        }
+    }
+
+    fun completeExercise(exerciseId: Long) {
+        viewModelScope.launch {
+            sessionRepository.completeExercise(sessionId, exerciseId)
         }
     }
 

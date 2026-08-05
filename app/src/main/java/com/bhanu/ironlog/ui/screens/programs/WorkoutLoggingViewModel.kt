@@ -103,17 +103,20 @@ class WorkoutLoggingViewModel @Inject constructor(
         MutableStateFlow(emptyList())
     }
 
+    private val _navigationEvent = MutableSharedFlow<LoggingNavigationEvent>()
+    val navigationEvent = _navigationEvent.asSharedFlow()
+
     init {
         updateEngineState()
-        setExerciseActive()
+        setExerciseInProgress()
     }
 
-    private fun setExerciseActive() {
+    private fun setExerciseInProgress() {
         if (sessionId > 0) {
             viewModelScope.launch {
                 val sessionExercise = sessionRepository.getSessionExercise(sessionId, exerciseId)
-                if (sessionExercise != null && sessionExercise.status == "PLANNED") {
-                    sessionRepository.updateSessionExerciseStatus(sessionExercise.sessionExerciseId, "ACTIVE")
+                if (sessionExercise != null && sessionExercise.status == "NOT_STARTED") {
+                    sessionRepository.updateSessionExerciseStatus(sessionExercise.sessionExerciseId, "IN_PROGRESS")
                 }
             }
         }
@@ -220,27 +223,29 @@ class WorkoutLoggingViewModel @Inject constructor(
                 val original = repository.getSetsForExercise(exerciseId, 0L).first().find { it.id == uiModel.id }
                 original?.let {
                     repository.updateSet(it.copy(
-                        weight = uiModel.weight,
-                        reps = uiModel.reps,
-                        rpe = uiModel.rpe,
+                        weight = uiModel.weight.coerceAtLeast(0.0),
+                        reps = uiModel.reps.coerceAtLeast(0),
+                        rpe = uiModel.rpe?.coerceIn(0.0, 10.0),
                         notes = uiModel.notes,
                         isCompleted = uiModel.isCompleted
                     ))
                 }
             } else {
-                val sessionExercise = sessionRepository.getSessionExercise(sessionId, exerciseId)
-                if (sessionExercise != null) {
-                    val original = sessionRepository.getSetsForExercise(sessionExercise.sessionExerciseId).first().find { it.sessionSetId == uiModel.id }
-                    original?.let {
-                        sessionRepository.updateSessionSet(it.copy(
-                            weight = uiModel.weight,
-                            reps = uiModel.reps,
-                            rpe = uiModel.rpe,
-                            notes = uiModel.notes,
-                            completed = uiModel.isCompleted
-                        ))
-                        updateEngineState()
-                    }
+                sessionRepository.updateSet(
+                    sessionId = sessionId,
+                    setId = uiModel.id,
+                    weight = uiModel.weight,
+                    reps = uiModel.reps,
+                    rpe = uiModel.rpe,
+                    notes = uiModel.notes
+                )
+                
+                val original = sessionRepository.getSetsForExercise(
+                    sessionRepository.getSessionExercise(sessionId, exerciseId)?.sessionExerciseId ?: return@launch
+                ).first().find { it.sessionSetId == uiModel.id }
+                
+                if (original != null && original.completed != uiModel.isCompleted) {
+                    sessionRepository.toggleSetCompletion(sessionId, uiModel.id)
                 }
             }
         }
@@ -293,6 +298,67 @@ class WorkoutLoggingViewModel @Inject constructor(
             }
         }
     }
+
+    fun moveToNextExercise() {
+        if (sessionId > 0) {
+            viewModelScope.launch {
+                sessionRepository.moveToNextExercise(sessionId)
+                val sess = sessionRepository.getSessionById(sessionId).first()
+                sess?.currentExerciseId?.let { nextId ->
+                    if (nextId != exerciseId) {
+                        _navigationEvent.emit(LoggingNavigationEvent.NavigateToExercise(nextId))
+                    }
+                }
+            }
+        }
+    }
+
+    fun moveToPreviousExercise() {
+        if (sessionId > 0) {
+            viewModelScope.launch {
+                sessionRepository.moveToPreviousExercise(sessionId)
+                val sess = sessionRepository.getSessionById(sessionId).first()
+                sess?.currentExerciseId?.let { prevId ->
+                    if (prevId != exerciseId) {
+                        _navigationEvent.emit(LoggingNavigationEvent.NavigateToExercise(prevId))
+                    }
+                }
+            }
+        }
+    }
+
+    fun skipExercise() {
+        if (sessionId > 0) {
+            viewModelScope.launch {
+                sessionRepository.skipExercise(sessionId, exerciseId)
+                handleAdvance()
+            }
+        }
+    }
+
+    fun completeExercise() {
+        if (sessionId > 0) {
+            viewModelScope.launch {
+                sessionRepository.completeExercise(sessionId, exerciseId)
+                handleAdvance()
+            }
+        }
+    }
+
+    private suspend fun handleAdvance() {
+        val sess = sessionRepository.getSessionById(sessionId).first()
+        val nextId = sess?.currentExerciseId
+        if (nextId != null) {
+            _navigationEvent.emit(LoggingNavigationEvent.NavigateToExercise(nextId))
+        } else {
+            _navigationEvent.emit(LoggingNavigationEvent.WorkoutFinished)
+        }
+    }
+}
+
+sealed class LoggingNavigationEvent {
+    data class NavigateToExercise(val exerciseId: Long) : LoggingNavigationEvent()
+    object WorkoutFinished : LoggingNavigationEvent()
 }
 
 private fun SetEntity.toUiModel() = WorkoutSetUiModel(

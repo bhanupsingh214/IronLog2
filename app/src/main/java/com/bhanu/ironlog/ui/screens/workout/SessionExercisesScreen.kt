@@ -47,6 +47,7 @@ fun SessionExercisesScreen(
     val session by viewModel.session.collectAsState()
     val exercises by viewModel.exercises.collectAsState()
     val timerSeconds by viewModel.timerSeconds.collectAsState()
+    val progress by viewModel.progress.collectAsState()
     
     val achievements by viewModel.achievements.collectAsState()
     val showCelebration by viewModel.showCelebration.collectAsState()
@@ -79,10 +80,6 @@ fun SessionExercisesScreen(
     if (loadingTimedOut && session == null) {
         ErrorScreen(onBack = onBack, message = "Workout Session not found")
         return
-    }
-
-    val actualCompletedCount = remember(exercises) {
-        exercises.count { it.sessionExercise.status == "COMPLETED" }
     }
 
     Scaffold(
@@ -168,10 +165,14 @@ fun SessionExercisesScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     item {
-                        WorkoutProgress(
-                            completed = actualCompletedCount,
-                            total = exercises.size
-                        )
+                        progress?.let {
+                            WorkoutProgress(
+                                completedExercises = it.completedExercises,
+                                totalExercises = it.totalExercises,
+                                completedSets = it.completedSets,
+                                totalSets = it.totalSets
+                            )
+                        }
                     }
 
                     items(exercises, key = { it.sessionExercise.sessionExerciseId }) { item ->

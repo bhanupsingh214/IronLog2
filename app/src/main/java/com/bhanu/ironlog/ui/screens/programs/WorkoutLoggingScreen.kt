@@ -24,6 +24,7 @@ import androidx.compose.ui.text.TextRange
 @Composable
 fun WorkoutLoggingScreen(
     onBack: () -> Unit,
+    onNavigateToExercise: (Long) -> Unit = {},
     viewModel: WorkoutLoggingViewModel = hiltViewModel(),
 ) {
     if (!viewModel.isArgumentValid) {
@@ -39,6 +40,23 @@ fun WorkoutLoggingScreen(
     val sessionId = viewModel.sessionId
 
     val isReadOnly = sessionId != 0L && session?.status == "COMPLETED"
+    
+    var isProcessingAction by remember { mutableStateOf(false) }
+
+    // Listen for current exercise changes to trigger navigation
+    LaunchedEffect(Unit) {
+        viewModel.navigationEvent.collect { event ->
+            isProcessingAction = false
+            when (event) {
+                is LoggingNavigationEvent.NavigateToExercise -> {
+                    onNavigateToExercise(event.exerciseId)
+                }
+                LoggingNavigationEvent.WorkoutFinished -> {
+                    onBack()
+                }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -47,6 +65,28 @@ fun WorkoutLoggingScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (sessionId > 0 && !isReadOnly) {
+                        IconButton(
+                            onClick = { 
+                                isProcessingAction = true
+                                viewModel.moveToPreviousExercise() 
+                            },
+                            enabled = !isProcessingAction
+                        ) {
+                            Icon(Icons.Default.ChevronLeft, "Previous")
+                        }
+                        IconButton(
+                            onClick = { 
+                                isProcessingAction = true
+                                viewModel.moveToNextExercise() 
+                            },
+                            enabled = !isProcessingAction
+                        ) {
+                            Icon(Icons.Default.ChevronRight, "Next")
+                        }
                     }
                 }
             )
@@ -57,7 +97,16 @@ fun WorkoutLoggingScreen(
                     onAddWorking = { viewModel.addSet("Working") },
                     onAddWarmup = { viewModel.addSet("Warm-up") },
                     onAddBackoff = { viewModel.addSet("Back-off") },
-                    onCopyPrevious = { viewModel.copyPreviousSet() }
+                    onCopyPrevious = { viewModel.copyPreviousSet() },
+                    onSkipExercise = { 
+                        isProcessingAction = true
+                        viewModel.skipExercise() 
+                    },
+                    onCompleteExercise = { 
+                        isProcessingAction = true
+                        viewModel.completeExercise() 
+                    },
+                    enabled = !isProcessingAction
                 )
             }
         },
@@ -262,14 +311,17 @@ fun SetItem(
                     },
                     label = "Reps",
                     modifier = Modifier.weight(1f),
-                    enabled = !isReadOnly
+                    enabled = !isReadOnly,
+                    isInteger = true
                 )
                 LoggingTextField(
                     value = localRpe,
                     onValueChange = { 
                         localRpe = it
                         val rpe = it.toDoubleOrNull()
-                        onUpdate(set.copy(rpe = rpe))
+                        if (rpe == null || rpe in 0.0..10.0) {
+                            onUpdate(set.copy(rpe = rpe))
+                        }
                     },
                     label = "RPE",
                     modifier = Modifier.weight(1f),
@@ -303,14 +355,26 @@ fun LoggingTextField(
     label: String,
     modifier: Modifier = Modifier,
     suffix: String? = null,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    isInteger: Boolean = false
 ) {
     OutlinedTextField(
         value = value,
-        onValueChange = onValueChange,
+        onValueChange = { newValue ->
+            if (isInteger) {
+                if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                    onValueChange(newValue)
+                }
+            } else {
+                // Allow only one decimal point
+                if (newValue.isEmpty() || newValue.count { it == '.' } <= 1 && newValue.all { it.isDigit() || it == '.' }) {
+                    onValueChange(newValue)
+                }
+            }
+        },
         label = { Text(label, fontSize = 10.sp) },
         modifier = modifier,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        keyboardOptions = KeyboardOptions(keyboardType = if (isInteger) KeyboardType.Number else KeyboardType.Decimal),
         singleLine = true,
         suffix = suffix?.let { { Text(it, fontSize = 10.sp) } },
         enabled = enabled
@@ -322,41 +386,71 @@ fun LoggingBottomBar(
     onAddWorking: () -> Unit,
     onAddWarmup: () -> Unit,
     onAddBackoff: () -> Unit,
-    onCopyPrevious: () -> Unit
+    onCopyPrevious: () -> Unit,
+    onSkipExercise: () -> Unit = {},
+    onCompleteExercise: () -> Unit = {},
+    enabled: Boolean = true
 ) {
     Surface(
         tonalElevation = 3.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .navigationBarsPadding(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedButton(
-                onClick = onAddWarmup,
-                modifier = Modifier.weight(1f)
+        Column(modifier = Modifier.padding(16.dp).navigationBarsPadding()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Warmup", fontSize = 10.sp)
+                OutlinedButton(
+                    onClick = onSkipExercise,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    enabled = enabled
+                ) {
+                    Text("Skip", fontSize = 10.sp)
+                }
+                Button(
+                    onClick = onCompleteExercise,
+                    modifier = Modifier.weight(1f),
+                    enabled = enabled
+                ) {
+                    Text("Done", fontSize = 10.sp)
+                }
             }
-            Button(
-                onClick = onAddWorking,
-                modifier = Modifier.weight(1.2f)
+            
+            Spacer(Modifier.height(8.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Working", fontSize = 10.sp)
-            }
-            OutlinedButton(
-                onClick = onAddBackoff,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Backoff", fontSize = 10.sp)
-            }
-            IconButton(
-                onClick = onCopyPrevious,
-                colors = IconButtonDefaults.filledIconButtonColors()
-            ) {
-                Icon(Icons.Default.ContentCopy, contentDescription = "Copy Previous")
+                OutlinedButton(
+                    onClick = onAddWarmup,
+                    modifier = Modifier.weight(1f),
+                    enabled = enabled
+                ) {
+                    Text("Warmup", fontSize = 10.sp)
+                }
+                Button(
+                    onClick = onAddWorking,
+                    modifier = Modifier.weight(1.2f),
+                    enabled = enabled
+                ) {
+                    Text("Working", fontSize = 10.sp)
+                }
+                OutlinedButton(
+                    onClick = onAddBackoff,
+                    modifier = Modifier.weight(1f),
+                    enabled = enabled
+                ) {
+                    Text("Backoff", fontSize = 10.sp)
+                }
+                IconButton(
+                    onClick = onCopyPrevious,
+                    colors = IconButtonDefaults.filledIconButtonColors(),
+                    enabled = enabled
+                ) {
+                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy Previous")
+                }
             }
         }
     }
