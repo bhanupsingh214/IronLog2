@@ -1,6 +1,7 @@
 package com.bhanu.ironlog.ui.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -35,4 +36,5 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object ExerciseDetails : Screen("exercise_details/{exerciseId}", "Exercise Details", Icons.Default.Info) {
         fun passExerciseId(id: Long) = "exercise_details/$id"
     }
+    object ExerciseLibrary : Screen("exercise_library", "Exercise Library", Icons.AutoMirrored.Filled.LibraryBooks)
 }

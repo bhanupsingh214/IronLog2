@@ -14,6 +14,7 @@ import com.bhanu.ironlog.ui.screens.history.HistoryScreen
 import com.bhanu.ironlog.ui.screens.history.WorkoutDetailsScreen
 import com.bhanu.ironlog.ui.screens.records.RecordDetailScreen
 import com.bhanu.ironlog.ui.screens.records.RecordsScreen
+import com.bhanu.ironlog.ui.screens.library.ExerciseLibraryScreen
 import com.bhanu.ironlog.ui.screens.programs.ArchivedProgramsScreen
 import com.bhanu.ironlog.ui.screens.programs.ExercisesScreen
 import com.bhanu.ironlog.ui.screens.programs.ProgramsScreen
@@ -190,7 +191,12 @@ fun SetupNavGraph(navController: NavHostController) {
             )
         }
         composable(route = Screen.Profile.route) {
-            ProfileScreen()
+            ProfileScreen(
+                onNavigateToLibrary = { navController.navigate(Screen.ExerciseLibrary.route) }
+            )
+        }
+        composable(route = Screen.ExerciseLibrary.route) {
+            ExerciseLibraryScreen(onBack = { navController.popBackStack() })
         }
     }
 }

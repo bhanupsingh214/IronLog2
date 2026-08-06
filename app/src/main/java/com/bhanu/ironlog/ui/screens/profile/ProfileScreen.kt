@@ -1,8 +1,11 @@
 package com.bhanu.ironlog.ui.screens.profile
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -15,6 +18,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 @Composable
 fun ProfileScreen(
+    onNavigateToLibrary: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val settings by viewModel.settings.collectAsState()
@@ -31,6 +35,14 @@ fun ProfileScreen(
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.padding(bottom = 8.dp)
         )
+
+        SettingsSection(title = "General") {
+            SettingsClickItem(
+                title = "Exercise Library",
+                subtitle = "Manage your training vocabulary",
+                onClick = onNavigateToLibrary
+            )
+        }
 
         settings?.let { s ->
             SettingsSection(title = "Workout Settings") {
@@ -93,6 +105,24 @@ fun SettingsToggleItem(title: String, subtitle: String, checked: Boolean, onChec
             Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+@Composable
+fun SettingsClickItem(title: String, subtitle: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = title, style = MaterialTheme.typography.bodyLarge)
+            Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.outline)
     }
 }
 
