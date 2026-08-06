@@ -516,6 +516,54 @@ class WorkoutSessionRepository @Inject constructor(
     fun getHistoricalExercisesWithSets(sessionId: Long): Flow<List<SessionExerciseWithSets>> =
         workoutSessionDao.getHistoricalExercisesWithSets(sessionId)
 
+    fun getExerciseDetails(exerciseTemplateId: Long): Flow<ExerciseDetails?> =
+        workoutSessionDao.getCompletedExerciseRecords(exerciseTemplateId).map { records ->
+            if (records.isEmpty()) return@map null
+            
+            val mostRecent = records.first()
+            val totalSessions = records.size
+            var totalVolume = 0.0
+            var bestWeight = 0.0
+            var bestE1RM = 0.0
+            val firstPerformed = records.last().session.createdAt
+            val lastPerformed = mostRecent.session.createdAt
+            
+            val sessionHistory = records.map { record ->
+                val sessionVolume = record.sets.sumOf { if (it.completed) it.weight * it.reps else 0.0 }
+                totalVolume += sessionVolume
+                
+                record.sets.forEach { set ->
+                    if (set.completed) {
+                        if (set.weight > bestWeight) bestWeight = set.weight
+                        val e1rm = set.weight * (1 + set.reps / 30.0)
+                        if (e1rm > bestE1RM) bestE1RM = e1rm
+                    }
+                }
+                
+                ExerciseSessionRecord(
+                    sessionId = record.session.sessionId,
+                    date = record.session.createdAt,
+                    workoutName = record.session.dayName,
+                    status = record.sessionExercise.status,
+                    sessionVolume = sessionVolume,
+                    sets = record.sets
+                )
+            }
+            
+            ExerciseDetails(
+                exerciseTemplateId = exerciseTemplateId,
+                exerciseName = mostRecent.sessionExercise.exerciseName,
+                muscleGroup = mostRecent.sessionExercise.muscleGroup,
+                totalSessions = totalSessions,
+                totalVolume = totalVolume,
+                bestWeight = bestWeight,
+                estimated1RM = bestE1RM,
+                firstPerformed = firstPerformed,
+                lastPerformed = lastPerformed,
+                sessionHistory = sessionHistory
+            )
+        }
+
     fun getSetsForExercise(sessionExerciseId: Long): Flow<List<SessionSet>> = 
         workoutSessionDao.getSetsForExercise(sessionExerciseId)
 

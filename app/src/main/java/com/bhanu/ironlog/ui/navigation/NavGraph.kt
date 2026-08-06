@@ -164,7 +164,23 @@ fun SetupNavGraph(navController: NavHostController) {
             route = Screen.WorkoutDetails.route,
             arguments = listOf(navArgument("sessionId") { type = NavType.LongType })
         ) {
-            WorkoutDetailsScreen(onBack = { navController.popBackStack() })
+            WorkoutDetailsScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToExerciseDetails = { exerciseId ->
+                    navController.navigate(Screen.ExerciseDetails.passExerciseId(exerciseId))
+                }
+            )
+        }
+        composable(
+            route = Screen.ExerciseDetails.route,
+            arguments = listOf(navArgument("exerciseId") { type = NavType.LongType })
+        ) {
+            com.bhanu.ironlog.ui.screens.workout.ExerciseDetailsScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToSession = { sessionId ->
+                    navController.navigate(Screen.WorkoutDetails.passSessionId(sessionId))
+                }
+            )
         }
         composable(route = Screen.Progress.route) {
             ProgressScreen(

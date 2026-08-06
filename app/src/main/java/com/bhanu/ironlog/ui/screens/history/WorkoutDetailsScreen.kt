@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,6 +30,7 @@ import java.util.*
 @Composable
 fun WorkoutDetailsScreen(
     onBack: () -> Unit,
+    onNavigateToExerciseDetails: (Long) -> Unit,
     viewModel: WorkoutDetailsViewModel = hiltViewModel()
 ) {
     if (!viewModel.isArgumentValid) {
@@ -81,7 +83,10 @@ fun WorkoutDetailsScreen(
                 }
 
                 items(details.exercises, key = { it.sessionExercise.sessionExerciseId }) { exercise ->
-                    HistoricalExerciseItem(exercise)
+                    HistoricalExerciseItem(
+                        item = exercise,
+                        onClick = { onNavigateToExerciseDetails(exercise.sessionExercise.exerciseTemplateId) }
+                    )
                 }
                 
                 item { Spacer(Modifier.height(32.dp)) }
@@ -207,7 +212,10 @@ fun SummaryStat(label: String, value: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun HistoricalExerciseItem(item: SessionExerciseWithSets) {
+fun HistoricalExerciseItem(
+    item: SessionExerciseWithSets,
+    onClick: () -> Unit
+) {
     var expanded by remember { mutableStateOf(false) }
     val exercise = item.sessionExercise
     
@@ -250,6 +258,21 @@ fun HistoricalExerciseItem(item: SessionExerciseWithSets) {
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.outline
                 )
+            }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(
+                    onClick = onClick,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Icon(Icons.Default.History, null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Exercise History", style = MaterialTheme.typography.labelMedium)
+                }
             }
             
             AnimatedVisibility(visible = expanded) {

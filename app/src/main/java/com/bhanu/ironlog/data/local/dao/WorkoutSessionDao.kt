@@ -62,6 +62,15 @@ interface WorkoutSessionDao {
     fun getHistoricalExercisesWithSets(sessionId: Long): Flow<List<SessionExerciseWithSets>>
 
     @Transaction
+    @Query("""
+        SELECT * FROM session_exercises 
+        WHERE exerciseTemplateId = :exerciseTemplateId 
+        AND sessionId IN (SELECT sessionId FROM workout_session_logs WHERE status = 'COMPLETED')
+        ORDER BY sessionExerciseId DESC
+    """)
+    fun getCompletedExerciseRecords(exerciseTemplateId: Long): Flow<List<SessionExerciseWithSetsAndSession>>
+
+    @Transaction
     @Query("SELECT * FROM session_exercises WHERE sessionId = :sessionId ORDER BY exerciseOrder ASC")
     suspend fun getExercisesWithSetsForSessionList(sessionId: Long): List<SessionExerciseWithTemplateAndSets>
 
