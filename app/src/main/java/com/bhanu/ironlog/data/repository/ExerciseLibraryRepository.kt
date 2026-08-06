@@ -21,28 +21,62 @@ class ExerciseLibraryRepository @Inject constructor(
     }
 
     /**
-     * Finds similar exercises already in the library.
-     * Current simple implementation: checks if any existing normalized names contain 
-     * the new normalized name, or vice-versa.
+     * Handles the full save flow for an exercise.
+     * Performs normalization, exact duplicate detection, and similarity detection.
      */
-    suspend fun findSimilarExercises(name: String): List<LibraryExerciseEntity> {
-        val normalized = ExerciseNormalizationUtil.normalize(name)
-        if (normalized.length < 3) return emptyList()
+    suspend fun validateAndSaveExercise(
+        exercise: LibraryExerciseEntity,
+        ignoreSimilarity: Boolean = false
+    ): SaveExerciseResult {
+        val normalized = ExerciseNormalizationUtil.normalize(exercise.name)
         
+        // 1. Exact Duplicate Detection
+        val existingExact = libraryDao.findByNormalizedName(normalized)
+        if (existingExact != null) {
+            return SaveExerciseResult.ExactDuplicate(existingExact)
+        }
+
+        // 2. Similarity Detection (if not explicitly ignored by user)
+        if (!ignoreSimilarity) {
+            val similar = findSimilarExercisesInternal(normalized)
+            if (similar.isNotEmpty()) {
+                return SaveExerciseResult.SimilarFound(similar)
+            }
+        }
+
+        // 3. Create Exercise
+        val id = libraryDao.insert(exercise.copy(normalizedName = normalized, updatedAt = System.currentTimeMillis()))
+        return SaveExerciseResult.Success(id)
+    }
+
+    suspend fun updateExercise(exercise: LibraryExerciseEntity) {
+        val normalized = ExerciseNormalizationUtil.normalize(exercise.name)
+        libraryDao.update(exercise.copy(
+            normalizedName = normalized,
+            updatedAt = System.currentTimeMillis()
+        ))
+    }
+
+    suspend fun archiveExercise(id: Long) {
+        libraryDao.softDelete(id)
+    }
+
+    /**
+     * Internal helper for similarity detection during save flow.
+     */
+    private suspend fun findSimilarExercisesInternal(normalized: String): List<LibraryExerciseEntity> {
+        if (normalized.length < 3) return emptyList()
         val all = libraryDao.getAllActiveExercises().first()
         return all.filter { existing ->
             existing.normalizedName.contains(normalized) || normalized.contains(existing.normalizedName)
         }.take(5)
     }
 
-    suspend fun insertExercise(exercise: LibraryExerciseEntity): Long {
-        val normalized = ExerciseNormalizationUtil.normalize(exercise.name)
-        val existing = libraryDao.findByNormalizedName(normalized)
-        return if (existing != null) {
-            existing.id
-        } else {
-            libraryDao.insert(exercise.copy(normalizedName = normalized))
-        }
+    /**
+     * Public API for UI to check similarity while typing (optional/future)
+     */
+    suspend fun findSimilarExercises(name: String): List<LibraryExerciseEntity> {
+        return findSimilarExercisesInternal(ExerciseNormalizationUtil.normalize(name))
     }
 
     suspend fun seedLibraryIfNeeded() {
