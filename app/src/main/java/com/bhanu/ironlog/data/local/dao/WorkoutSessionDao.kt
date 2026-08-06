@@ -51,11 +51,12 @@ interface WorkoutSessionDao {
 
     @Transaction
     @Query("""
-        SELECT * FROM session_exercises 
-        WHERE exerciseTemplateId = :exerciseTemplateId 
-        AND sessionId IN (SELECT sessionId FROM workout_session_logs WHERE status = 'COMPLETED')
-        AND sessionId != :currentSessionId
-        ORDER BY sessionExerciseId DESC
+        SELECT se.* FROM session_exercises se
+        JOIN workout_session_logs wsl ON se.sessionId = wsl.sessionId
+        WHERE se.exerciseTemplateId = :exerciseTemplateId 
+        AND wsl.status = 'COMPLETED'
+        AND se.sessionId != :currentSessionId
+        ORDER BY wsl.startTime DESC
         LIMIT 1
     """)
     fun getLatestCompletedExerciseRecord(exerciseTemplateId: Long, currentSessionId: Long): Flow<SessionExerciseWithSetsAndSession?>
@@ -144,7 +145,7 @@ interface WorkoutSessionDao {
                (SELECT COUNT(*) FROM session_exercises WHERE sessionId = sess.sessionId) as exerciseCount,
                (SELECT COUNT(*) FROM session_sets ss JOIN session_exercises ex ON ss.sessionExerciseId = ex.sessionExerciseId WHERE ex.sessionId = sess.sessionId) as setCount,
                (SELECT COUNT(*) FROM personal_records WHERE weightPRSessionId = sess.sessionId OR estimated1RMSessionId = sess.sessionId) as prCount,
-               (SELECT GROUP_CONCAT(name, ', ') FROM exercises e JOIN session_exercises se ON e.id = se.exerciseTemplateId WHERE se.sessionId = sess.sessionId) as exerciseNames
+               IFNULL((SELECT GROUP_CONCAT(exerciseName, ', ') FROM session_exercises WHERE sessionId = sess.sessionId), '') as exerciseNames
         FROM workout_session_logs sess
         LEFT JOIN session_exercises e ON sess.sessionId = e.sessionId
         LEFT JOIN session_sets s ON e.sessionExerciseId = s.sessionExerciseId

@@ -29,8 +29,8 @@ class RecordsViewModel @Inject constructor(
         _selectedSort
     ) { allPRs, query, muscle, sort ->
         val filtered = allPRs.filter { pr ->
-            val exerciseName = pr.exercise?.name ?: ""
-            val muscleGroup = pr.exercise?.muscleGroup ?: ""
+            val exerciseName = pr.exercise?.name ?: pr.snapshotName ?: "Deleted Exercise"
+            val muscleGroup = pr.exercise?.muscleGroup ?: pr.snapshotMuscle ?: ""
             
             val matchesQuery = exerciseName.contains(query, ignoreCase = true)
             val matchesMuscle = muscle == "All" || muscleGroup == muscle
@@ -41,7 +41,7 @@ class RecordsViewModel @Inject constructor(
             SortOption.LatestPR -> filtered.sortedByDescending { it.pr.updatedAt }
             SortOption.HighestWeight -> filtered.sortedByDescending { it.pr.weightPR }
             SortOption.HighestE1RM -> filtered.sortedByDescending { it.pr.estimated1RM }
-            SortOption.Alphabetical -> filtered.sortedBy { it.exercise?.name ?: "" }
+            SortOption.Alphabetical -> filtered.sortedBy { it.exercise?.name ?: it.snapshotName ?: "Deleted Exercise" }
         }
 
         RecordsUiState.Success(sorted) as RecordsUiState
