@@ -103,6 +103,13 @@ class WorkoutLoggingViewModel @Inject constructor(
         MutableStateFlow(emptyList())
     }
 
+    val previousPerformance: StateFlow<com.bhanu.ironlog.data.local.pojo.SessionExerciseWithSetsAndSession?> = if (isArgumentValid && sessionId > 0) {
+        sessionRepository.getPreviousPerformance(exerciseId, sessionId)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    } else {
+        MutableStateFlow(null)
+    }
+
     private val _navigationEvent = MutableSharedFlow<LoggingNavigationEvent>()
     val navigationEvent = _navigationEvent.asSharedFlow()
 
