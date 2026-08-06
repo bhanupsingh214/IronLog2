@@ -11,5 +11,5 @@ data class SessionExerciseWithTemplate(
         parentColumn = "exerciseTemplateId",
         entityColumn = "id"
     )
-    val template: ExerciseEntity
+    val template: ExerciseEntity?
 )

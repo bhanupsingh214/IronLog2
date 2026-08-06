@@ -11,5 +11,5 @@ data class PRWithExerciseName(
         parentColumn = "exerciseTemplateId",
         entityColumn = "id"
     )
-    val exercise: ExerciseEntity
+    val exercise: ExerciseEntity?
 )

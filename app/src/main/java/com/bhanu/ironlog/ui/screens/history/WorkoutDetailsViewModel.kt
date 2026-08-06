@@ -25,7 +25,7 @@ class WorkoutDetailsViewModel @Inject constructor(
         combine(
             sessionRepository.getSessionById(sessionId).filterNotNull(),
             sessionRepository.getWorkoutCompletionSummary(sessionId).filterNotNull(),
-            sessionRepository.getHistoricalExercisesWithSets(sessionId)
+            sessionRepository.getExercisesWithSetsForSession(sessionId)
         ) { session, summary, exercises ->
             WorkoutDetails(session, summary, exercises)
         }.stateIn(

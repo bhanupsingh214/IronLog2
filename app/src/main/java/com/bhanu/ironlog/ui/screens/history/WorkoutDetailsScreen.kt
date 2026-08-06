@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.bhanu.ironlog.data.local.pojo.SessionExerciseWithSets
 import com.bhanu.ironlog.data.local.pojo.WorkoutDetails
 import com.bhanu.ironlog.ui.components.ErrorScreen
 import com.bhanu.ironlog.ui.components.formatTimer
@@ -213,12 +212,15 @@ fun SummaryStat(label: String, value: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun HistoricalExerciseItem(
-    item: SessionExerciseWithSets,
+    item: com.bhanu.ironlog.data.local.pojo.SessionExerciseWithTemplateAndSets,
     onClick: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     val exercise = item.sessionExercise
     
+    val displayName = exercise.exerciseName.ifBlank { item.template?.name ?: "Deleted Exercise" }
+    val displayMuscle = exercise.muscleGroup.ifBlank { item.template?.muscleGroup ?: "" }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -239,12 +241,12 @@ fun HistoricalExerciseItem(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = exercise.exerciseName,
+                        text = displayName,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = exercise.status,
+                        text = if (displayMuscle.isNotBlank()) "$displayMuscle • ${exercise.status}" else exercise.status,
                         style = MaterialTheme.typography.bodySmall,
                         color = when (exercise.status) {
                             "COMPLETED" -> MaterialTheme.colorScheme.primary

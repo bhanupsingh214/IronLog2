@@ -12,7 +12,7 @@ data class SessionExerciseWithTemplateAndSets(
         parentColumn = "exerciseTemplateId",
         entityColumn = "id"
     )
-    val template: ExerciseEntity,
+    val template: ExerciseEntity?,
     @Relation(
         parentColumn = "sessionExerciseId",
         entityColumn = "sessionExerciseId"

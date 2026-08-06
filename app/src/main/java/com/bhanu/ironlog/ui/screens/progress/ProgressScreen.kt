@@ -389,7 +389,7 @@ fun PRItem(item: PRWithExerciseName) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(Modifier.weight(1f)) {
-                Text(item.exercise.name, fontWeight = FontWeight.Bold)
+                Text(item.exercise?.name ?: "Deleted Exercise", fontWeight = FontWeight.Bold)
                 Text("Weight PR", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
             }
             Text(

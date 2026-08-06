@@ -29,8 +29,11 @@ class RecordsViewModel @Inject constructor(
         _selectedSort
     ) { allPRs, query, muscle, sort ->
         val filtered = allPRs.filter { pr ->
-            val matchesQuery = pr.exercise.name.contains(query, ignoreCase = true)
-            val matchesMuscle = muscle == "All" || pr.exercise.muscleGroup == muscle
+            val exerciseName = pr.exercise?.name ?: ""
+            val muscleGroup = pr.exercise?.muscleGroup ?: ""
+            
+            val matchesQuery = exerciseName.contains(query, ignoreCase = true)
+            val matchesMuscle = muscle == "All" || muscleGroup == muscle
             matchesQuery && matchesMuscle
         }
 
@@ -38,7 +41,7 @@ class RecordsViewModel @Inject constructor(
             SortOption.LatestPR -> filtered.sortedByDescending { it.pr.updatedAt }
             SortOption.HighestWeight -> filtered.sortedByDescending { it.pr.weightPR }
             SortOption.HighestE1RM -> filtered.sortedByDescending { it.pr.estimated1RM }
-            SortOption.Alphabetical -> filtered.sortedBy { it.exercise.name }
+            SortOption.Alphabetical -> filtered.sortedBy { it.exercise?.name ?: "" }
         }
 
         RecordsUiState.Success(sorted) as RecordsUiState
@@ -52,7 +55,7 @@ class RecordsViewModel @Inject constructor(
 
     val availableMuscleGroups: StateFlow<List<String>> = prRepository.getAllPRsWithExerciseName()
         .map { list ->
-            list.map { it.exercise.muscleGroup }.distinct().sorted()
+            list.mapNotNull { it.exercise?.muscleGroup }.distinct().sorted()
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun onSearchQueryChange(query: String) {

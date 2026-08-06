@@ -13,5 +13,6 @@ data class WorkoutCompletionSummary(
     val skippedExercises: Int,
     val completionPercentage: Float,
     val startTime: Long,
-    val endTime: Long
+    val endTime: Long,
+    val achievements: List<PersonalRecordAchievement> = emptyList()
 )

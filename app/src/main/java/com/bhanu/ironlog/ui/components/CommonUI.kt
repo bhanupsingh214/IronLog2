@@ -114,7 +114,9 @@ fun WorkoutProgress(
 
 @Composable
 fun ExerciseSessionItem(
-    exercise: ExerciseEntity,
+    exerciseName: String,
+    muscleGroup: String,
+    exerciseType: String,
     isCompleted: Boolean,
     onToggleComplete: () -> Unit,
     onClick: () -> Unit,
@@ -139,13 +141,13 @@ fun ExerciseSessionItem(
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = exercise.name,
+                    text = exerciseName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     textDecoration = if (isCompleted) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
                 )
                 Text(
-                    text = "${exercise.muscleGroup} • ${exercise.exerciseType}",
+                    text = "$muscleGroup • $exerciseType",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

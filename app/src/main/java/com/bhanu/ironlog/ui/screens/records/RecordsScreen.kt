@@ -96,7 +96,7 @@ fun RecordsScreen(
                             items(state.records, key = { it.pr.exerciseTemplateId }) { record ->
                                 RecordCard(
                                     record = record,
-                                    onClick = { onNavigateToDetail(record.exercise.id) }
+                                    onClick = { onNavigateToDetail(record.pr.exerciseTemplateId) }
                                 )
                             }
                         }
@@ -128,12 +128,12 @@ fun RecordCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = record.exercise.name,
+                        text = record.exercise?.name ?: "Deleted Exercise",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = record.exercise.muscleGroup,
+                        text = record.exercise?.muscleGroup ?: "",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )

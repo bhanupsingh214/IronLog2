@@ -9,16 +9,13 @@ import com.bhanu.ironlog.data.local.pojo.WorkoutCompletionSummary
 import com.bhanu.ironlog.data.local.pojo.WorkoutProgress
 import com.bhanu.ironlog.data.repository.ProgramRepository
 import com.bhanu.ironlog.data.repository.WorkoutSessionRepository
-import com.bhanu.ironlog.data.service.Achievement
 import com.bhanu.ironlog.data.service.PersonalRecordEngine
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class SessionExercisesViewModel @Inject constructor(
@@ -86,12 +83,6 @@ class SessionExercisesViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    private val _achievements = MutableStateFlow<List<Achievement>>(emptyList())
-    val achievements = _achievements.asStateFlow()
-
-    private val _showCelebration = MutableStateFlow(false)
-    val showCelebration = _showCelebration.asStateFlow()
-
     private val _showBackgroundDialog = MutableStateFlow(false)
     val showBackgroundDialog = _showBackgroundDialog.asStateFlow()
 
@@ -117,7 +108,7 @@ class SessionExercisesViewModel @Inject constructor(
 
     fun finishWorkout() {
         viewModelScope.launch {
-            // 1. Process PRs before closing session
+            // 1. Process PRs (existing engine - internal cache/records)
             prEngine.processSessionPRs(sessionId)
             
             // 2. Finish Session in DB
@@ -186,7 +177,6 @@ class SessionExercisesViewModel @Inject constructor(
     val finishSignal = _finishSignal.asSharedFlow()
 
     fun onCelebrationDismissed() {
-        _showCelebration.value = false
         dismissSummary()
     }
 }
