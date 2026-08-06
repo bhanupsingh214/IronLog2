@@ -67,6 +67,12 @@ class WorkoutSessionRepository @Inject constructor(
                 (System.currentTimeMillis() - session.startTime) / 1000
             }
 
+            val achievements = if (session.status == "COMPLETED") {
+                detectAchievements(sessionId)
+            } else {
+                emptyList()
+            }
+
             WorkoutCompletionSummary(
                 sessionId = sessionId,
                 workoutName = session.dayName,
@@ -80,9 +86,60 @@ class WorkoutSessionRepository @Inject constructor(
                 skippedExercises = skippedExercises,
                 completionPercentage = percentage,
                 startTime = session.startTime,
-                endTime = session.endTime ?: System.currentTimeMillis()
+                endTime = session.endTime ?: System.currentTimeMillis(),
+                achievements = achievements
             )
         }
+
+    private suspend fun detectAchievements(sessionId: Long): List<PersonalRecordAchievement> {
+        val achievements = mutableListOf<PersonalRecordAchievement>()
+        val currentSession = workoutSessionDao.getSessionByIdOnce(sessionId) ?: return emptyList()
+        val currentExercises = workoutSessionDao.getExercisesWithSetsForSessionList(sessionId)
+
+        for (record in currentExercises) {
+            val templateId = record.sessionExercise.exerciseTemplateId
+            val exerciseName = record.sessionExercise.exerciseName
+            
+            if (record.sets.none { it.completed }) continue
+
+            // Current Session Bests for this exercise
+            val currentBestWeight = record.sets.filter { it.completed }.maxOfOrNull { it.weight } ?: 0.0
+            val currentBestE1RM = record.sets.filter { it.completed }.maxOfOrNull { it.weight * (1 + it.reps / 30.0) } ?: 0.0
+            val currentVolume = record.sets.filter { it.completed }.sumOf { it.weight * it.reps }
+
+            // Previous Best values before this session
+            val historicalRecords = workoutSessionDao.getCompletedExerciseRecordsBefore(templateId, currentSession.startTime)
+            
+            var prevBestWeight = 0.0
+            var prevBestE1RM = 0.0
+            var prevMaxVolume = 0.0
+            
+            for (hist in historicalRecords) {
+                hist.sets.forEach { s ->
+                    if (s.completed) {
+                        if (s.weight > prevBestWeight) prevBestWeight = s.weight
+                        val e1rm = s.weight * (1 + s.reps / 30.0)
+                        if (e1rm > prevBestE1RM) prevBestE1RM = e1rm
+                    }
+                }
+                val histVolume = hist.sets.filter { it.completed }.sumOf { it.weight * it.reps }
+                if (histVolume > prevMaxVolume) prevMaxVolume = histVolume
+            }
+
+            // Detect PRs - only if previous best > 0 (as per the "earned through training" rule)
+            if (prevBestWeight > 0 && currentBestWeight > prevBestWeight) {
+                achievements.add(PersonalRecordAchievement(exerciseName, PersonalRecordType.BEST_WEIGHT, prevBestWeight, currentBestWeight))
+            }
+            if (prevBestE1RM > 0 && currentBestE1RM > prevBestE1RM) {
+                achievements.add(PersonalRecordAchievement(exerciseName, PersonalRecordType.BEST_E1RM, prevBestE1RM, currentBestE1RM))
+            }
+            if (prevMaxVolume > 0 && currentVolume > prevMaxVolume) {
+                achievements.add(PersonalRecordAchievement(exerciseName, PersonalRecordType.HIGHEST_VOLUME, prevMaxVolume, currentVolume))
+            }
+        }
+        
+        return achievements
+    }
 
     fun getWorkoutProgress(sessionId: Long): Flow<WorkoutProgress> = 
         workoutSessionDao.getExercisesWithSetsForSession(sessionId).map { list ->
@@ -555,8 +612,8 @@ class WorkoutSessionRepository @Inject constructor(
             
             ExerciseDetails(
                 exerciseTemplateId = exerciseTemplateId,
-                exerciseName = mostRecent.sessionExercise.exerciseName,
-                muscleGroup = mostRecent.sessionExercise.muscleGroup,
+                exerciseName = mostRecent.sessionExercise.exerciseName.ifBlank { mostRecent.template?.name ?: "Deleted Exercise" },
+                muscleGroup = mostRecent.sessionExercise.muscleGroup.ifBlank { mostRecent.template?.muscleGroup ?: "" },
                 totalSessions = totalSessions,
                 totalVolume = totalVolume,
                 bestWeight = bestWeight,

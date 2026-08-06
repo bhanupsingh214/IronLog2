@@ -7,7 +7,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -23,8 +25,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bhanu.ironlog.data.local.entity.ExerciseEntity
 import com.bhanu.ironlog.data.local.pojo.SessionExerciseWithTemplate
-import com.bhanu.ironlog.data.service.Achievement
-import com.bhanu.ironlog.data.service.AchievementType
 import com.bhanu.ironlog.ui.components.ErrorScreen
 import com.bhanu.ironlog.ui.components.ExerciseSessionItem
 import com.bhanu.ironlog.ui.components.WorkoutProgress
@@ -54,8 +54,6 @@ fun SessionExercisesScreen(
     val timerSeconds by viewModel.timerSeconds.collectAsState()
     val progress by viewModel.progress.collectAsState()
     
-    val achievements by viewModel.achievements.collectAsState()
-    val showCelebration by viewModel.showCelebration.collectAsState()
     val showBackgroundDialog by viewModel.showBackgroundDialog.collectAsState()
     
     val completionState by viewModel.completionState.collectAsState()
@@ -203,10 +201,12 @@ fun SessionExercisesScreen(
                                 items(exercises, key = { it.sessionExercise.sessionExerciseId }) { item ->
                                     val isCompleted = item.sessionExercise.status == "COMPLETED"
                                     ExerciseSessionItem(
-                                        exercise = item.template,
+                                        exerciseName = item.sessionExercise.exerciseName.ifBlank { item.template?.name ?: "Deleted Exercise" },
+                                        muscleGroup = item.sessionExercise.muscleGroup.ifBlank { item.template?.muscleGroup ?: "" },
+                                        exerciseType = item.template?.exerciseType ?: "Exercise",
                                         isCompleted = isCompleted,
-                                        onToggleComplete = { viewModel.toggleExerciseCompletion(item.template.id) },
-                                        onClick = { onNavigateToLogging(item.template.id, session?.sessionId ?: 0L) },
+                                        onToggleComplete = { viewModel.toggleExerciseCompletion(item.sessionExercise.exerciseTemplateId) },
+                                        onClick = { onNavigateToLogging(item.sessionExercise.exerciseTemplateId, session?.sessionId ?: 0L) },
                                         notes = item.sessionExercise.notes
                                     )
                                 }
@@ -296,22 +296,32 @@ fun SessionExercisesScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutCompleteScreen(
     summary: com.bhanu.ironlog.data.local.pojo.WorkoutCompletionSummary,
     onDone: () -> Unit,
     onViewDetails: () -> Unit
 ) {
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Summary") },
+                navigationIcon = {
+                    IconButton(onClick = onDone) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+            )
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
                 imageVector = Icons.Default.CheckCircle,
@@ -398,6 +408,11 @@ fun WorkoutCompleteScreen(
                             strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
                         )
                     }
+
+                    if (summary.achievements.isNotEmpty()) {
+                        HorizontalDivider(thickness = 0.5.dp)
+                        PRAchievementsSection(summary.achievements)
+                    }
                 }
             }
             
@@ -438,4 +453,47 @@ fun SummaryRowItem(label: String, value: String) {
         Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
         Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
     }
+}
+
+@Composable
+fun PRAchievementsSection(achievements: List<com.bhanu.ironlog.data.local.pojo.PersonalRecordAchievement>) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.EmojiEvents, 
+                contentDescription = null, 
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text("Personal Records Achieved", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+        }
+        
+        Spacer(Modifier.height(12.dp))
+        
+        val grouped = achievements.groupBy { it.exerciseName }
+        grouped.forEach { (exercise, exerciseAchievements) ->
+            Column(modifier = Modifier.padding(bottom = 12.dp)) {
+                Text(text = exercise, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                exerciseAchievements.forEach { pr ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(text = pr.type.label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                        Text(
+                            text = "${formatPRValue(pr.previousValue)} → ${formatPRValue(pr.newValue)} ${pr.unit}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun formatPRValue(value: Double): String {
+    return if (value % 1 == 0.0) value.toInt().toString() else String.format(Locale.getDefault(), "%.1f", value)
 }

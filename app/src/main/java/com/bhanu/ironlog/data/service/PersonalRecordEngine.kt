@@ -32,8 +32,8 @@ class PersonalRecordEngine @Inject constructor(
         val sessionExercises = sessionRepository.getExercisesWithTemplateForSession(sessionId).first()
         
         for (sessionExercise in sessionExercises) {
-            val templateId = sessionExercise.template.id
-            val exerciseName = sessionExercise.template.name
+            val templateId = sessionExercise.sessionExercise.exerciseTemplateId
+            val exerciseName = sessionExercise.sessionExercise.exerciseName.ifBlank { sessionExercise.template?.name ?: "Unknown" }
             val sets = sessionRepository.getSetsForExercise(sessionExercise.sessionExercise.sessionExerciseId).first()
             
             if (sets.isEmpty()) continue

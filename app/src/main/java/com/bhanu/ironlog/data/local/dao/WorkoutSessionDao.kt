@@ -74,12 +74,21 @@ interface WorkoutSessionDao {
 
     @Transaction
     @Query("""
-        SELECT * FROM session_exercises 
-        WHERE exerciseTemplateId = :exerciseTemplateId 
-        AND sessionId IN (SELECT sessionId FROM workout_session_logs WHERE status = 'COMPLETED')
-        ORDER BY sessionExerciseId DESC
+        SELECT se.* FROM session_exercises se
+        JOIN workout_session_logs wsl ON se.sessionId = wsl.sessionId
+        WHERE se.exerciseTemplateId = :exerciseTemplateId 
+        AND wsl.status = 'COMPLETED'
+        ORDER BY wsl.startTime DESC
     """)
     fun getCompletedExerciseRecords(exerciseTemplateId: Long): Flow<List<SessionExerciseWithSetsAndSession>>
+
+    @Transaction
+    @Query("""
+        SELECT * FROM session_exercises 
+        WHERE exerciseTemplateId = :exerciseTemplateId 
+        AND sessionId IN (SELECT sessionId FROM workout_session_logs WHERE status = 'COMPLETED' AND startTime < :startTime)
+    """)
+    suspend fun getCompletedExerciseRecordsBefore(exerciseTemplateId: Long, startTime: Long): List<SessionExerciseWithSets>
 
     @Transaction
     @Query("SELECT * FROM session_exercises WHERE sessionId = :sessionId ORDER BY exerciseOrder ASC")

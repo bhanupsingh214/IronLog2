@@ -2,6 +2,7 @@ package com.bhanu.ironlog.data.local.pojo
 
 import androidx.room.Embedded
 import androidx.room.Relation
+import com.bhanu.ironlog.data.local.entity.ExerciseEntity
 import com.bhanu.ironlog.data.local.entity.SessionExercise
 import com.bhanu.ironlog.data.local.entity.SessionSet
 import com.bhanu.ironlog.data.local.entity.WorkoutSession
@@ -17,5 +18,10 @@ data class SessionExerciseWithSetsAndSession(
         parentColumn = "sessionExerciseId",
         entityColumn = "sessionExerciseId"
     )
-    val sets: List<SessionSet>
+    val sets: List<SessionSet>,
+    @Relation(
+        parentColumn = "exerciseTemplateId",
+        entityColumn = "id"
+    )
+    val template: ExerciseEntity?
 )
