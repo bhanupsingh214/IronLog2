@@ -516,6 +516,9 @@ class WorkoutSessionRepository @Inject constructor(
     fun getHistoricalExercisesWithSets(sessionId: Long): Flow<List<SessionExerciseWithSets>> =
         workoutSessionDao.getHistoricalExercisesWithSets(sessionId)
 
+    fun getPreviousPerformance(exerciseTemplateId: Long, currentSessionId: Long): Flow<SessionExerciseWithSetsAndSession?> =
+        workoutSessionDao.getLatestCompletedExerciseRecord(exerciseTemplateId, currentSessionId)
+
     fun getExerciseDetails(exerciseTemplateId: Long): Flow<ExerciseDetails?> =
         workoutSessionDao.getCompletedExerciseRecords(exerciseTemplateId).map { records ->
             if (records.isEmpty()) return@map null

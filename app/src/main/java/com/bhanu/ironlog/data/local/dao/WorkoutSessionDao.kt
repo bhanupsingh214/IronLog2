@@ -50,6 +50,17 @@ interface WorkoutSessionDao {
     suspend fun insertSessionExercise(exercise: SessionExercise): Long
 
     @Transaction
+    @Query("""
+        SELECT * FROM session_exercises 
+        WHERE exerciseTemplateId = :exerciseTemplateId 
+        AND sessionId IN (SELECT sessionId FROM workout_session_logs WHERE status = 'COMPLETED')
+        AND sessionId != :currentSessionId
+        ORDER BY sessionExerciseId DESC
+        LIMIT 1
+    """)
+    fun getLatestCompletedExerciseRecord(exerciseTemplateId: Long, currentSessionId: Long): Flow<SessionExerciseWithSetsAndSession?>
+
+    @Transaction
     @Query("SELECT * FROM session_exercises WHERE sessionId = :sessionId ORDER BY exerciseOrder ASC")
     fun getExercisesWithTemplateForSession(sessionId: Long): Flow<List<SessionExerciseWithTemplate>>
 

@@ -19,6 +19,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bhanu.ironlog.ui.components.ErrorScreen
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.TextRange
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +39,7 @@ fun WorkoutLoggingScreen(
     val sessionExercise by viewModel.sessionExercise.collectAsState()
     val sets by viewModel.sets.collectAsState()
     val previousSets by viewModel.previousSets.collectAsState()
+    val previousPerformance by viewModel.previousPerformance.collectAsState()
     val session by viewModel.session.collectAsState()
     val sessionId = viewModel.sessionId
 
@@ -140,6 +144,12 @@ fun WorkoutLoggingScreen(
                             notes = sessionExercise!!.notes,
                             onNotesChange = { viewModel.updateExerciseNotes(it) }
                         )
+                    }
+                }
+
+                if (sessionId > 0) {
+                    item {
+                        PreviousPerformanceCard(previousPerformance)
                     }
                 }
 
@@ -450,6 +460,85 @@ fun LoggingBottomBar(
                     enabled = enabled
                 ) {
                     Icon(Icons.Default.ContentCopy, contentDescription = "Copy Previous")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PreviousPerformanceCard(
+    performance: com.bhanu.ironlog.data.local.pojo.SessionExerciseWithSetsAndSession?
+) {
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(
+                text = "Previous Performance",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+            
+            if (performance == null) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "No previous performance yet.\nComplete this exercise once to start tracking your progress.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+            } else {
+                val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.forLanguageTag("en-IN"))
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = performance.session.dayName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = dateFormat.format(Date(performance.session.createdAt)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+                
+                HorizontalDivider(thickness = 0.5.dp, modifier = Modifier.padding(vertical = 8.dp))
+                
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    performance.sets.forEach { set ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Set ${set.setNumber}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline,
+                                modifier = Modifier.width(48.dp)
+                            )
+                            Text(
+                                text = "${String.format(Locale.getDefault(), "%.1f", set.weight)} kg × ${set.reps}",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (set.rpe != null) {
+                                Text(
+                                    text = "RPE ${set.rpe}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
