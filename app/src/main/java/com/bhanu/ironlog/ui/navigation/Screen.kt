@@ -32,4 +32,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object WorkoutLogging : Screen("workout_logging/{exerciseId}/{sessionId}", "Logging", Icons.Default.Edit) {
         fun passLogging(exerciseId: Long, sessionId: Long) = "workout_logging/$exerciseId/$sessionId"
     }
+    object ExerciseDetails : Screen("exercise_details/{exerciseId}", "Exercise Details", Icons.Default.Info) {
+        fun passExerciseId(id: Long) = "exercise_details/$id"
+    }
 }
