@@ -245,14 +245,6 @@ fun SessionExercisesScreen(
         )
     }
 
-    if (completionState == WorkoutCompletionState.COMPLETED && completionSummary != null) {
-        WorkoutCompleteScreen(
-            summary = completionSummary!!,
-            onDone = { viewModel.dismissSummary() },
-            onViewDetails = { onNavigateToDetails(completionSummary!!.sessionId) }
-        )
-    }
-
     if (showDiscardConfirmation) {
         AlertDialog(
             onDismissRequest = { showDiscardConfirmation = false },
@@ -309,7 +301,7 @@ fun WorkoutCompleteScreen(
                 title = { Text("Summary") },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )

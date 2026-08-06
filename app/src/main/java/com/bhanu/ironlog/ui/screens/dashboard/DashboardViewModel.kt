@@ -19,8 +19,15 @@ import javax.inject.Inject
 class DashboardViewModel @Inject constructor(
     private val programRepository: ProgramRepository,
     private val sessionRepository: WorkoutSessionRepository,
-    private val prRepository: PersonalRecordRepository
+    private val prRepository: PersonalRecordRepository,
+    private val libraryRepository: com.bhanu.ironlog.data.repository.ExerciseLibraryRepository
 ) : ViewModel() {
+
+    init {
+        viewModelScope.launch {
+            libraryRepository.seedLibraryIfNeeded()
+        }
+    }
 
     val activeProgram: StateFlow<ProgramWithStats?> = programRepository.getActiveProgram()
         .stateIn(
@@ -75,7 +82,7 @@ class DashboardViewModel @Inject constructor(
 
     val personalRecords: StateFlow<List<Pair<String, Double>>> = prRepository.getAllPRsWithExerciseName()
         .map { list ->
-            list.map { (it.exercise?.name ?: "Deleted") to it.pr.weightPR }
+            list.map { (it.exercise?.name ?: it.snapshotName ?: "Deleted") to it.pr.weightPR }
                 .sortedByDescending { it.second }
                 .take(5)
         }

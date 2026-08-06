@@ -8,6 +8,7 @@ import com.bhanu.ironlog.data.local.dao.SessionDao
 import com.bhanu.ironlog.data.local.dao.WorkoutSessionDao
 import com.bhanu.ironlog.data.local.dao.PersonalRecordDao
 import com.bhanu.ironlog.data.local.dao.WorkoutSettingsDao
+import com.bhanu.ironlog.data.local.dao.LibraryExerciseDao
 import com.bhanu.ironlog.data.local.entity.*
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
@@ -24,9 +25,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         SessionExercise::class,
         SessionSet::class,
         PersonalRecordEntity::class,
-        WorkoutSettingsEntity::class
+        WorkoutSettingsEntity::class,
+        LibraryExerciseEntity::class
     ],
-    version = 14,
+    version = 15,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -36,6 +38,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun workoutSessionDao(): WorkoutSessionDao
     abstract fun personalRecordDao(): PersonalRecordDao
     abstract fun workoutSettingsDao(): WorkoutSettingsDao
+    abstract fun libraryExerciseDao(): LibraryExerciseDao
 
     companion object {
         val MIGRATION_6_7 = object : Migration(6, 7) {
@@ -162,6 +165,28 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `session_exercises` ADD COLUMN `exerciseName` TEXT NOT NULL DEFAULT ''")
                 db.execSQL("ALTER TABLE `session_exercises` ADD COLUMN `muscleGroup` TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `exercise_library` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                        `systemKey` TEXT, 
+                        `name` TEXT NOT NULL, 
+                        `normalizedName` TEXT NOT NULL, 
+                        `muscleGroup` TEXT NOT NULL, 
+                        `equipment` TEXT NOT NULL DEFAULT 'None', 
+                        `exerciseType` TEXT NOT NULL DEFAULT 'Compound', 
+                        `createdBy` TEXT NOT NULL DEFAULT 'System', 
+                        `isActive` INTEGER NOT NULL DEFAULT 1, 
+                        `createdAt` INTEGER NOT NULL, 
+                        `updatedAt` INTEGER NOT NULL
+                    )
+                """)
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_exercise_library_normalizedName` ON `exercise_library` (`normalizedName`)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_exercise_library_systemKey` ON `exercise_library` (`systemKey`)")
             }
         }
     }

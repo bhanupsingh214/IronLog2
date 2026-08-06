@@ -128,12 +128,12 @@ fun RecordCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = record.exercise?.name ?: "Deleted Exercise",
+                        text = record.exercise?.name ?: record.snapshotName ?: "Deleted Exercise",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = record.exercise?.muscleGroup ?: "",
+                        text = record.exercise?.muscleGroup ?: record.snapshotMuscle ?: "",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
