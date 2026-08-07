@@ -7,6 +7,7 @@ import com.bhanu.ironlog.data.local.entity.SessionSet
 import com.bhanu.ironlog.data.local.entity.WorkoutSession
 import com.bhanu.ironlog.data.local.pojo.*
 import com.bhanu.ironlog.data.model.RestTimerState
+import com.bhanu.ironlog.data.model.WorkoutSessionStatus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import java.util.Calendar
@@ -36,17 +37,143 @@ class WorkoutSessionRepository @Inject constructor(
 
     fun getAllSessions(): Flow<List<WorkoutSession>> = workoutSessionDao.getAllSessions()
 
-    fun getCompletedSessions(): Flow<List<WorkoutSession>> = workoutSessionDao.getCompletedSessions()
-
-    fun getCompletedSessionsWithStats(): Flow<List<WorkoutSessionWithStats>> = 
-        workoutSessionDao.getCompletedSessionsWithStats()
-
-    fun getCompletedSessionsWithVolume(): Flow<List<WorkoutSessionWithVolume>> = 
-        workoutSessionDao.getCompletedSessionsWithVolume()
-
     fun getSessionById(sessionId: Long): Flow<WorkoutSession?> = workoutSessionDao.getSessionById(sessionId)
 
     fun getActiveSessionFlow(): Flow<WorkoutSession?> = workoutSessionDao.getActiveSession()
+    
+    /**
+     * Attempts to start a new workout session.
+     * Returns the sessionId if successful, or -1 if an active session already exists.
+     */
+    suspend fun startWorkout(dayId: Long, programId: Long, startTime: Long = System.currentTimeMillis()): Long {
+        val active = activeWorkoutSession.value
+        if (active != null) return -1L
+        
+        return createSessionSnapshot(dayId, programId, startTime)
+    }
+
+    private suspend fun createSessionSnapshot(dayId: Long, programId: Long, startTime: Long): Long {
+        val program = programDao.getProgramById(programId)
+        val day = programDao.getDayById(dayId)
+
+        val sessionId = workoutSessionDao.insertSession(
+            WorkoutSession(
+                programId = programId,
+                workoutDayId = dayId,
+                dayName = day?.name ?: "Unknown Day",
+                programName = program?.name ?: "Unknown Program",
+                status = WorkoutSessionStatus.CREATED,
+                startTime = startTime,
+                createdAt = startTime,
+                lastActiveTimestamp = startTime
+            )
+        )
+
+        val exercises = programDao.getEnabledExercisesForDay(dayId)
+        for (exercise in exercises) {
+            val sessionExerciseId = workoutSessionDao.insertSessionExercise(
+                SessionExercise(
+                    sessionId = sessionId,
+                    exerciseTemplateId = exercise.id,
+                    exerciseName = exercise.name,
+                    muscleGroup = exercise.muscleGroup,
+                    equipment = exercise.equipment,
+                    exerciseType = exercise.exerciseType,
+                    exerciseOrder = exercise.order,
+                    notes = exercise.notes,
+                    status = "NOT_STARTED",
+                    targetSets = exercise.targetSets,
+                    targetRepMin = exercise.targetRepMin,
+                    targetRepMax = exercise.targetRepMax,
+                    targetRPE = exercise.targetRPE,
+                    restTimerSeconds = if (exercise.useDefaultRestTimer) 90 else exercise.restTimerSeconds
+                )
+            )
+
+            val templateSets = programDao.getSetsForExerciseAndSession(exercise.id, 0)
+            for (set in templateSets) {
+                workoutSessionDao.insertSessionSet(
+                    SessionSet(
+                        sessionExerciseId = sessionExerciseId,
+                        setNumber = set.setNumber,
+                        weight = set.weight,
+                        reps = set.reps,
+                        rpe = set.rpe,
+                        setType = set.setType,
+                        completed = false
+                    )
+                )
+            }
+        }
+        
+        if (exercises.isNotEmpty()) {
+            workoutSessionDao.updateEngineState(sessionId, exercises.first().id, 1, 0)
+        }
+
+        return sessionId
+    }
+
+    suspend fun createHistoricalSession(dayId: Long, programId: Long, startTime: Long): Long {
+        val sessionId = createSessionSnapshot(dayId, programId, startTime)
+        finishSession(sessionId)
+        return sessionId
+    }
+
+    suspend fun updateSessionStatus(sessionId: Long, newStatus: String) {
+        val session = workoutSessionDao.getSessionByIdOnce(sessionId) ?: return
+        
+        // Basic state machine validation
+        val isValid = when (newStatus) {
+            WorkoutSessionStatus.IN_PROGRESS -> session.status in listOf(WorkoutSessionStatus.CREATED, WorkoutSessionStatus.PAUSED)
+            WorkoutSessionStatus.PAUSED -> session.status == WorkoutSessionStatus.IN_PROGRESS
+            WorkoutSessionStatus.COMPLETED -> session.status in listOf(WorkoutSessionStatus.IN_PROGRESS, WorkoutSessionStatus.PAUSED)
+            WorkoutSessionStatus.DISCARDED -> session.status in listOf(WorkoutSessionStatus.CREATED, WorkoutSessionStatus.IN_PROGRESS, WorkoutSessionStatus.PAUSED)
+            else -> false
+        }
+        
+        if (isValid) {
+            workoutSessionDao.updateSession(session.copy(
+                status = newStatus,
+                lastActiveTimestamp = System.currentTimeMillis()
+            ))
+        }
+    }
+
+    suspend fun resumeSession(sessionId: Long) = updateSessionStatus(sessionId, WorkoutSessionStatus.IN_PROGRESS)
+    
+    suspend fun pauseSession(sessionId: Long) = updateSessionStatus(sessionId, WorkoutSessionStatus.PAUSED)
+
+    suspend fun discardSession(sessionId: Long) {
+        val session = workoutSessionDao.getSessionByIdOnce(sessionId) ?: return
+        workoutSessionDao.updateSession(session.copy(status = WorkoutSessionStatus.DISCARDED))
+        workoutSessionDao.deleteSession(session)
+    }
+
+    suspend fun finishSession(sessionId: Long) {
+        val session = workoutSessionDao.getSessionByIdOnce(sessionId) ?: return
+        val endTime = System.currentTimeMillis()
+        val isHistorical = session.startTime < endTime - 12 * 3600 * 1000
+        val duration = if (isHistorical) 0L else (endTime - session.startTime) / 1000
+
+        // Mark all unfinished exercises as SKIPPED
+        val exercises = workoutSessionDao.getExercisesForSessionList(sessionId)
+        for (exercise in exercises) {
+            if (exercise.status != "COMPLETED" && exercise.status != "SKIPPED") {
+                workoutSessionDao.updateSessionExerciseStatus(exercise.sessionExerciseId, "SKIPPED")
+            }
+        }
+
+        workoutSessionDao.updateSession(session.copy(
+            status = WorkoutSessionStatus.COMPLETED,
+            endTime = endTime,
+            durationSeconds = duration,
+            timerState = "DISMISSED",
+            timerStartTime = null,
+            timerDurationSeconds = null,
+            timerPausedRemainingSeconds = null,
+            lastActiveTimestamp = endTime
+        ))
+    }
 
     fun getWorkoutCompletionSummary(sessionId: Long): Flow<WorkoutCompletionSummary?> =
         workoutSessionDao.getExercisesWithSetsForSession(sessionId).map { list ->
@@ -61,13 +188,13 @@ class WorkoutSessionRepository @Inject constructor(
             
             val percentage = if (totalExercises > 0) completedExercises.toFloat() / totalExercises else 0f
             
-            val duration = if (session.status == "COMPLETED") {
+            val duration = if (session.status == WorkoutSessionStatus.COMPLETED) {
                 session.durationSeconds
             } else {
                 (System.currentTimeMillis() - session.startTime) / 1000
             }
 
-            val achievements = if (session.status == "COMPLETED") {
+            val achievements = if (session.status == WorkoutSessionStatus.COMPLETED) {
                 detectAchievements(sessionId)
             } else {
                 emptyList()
@@ -159,116 +286,6 @@ class WorkoutSessionRepository @Inject constructor(
             )
         }
 
-    fun getWeeklyVolume(): Flow<Double?> {
-        val calendar = Calendar.getInstance()
-        calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
-        calendar.set(Calendar.HOUR_OF_DAY, 0)
-        calendar.set(Calendar.MINUTE, 0)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.set(Calendar.MILLISECOND, 0)
-        return workoutSessionDao.getVolumeSince(calendar.timeInMillis)
-    }
-
-    fun getVolumeSince(since: Long): Flow<Double?> = 
-        workoutSessionDao.getVolumeSince(since)
-
-    fun getTotalVolume(): Flow<Double?> = 
-        workoutSessionDao.getTotalVolume()
-
-    fun getDailyVolumeHistory(since: Long): Flow<List<DailyVolume>> =
-        workoutSessionDao.getDailyVolumeHistory(since)
-
-    fun getExerciseStrengthHistory(exerciseId: Long): Flow<List<ExerciseStrengthHistory>> =
-        workoutSessionDao.getExerciseStrengthHistory(exerciseId)
-
-    suspend fun getOrCreateSession(dayId: Long, programId: Long, startTime: Long = System.currentTimeMillis()): Long {
-        val activeSession = workoutSessionDao.getActiveSessionByDay(dayId)
-        val isHistorical = startTime < System.currentTimeMillis() - 60000
-        
-        var existingSessionId: Long? = null
-        
-        if (!isHistorical && activeSession != null) {
-            existingSessionId = activeSession.sessionId
-        } else if (isHistorical) {
-            val calendar = Calendar.getInstance()
-            calendar.timeInMillis = startTime
-            calendar.set(Calendar.HOUR_OF_DAY, 0)
-            calendar.set(Calendar.MINUTE, 0)
-            calendar.set(Calendar.SECOND, 0)
-            calendar.set(Calendar.MILLISECOND, 0)
-            val dayStart = calendar.timeInMillis
-            calendar.set(Calendar.HOUR_OF_DAY, 23)
-            calendar.set(Calendar.MINUTE, 59)
-            calendar.set(Calendar.SECOND, 59)
-            calendar.set(Calendar.MILLISECOND, 999)
-            val dayEnd = calendar.timeInMillis
-            
-            val existing = workoutSessionDao.getSessionByDayAndDate(dayId, dayStart, dayEnd)
-            if (existing != null) {
-                existingSessionId = existing.sessionId
-            }
-        }
-
-        if (existingSessionId != null) {
-            val sessionExercises = workoutSessionDao.getExercisesForSessionList(existingSessionId)
-            if (sessionExercises.isNotEmpty()) {
-                return existingSessionId
-            }
-        }
-
-        val program = programDao.getProgramById(programId)
-        val day = programDao.getDayById(dayId)
-
-        val sessionId = existingSessionId ?: workoutSessionDao.insertSession(
-            WorkoutSession(
-                programId = programId,
-                workoutDayId = dayId,
-                dayName = day?.name ?: "Unknown Day",
-                programName = program?.name ?: "Unknown Program",
-                status = "ACTIVE",
-                startTime = startTime,
-                createdAt = startTime
-            )
-        )
-
-        val exercises = programDao.getEnabledExercisesForDay(dayId)
-        for (exercise in exercises) {
-            val sessionExerciseId = workoutSessionDao.insertSessionExercise(
-                SessionExercise(
-                    sessionId = sessionId,
-                    exerciseTemplateId = exercise.id,
-                    exerciseName = exercise.name,
-                    muscleGroup = exercise.muscleGroup,
-                    exerciseOrder = exercise.order,
-                    notes = exercise.notes,
-                    status = "NOT_STARTED",
-                    restTimerSeconds = if (exercise.useDefaultRestTimer) 0 else exercise.restTimerSeconds
-                )
-            )
-
-            val templateSets = programDao.getSetsForExerciseAndSession(exercise.id, 0)
-            for (set in templateSets) {
-                workoutSessionDao.insertSessionSet(
-                    SessionSet(
-                        sessionExerciseId = sessionExerciseId,
-                        setNumber = set.setNumber,
-                        weight = set.weight,
-                        reps = set.reps,
-                        rpe = set.rpe,
-                        setType = set.setType,
-                        completed = false
-                    )
-                )
-            }
-        }
-        
-        if (exercises.isNotEmpty()) {
-            workoutSessionDao.updateEngineState(sessionId, exercises.first().id, 1, 0)
-        }
-
-        return sessionId
-    }
-
     suspend fun updateSet(
         setId: Long,
         weight: Double,
@@ -289,6 +306,17 @@ class WorkoutSessionRepository @Inject constructor(
             notes = notes
         )
         workoutSessionDao.updateSessionSet(updatedSet)
+        
+        // Mark session as IN_PROGRESS if it was just CREATED
+        val sessionId = workoutSessionDao.getSessionIdByExercise(set.sessionExerciseId)
+        sessionId?.let { markSessionActive(it) }
+    }
+    
+    suspend fun markSessionActive(sessionId: Long) {
+        val session = workoutSessionDao.getSessionByIdOnce(sessionId) ?: return
+        if (session.status == WorkoutSessionStatus.CREATED) {
+            updateSessionStatus(sessionId, WorkoutSessionStatus.IN_PROGRESS)
+        }
     }
 
     suspend fun toggleSetCompletion(sessionId: Long, setId: Long) {
@@ -297,8 +325,11 @@ class WorkoutSessionRepository @Inject constructor(
         
         workoutSessionDao.updateSessionSet(set.copy(completed = newCompletion))
         
-        if (newCompletion && (set.setType == "Working" || set.setType == "Back-off")) {
-            handleAutoStartTimer(sessionId, set.sessionExerciseId)
+        if (newCompletion) {
+            markSessionActive(sessionId)
+            if (set.setType == "Working" || set.setType == "Back-off") {
+                handleAutoStartTimer(sessionId, set.sessionExerciseId)
+            }
         }
 
         val exercises = workoutSessionDao.getExercisesWithSetsForSessionList(sessionId)
@@ -464,7 +495,6 @@ class WorkoutSessionRepository @Inject constructor(
         val newStatus = if (sessionExercise.status == "COMPLETED") "NOT_STARTED" else "COMPLETED"
         workoutSessionDao.updateSessionExerciseStatus(sessionExercise.sessionExerciseId, newStatus)
         
-        // If completing, maybe move to next unfinished
         if (newStatus == "COMPLETED") {
             moveToNextUnfinishedExercise(sessionId)
         }
@@ -508,40 +538,6 @@ class WorkoutSessionRepository @Inject constructor(
     }
 
     suspend fun updateSession(session: WorkoutSession) = workoutSessionDao.updateSession(session)
-
-    suspend fun finishSession(sessionId: Long) {
-        val session = workoutSessionDao.getSessionByIdOnce(sessionId)
-        session?.let {
-            val endTime = System.currentTimeMillis()
-            val isHistorical = it.startTime < endTime - 12 * 3600 * 1000
-            val duration = if (isHistorical) 0L else (endTime - it.startTime) / 1000
-
-            // Issue 1 Fix: Mark all unfinished exercises as SKIPPED
-            val exercises = workoutSessionDao.getExercisesForSessionList(sessionId)
-            for (exercise in exercises) {
-                if (exercise.status != "COMPLETED" && exercise.status != "SKIPPED") {
-                    workoutSessionDao.updateSessionExerciseStatus(exercise.sessionExerciseId, "SKIPPED")
-                }
-            }
-
-            workoutSessionDao.updateSession(it.copy(
-                status = "COMPLETED",
-                endTime = endTime,
-                durationSeconds = duration,
-                timerState = "DISMISSED",
-                timerStartTime = null,
-                timerDurationSeconds = null,
-                timerPausedRemainingSeconds = null
-            ))
-        }
-    }
-
-    suspend fun discardSession(sessionId: Long) {
-        val session = workoutSessionDao.getSessionByIdOnce(sessionId)
-        session?.let {
-            workoutSessionDao.deleteSession(it)
-        }
-    }
 
     suspend fun updateEngineState(sessionId: Long, exerciseId: Long?, setNumber: Int?, completedSets: Int) {
         workoutSessionDao.updateEngineState(sessionId, exerciseId, setNumber, completedSets)

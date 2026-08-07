@@ -22,12 +22,23 @@ data class SessionExercise(
     val sessionExerciseId: Long = 0,
     val sessionId: Long,
     val exerciseTemplateId: Long,
+    
+    // Identity Snapshot (Independent of Library)
     val exerciseName: String = "",
     val muscleGroup: String = "",
+    val equipment: String = "",
+    val exerciseType: String = "Compound",
+    
+    // Prescription Snapshot (Independent of Program)
+    val targetSets: Int = 3,
+    val targetRepMin: Int = 8,
+    val targetRepMax: Int = 12,
+    val targetRPE: Double? = null,
+    val restTimerSeconds: Int = 90,
+    
     val exerciseOrder: Int,
     val isSwapped: Boolean = false,
     val originalExerciseId: Long? = null,
     val status: String = "NOT_STARTED", // NOT_STARTED, IN_PROGRESS, COMPLETED, SKIPPED
-    val notes: String = "",
-    val restTimerSeconds: Int = 0
+    val notes: String = ""
 )
