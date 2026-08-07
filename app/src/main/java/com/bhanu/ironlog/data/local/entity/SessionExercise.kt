@@ -22,6 +22,7 @@ data class SessionExercise(
     val sessionExerciseId: Long = 0,
     val sessionId: Long,
     val exerciseTemplateId: Long,
+    val libraryExerciseId: Long = 0, // Identity Reference
     
     // Identity Snapshot (Independent of Library)
     val exerciseName: String = "",
