@@ -12,7 +12,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
-    private val sessionRepository: WorkoutSessionRepository
+    private val historyRepository: com.bhanu.ironlog.data.repository.HistoryRepository
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -36,7 +36,7 @@ class HistoryViewModel @Inject constructor(
     private val _sortOption = MutableStateFlow(HistorySort.Newest)
     val sortOption = _sortOption.asStateFlow()
 
-    private val _history = sessionRepository.getCompletedSessionsWithStats()
+    private val _history = historyRepository.getCompletedSessionsWithStats()
 
     // Calendar state
     private val _currentDate = MutableStateFlow(Calendar.getInstance())

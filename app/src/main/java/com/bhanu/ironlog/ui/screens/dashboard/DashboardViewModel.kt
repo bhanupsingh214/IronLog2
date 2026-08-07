@@ -19,6 +19,7 @@ import javax.inject.Inject
 class DashboardViewModel @Inject constructor(
     private val programRepository: ProgramRepository,
     private val sessionRepository: WorkoutSessionRepository,
+    private val historyRepository: com.bhanu.ironlog.data.repository.HistoryRepository,
     private val prRepository: PersonalRecordRepository,
     private val libraryRepository: com.bhanu.ironlog.data.repository.ExerciseLibraryRepository
 ) : ViewModel() {
@@ -64,7 +65,7 @@ class DashboardViewModel @Inject constructor(
         initialValue = emptyList()
     )
 
-    val recentHistory: StateFlow<List<WorkoutSession>> = sessionRepository.getCompletedSessions()
+    val recentHistory: StateFlow<List<WorkoutSession>> = historyRepository.getCompletedSessions()
         .map { it.take(5) }
         .stateIn(
             scope = viewModelScope,
@@ -72,7 +73,7 @@ class DashboardViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
-    val weeklyVolume: StateFlow<Double> = sessionRepository.getWeeklyVolume()
+    val weeklyVolume: StateFlow<Double> = historyRepository.getWeeklyVolume()
         .map { it ?: 0.0 }
         .stateIn(
             scope = viewModelScope,
@@ -125,7 +126,7 @@ class DashboardViewModel @Inject constructor(
 
             val day = days.find { it.day.id == dayId } ?: return@launch
             
-            val sessionId = sessionRepository.getOrCreateSession(
+            val sessionId = sessionRepository.createHistoricalSession(
                 dayId = dayId,
                 programId = program.program.id,
                 startTime = date

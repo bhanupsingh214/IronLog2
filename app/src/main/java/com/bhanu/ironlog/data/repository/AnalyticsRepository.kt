@@ -10,7 +10,7 @@ import javax.inject.Singleton
 
 @Singleton
 class AnalyticsRepository @Inject constructor(
-    private val sessionRepository: WorkoutSessionRepository,
+    private val historyRepository: HistoryRepository,
     private val programRepository: ProgramRepository,
     private val prRepository: PersonalRecordRepository
 ) {
@@ -18,10 +18,10 @@ class AnalyticsRepository @Inject constructor(
         programRepository.getAllExercises()
 
     fun getTotalWorkoutsCount(): Flow<Int> = 
-        sessionRepository.getCompletedSessions().map { it.size }
+        historyRepository.getCompletedSessions().map { it.size }
 
     fun getTotalVolume(): Flow<Double> = 
-        sessionRepository.getTotalVolume().map { it ?: 0.0 }
+        historyRepository.getTotalVolume().map { it ?: 0.0 }
 
     fun getWeightPRCount(): Flow<Int> = 
         prRepository.getAllPRs().map { list -> 
@@ -34,7 +34,7 @@ class AnalyticsRepository @Inject constructor(
         }
 
     fun getWeeklyVolume(): Flow<Double> = 
-        sessionRepository.getWeeklyVolume().map { it ?: 0.0 }
+        historyRepository.getWeeklyVolume().map { it ?: 0.0 }
 
     fun getMonthlyVolume(): Flow<Double> {
         val calendar = Calendar.getInstance()
@@ -43,7 +43,7 @@ class AnalyticsRepository @Inject constructor(
         calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
-        return sessionRepository.getVolumeSince(calendar.timeInMillis).map { it ?: 0.0 }
+        return historyRepository.getVolumeSince(calendar.timeInMillis).map { it ?: 0.0 }
     }
 
     fun getLatestPRs(limit: Int = 3): Flow<List<PRWithExerciseName>> =
@@ -52,8 +52,8 @@ class AnalyticsRepository @Inject constructor(
         }
 
     fun getDailyVolumeHistory(since: Long): Flow<List<DailyVolume>> =
-        sessionRepository.getDailyVolumeHistory(since)
+        historyRepository.getDailyVolumeHistory(since)
 
     fun getExerciseStrengthHistory(exerciseId: Long): Flow<List<ExerciseStrengthHistory>> =
-        sessionRepository.getExerciseStrengthHistory(exerciseId)
+        historyRepository.getExerciseStrengthHistory(exerciseId)
 }

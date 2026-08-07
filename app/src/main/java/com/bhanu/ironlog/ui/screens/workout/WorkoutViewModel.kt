@@ -56,11 +56,13 @@ class WorkoutViewModel @Inject constructor(
     fun startSession(day: WorkoutDayEntity, onSessionStarted: (Long) -> Unit) {
         viewModelScope.launch {
             val program = activeProgram.value ?: return@launch
-            val sessionId = sessionRepository.getOrCreateSession(
+            val sessionId = sessionRepository.startWorkout(
                 dayId = day.id,
                 programId = program.program.id
             )
-            onSessionStarted(sessionId)
+            if (sessionId != -1L) {
+                onSessionStarted(sessionId)
+            }
         }
     }
 }

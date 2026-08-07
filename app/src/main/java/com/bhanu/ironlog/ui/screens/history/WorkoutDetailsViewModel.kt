@@ -14,6 +14,7 @@ import javax.inject.Inject
 @HiltViewModel
 class WorkoutDetailsViewModel @Inject constructor(
     private val sessionRepository: WorkoutSessionRepository,
+    private val historyRepository: com.bhanu.ironlog.data.repository.HistoryRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -23,7 +24,7 @@ class WorkoutDetailsViewModel @Inject constructor(
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val workoutDetails: StateFlow<WorkoutDetails?> = if (isArgumentValid) {
         combine(
-            sessionRepository.getSessionById(sessionId).filterNotNull(),
+            historyRepository.getSessionById(sessionId).filterNotNull(),
             sessionRepository.getWorkoutCompletionSummary(sessionId).filterNotNull(),
             sessionRepository.getExercisesWithSetsForSession(sessionId)
         ) { session, summary, exercises ->

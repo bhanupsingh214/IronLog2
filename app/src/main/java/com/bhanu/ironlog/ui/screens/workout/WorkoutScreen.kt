@@ -19,6 +19,9 @@ import com.bhanu.ironlog.data.local.entity.ExerciseEntity
 import com.bhanu.ironlog.data.local.entity.WorkoutDayEntity
 import com.bhanu.ironlog.data.local.pojo.WorkoutDayWithStats
 import com.bhanu.ironlog.ui.components.formatTimer
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,14 +86,23 @@ fun WorkoutScreen(
     if (dayToStart != null && activeSession != null) {
         AlertDialog(
             onDismissRequest = { dayToStart = null },
-            title = { Text("Workout already in progress") },
-            text = { Text("You have an active session for ${activeSession!!.dayName}. What would you like to do?") },
+            title = { Text("Active Workout") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(activeSession!!.dayName, fontWeight = FontWeight.Bold)
+                    Text("Started: ${SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(activeSession!!.startTime))}")
+                    val elapsed = (System.currentTimeMillis() - activeSession!!.startTime) / 1000
+                    Text("Elapsed: ${formatTimer(elapsed)}")
+                    Spacer(Modifier.height(8.dp))
+                    Text("Starting a new workout will discard your current progress.")
+                }
+            },
             confirmButton = {
-                TextButton(onClick = {
+                Button(onClick = {
                     onNavigateToSessionExercises(activeSession!!.workoutDayId, activeSession!!.sessionId)
                     dayToStart = null
                 }) {
-                    Text("Resume Workout")
+                    Text("Resume")
                 }
             },
             dismissButton = {
@@ -102,7 +114,7 @@ fun WorkoutScreen(
                         }
                         dayToStart = null
                     }) {
-                        Text("Discard & Start New", color = MaterialTheme.colorScheme.error)
+                        Text("Discard", color = MaterialTheme.colorScheme.error)
                     }
                     TextButton(onClick = { dayToStart = null }) {
                         Text("Cancel")

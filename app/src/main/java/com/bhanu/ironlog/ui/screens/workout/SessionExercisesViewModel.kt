@@ -10,6 +10,7 @@ import com.bhanu.ironlog.data.local.pojo.WorkoutProgress
 import com.bhanu.ironlog.data.repository.ProgramRepository
 import com.bhanu.ironlog.data.repository.WorkoutSessionRepository
 import com.bhanu.ironlog.data.service.PersonalRecordEngine
+import com.bhanu.ironlog.data.model.WorkoutSessionStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -33,6 +34,12 @@ class SessionExercisesViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     val session: StateFlow<WorkoutSession?> = if (isArgumentValid) {
         sessionRepository.getSessionById(sessionId)
+            .onEach { sess ->
+                // Ensure session is IN_PROGRESS if we are on this screen and it was CREATED
+                if (sess?.status == WorkoutSessionStatus.CREATED) {
+                    sessionRepository.resumeSession(sessionId)
+                }
+            }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
@@ -45,7 +52,7 @@ class SessionExercisesViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     val exercises: StateFlow<List<SessionExerciseWithTemplate>> = session.flatMapLatest { session ->
         if (session != null) {
-            if (session.status == "ACTIVE") {
+            if (session.status != WorkoutSessionStatus.COMPLETED && session.status != WorkoutSessionStatus.DISCARDED) {
                 sessionRepository.getExercisesForActiveSession(session.sessionId)
             } else {
                 sessionRepository.getExercisesWithTemplateForSession(session.sessionId)
@@ -61,7 +68,7 @@ class SessionExercisesViewModel @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val timerSeconds: StateFlow<Long> = session.flatMapLatest { sess ->
-        if (sess == null || sess.status != "ACTIVE") {
+        if (sess == null || (sess.status != WorkoutSessionStatus.IN_PROGRESS && sess.status != WorkoutSessionStatus.CREATED)) {
             flowOf(sess?.durationSeconds ?: 0L)
         } else {
             flow {
@@ -76,7 +83,7 @@ class SessionExercisesViewModel @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val progress: StateFlow<WorkoutProgress?> = session.flatMapLatest { sess ->
-        if (sess != null && sess.status == "ACTIVE") {
+        if (sess != null && sess.status != WorkoutSessionStatus.COMPLETED && sess.status != WorkoutSessionStatus.DISCARDED) {
             sessionRepository.getWorkoutProgress(sess.sessionId)
         } else {
             flowOf(null)
@@ -129,7 +136,7 @@ class SessionExercisesViewModel @Inject constructor(
     fun onLeaveSession() {
         viewModelScope.launch {
             val sess = session.value ?: return@launch
-            if (sess.status == "ACTIVE" && !sess.hasShownBackgroundDialog) {
+            if (sess.status != WorkoutSessionStatus.COMPLETED && sess.status != WorkoutSessionStatus.DISCARDED && !sess.hasShownBackgroundDialog) {
                 _showBackgroundDialog.value = true
             } else {
                 _finishSignal.emit(Unit)

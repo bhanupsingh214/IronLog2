@@ -28,7 +28,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         WorkoutSettingsEntity::class,
         LibraryExerciseEntity::class
     ],
-    version = 16,
+    version = 17,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -245,6 +245,97 @@ abstract class AppDatabase : RoomDatabase() {
                         LIMIT 1
                     )
                 """)
+            }
+        }
+
+        val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 1. Recreate workout_session_logs to update status and add lastActiveTimestamp
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `workout_session_logs_new` (
+                        `sessionId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                        `programId` INTEGER NOT NULL, 
+                        `workoutDayId` INTEGER NOT NULL, 
+                        `dayName` TEXT NOT NULL, 
+                        `programName` TEXT NOT NULL, 
+                        `startTime` INTEGER NOT NULL, 
+                        `endTime` INTEGER, 
+                        `status` TEXT NOT NULL DEFAULT 'CREATED', 
+                        `notes` TEXT, 
+                        `createdAt` INTEGER NOT NULL, 
+                        `completedExerciseIds` TEXT NOT NULL, 
+                        `durationSeconds` INTEGER NOT NULL, 
+                        `currentExerciseId` INTEGER, 
+                        `currentSetNumber` INTEGER, 
+                        `completedSetsCount` INTEGER NOT NULL, 
+                        `lastActiveTimestamp` INTEGER NOT NULL, 
+                        `hasShownBackgroundDialog` INTEGER NOT NULL, 
+                        `timerStartTime` INTEGER, 
+                        `timerDurationSeconds` INTEGER, 
+                        `timerState` TEXT NOT NULL, 
+                        `timerPausedRemainingSeconds` INTEGER
+                    )
+                """)
+
+                db.execSQL("""
+                    INSERT INTO `workout_session_logs_new` (
+                        sessionId, programId, workoutDayId, dayName, programName, startTime, endTime, 
+                        status, notes, createdAt, completedExerciseIds, durationSeconds, 
+                        currentExerciseId, currentSetNumber, completedSetsCount, lastActiveTimestamp, 
+                        hasShownBackgroundDialog, timerStartTime, timerDurationSeconds, timerState, 
+                        timerPausedRemainingSeconds
+                    )
+                    SELECT 
+                        sessionId, programId, workoutDayId, dayName, programName, startTime, endTime, 
+                        CASE WHEN status = 'ACTIVE' THEN 'IN_PROGRESS' ELSE status END, 
+                        notes, createdAt, completedExerciseIds, durationSeconds, 
+                        currentExerciseId, currentSetNumber, completedSetsCount, createdAt, 
+                        hasShownBackgroundDialog, timerStartTime, timerDurationSeconds, timerState, 
+                        timerPausedRemainingSeconds
+                    FROM `workout_session_logs`
+                """)
+
+                db.execSQL("DROP TABLE `workout_session_logs`")
+                db.execSQL("ALTER TABLE `workout_session_logs_new` RENAME TO `workout_session_logs`")
+
+                // 2. Recreate session_exercises to add identity and prescription snapshots
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `session_exercises_new` (
+                        `sessionExerciseId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                        `sessionId` INTEGER NOT NULL, 
+                        `exerciseTemplateId` INTEGER NOT NULL, 
+                        `exerciseName` TEXT NOT NULL DEFAULT '', 
+                        `muscleGroup` TEXT NOT NULL DEFAULT '', 
+                        `equipment` TEXT NOT NULL DEFAULT '', 
+                        `exerciseType` TEXT NOT NULL DEFAULT 'Compound', 
+                        `targetSets` INTEGER NOT NULL DEFAULT 3, 
+                        `targetRepMin` INTEGER NOT NULL DEFAULT 8, 
+                        `targetRepMax` INTEGER NOT NULL DEFAULT 12, 
+                        `targetRPE` REAL, 
+                        `restTimerSeconds` INTEGER NOT NULL DEFAULT 90, 
+                        `exerciseOrder` INTEGER NOT NULL, 
+                        `isSwapped` INTEGER NOT NULL, 
+                        `originalExerciseId` INTEGER, 
+                        `status` TEXT NOT NULL, 
+                        `notes` TEXT NOT NULL, 
+                        FOREIGN KEY(`sessionId`) REFERENCES `workout_session_logs`(`sessionId`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """)
+
+                db.execSQL("""
+                    INSERT INTO `session_exercises_new` (
+                        sessionExerciseId, sessionId, exerciseTemplateId, exerciseName, muscleGroup, 
+                        exerciseOrder, isSwapped, originalExerciseId, status, notes, restTimerSeconds
+                    )
+                    SELECT 
+                        sessionExerciseId, sessionId, exerciseTemplateId, exerciseName, muscleGroup, 
+                        exerciseOrder, isSwapped, originalExerciseId, status, notes, restTimerSeconds
+                    FROM `session_exercises`
+                """)
+
+                db.execSQL("DROP TABLE `session_exercises`")
+                db.execSQL("ALTER TABLE `session_exercises_new` RENAME TO `session_exercises`")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_session_exercises_sessionId` ON `session_exercises` (`sessionId`)")
             }
         }
     }
