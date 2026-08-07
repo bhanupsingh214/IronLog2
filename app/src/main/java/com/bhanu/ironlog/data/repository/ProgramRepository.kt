@@ -2,14 +2,12 @@ package com.bhanu.ironlog.data.repository
 
 import com.bhanu.ironlog.data.local.dao.ProgramDao
 import com.bhanu.ironlog.data.local.dao.SessionDao
-import com.bhanu.ironlog.data.local.entity.ExerciseEntity
-import com.bhanu.ironlog.data.local.entity.ProgramEntity
-import com.bhanu.ironlog.data.local.entity.SetEntity
-import com.bhanu.ironlog.data.local.entity.WorkoutDayEntity
-import com.bhanu.ironlog.data.local.entity.WorkoutSessionEntity
+import com.bhanu.ironlog.data.local.entity.*
+import com.bhanu.ironlog.data.local.pojo.ProgramExerciseWithLibrary
 import com.bhanu.ironlog.data.local.pojo.ProgramWithStats
 import com.bhanu.ironlog.data.local.pojo.WorkoutDayWithStats
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import java.util.Calendar
@@ -19,7 +17,8 @@ import javax.inject.Singleton
 @Singleton
 class ProgramRepository @Inject constructor(
     private val programDao: ProgramDao,
-    private val sessionDao: SessionDao
+    private val sessionDao: SessionDao,
+    private val libraryRepository: ExerciseLibraryRepository
 ) {
     fun getAllProgramsWithStats(): Flow<List<ProgramWithStats>> = programDao.getAllProgramsWithStats()
     
@@ -70,8 +69,14 @@ class ProgramRepository @Inject constructor(
                     exercise.copy(
                         id = 0, 
                         dayId = newDayId,
+                        libraryExerciseId = exercise.libraryExerciseId,
+                        targetSets = exercise.targetSets,
+                        targetRepMin = exercise.targetRepMin,
+                        targetRepMax = exercise.targetRepMax,
+                        targetRPE = exercise.targetRPE,
                         restTimerSeconds = exercise.restTimerSeconds,
-                        useDefaultRestTimer = exercise.useDefaultRestTimer
+                        useDefaultRestTimer = exercise.useDefaultRestTimer,
+                        createdAt = System.currentTimeMillis()
                     )
                 )
                 
@@ -91,8 +96,14 @@ class ProgramRepository @Inject constructor(
     fun getExercisesForDay(dayId: Long): Flow<List<ExerciseEntity>> =
         programDao.getExercisesForDayFlow(dayId)
 
+    fun getExercisesWithLibraryForDay(dayId: Long): Flow<List<ProgramExerciseWithLibrary>> =
+        programDao.getExercisesWithLibraryForDayFlow(dayId)
+
     fun getExercise(exerciseId: Long): Flow<ExerciseEntity?> =
         programDao.getExerciseFlow(exerciseId)
+
+    fun getExerciseWithLibrary(exerciseId: Long): Flow<ProgramExerciseWithLibrary?> =
+        programDao.getExerciseWithLibraryFlow(exerciseId)
 
     fun getAllExercises(): Flow<List<ExerciseEntity>> =
         programDao.getAllExercisesFlow()
@@ -159,11 +170,67 @@ class ProgramRepository @Inject constructor(
         programDao.getWorkoutDayFlow(dayId)
 
     suspend fun insertExercise(exercise: ExerciseEntity) {
+        // Ensure exercise has a library record
+        val libExercise = libraryRepository.getExerciseByNormalizedName(exercise.name)
+        val finalLib = if (libExercise != null) {
+            libExercise
+        } else {
+            val id = libraryRepository.insertExercise(
+                LibraryExerciseEntity(
+                    name = exercise.name,
+                    normalizedName = "",
+                    muscleGroup = exercise.muscleGroup,
+                    equipment = exercise.equipment,
+                    exerciseType = exercise.exerciseType,
+                    createdBy = "User"
+                )
+            )
+            // Just a simple way to get it back, assuming the repository handle it.
+            // Better to have getExerciseById in LibraryRepository
+            libraryRepository.allActiveExercises.first().find { it.id == id }
+        }
+
+        val libraryId = finalLib?.id ?: 0L
         val maxOrder = programDao.getMaxOrderForDay(exercise.dayId) ?: -1
-        programDao.insertExercise(exercise.copy(order = maxOrder + 1))
+        
+        programDao.insertExercise(exercise.copy(
+            libraryExerciseId = libraryId,
+            name = finalLib?.name ?: exercise.name,
+            muscleGroup = finalLib?.muscleGroup ?: exercise.muscleGroup,
+            equipment = finalLib?.equipment ?: exercise.equipment,
+            exerciseType = finalLib?.exerciseType ?: exercise.exerciseType,
+            order = maxOrder + 1
+        ))
     }
 
-    suspend fun updateExercise(exercise: ExerciseEntity) = programDao.updateExercise(exercise)
+    suspend fun updateExercise(exercise: ExerciseEntity) {
+        val libExercise = libraryRepository.getExerciseByNormalizedName(exercise.name)
+        val finalLib = if (libExercise != null) {
+            libExercise
+        } else {
+            val id = libraryRepository.insertExercise(
+                LibraryExerciseEntity(
+                    name = exercise.name,
+                    normalizedName = "",
+                    muscleGroup = exercise.muscleGroup,
+                    equipment = exercise.equipment,
+                    exerciseType = exercise.exerciseType,
+                    createdBy = "User"
+                )
+            )
+            libraryRepository.allActiveExercises.first().find { it.id == id }
+        }
+        
+        val libraryId = finalLib?.id ?: 0L
+        
+        programDao.updateExercise(exercise.copy(
+            libraryExerciseId = libraryId,
+            name = finalLib?.name ?: exercise.name,
+            muscleGroup = finalLib?.muscleGroup ?: exercise.muscleGroup,
+            equipment = finalLib?.equipment ?: exercise.equipment,
+            exerciseType = finalLib?.exerciseType ?: exercise.exerciseType
+        ))
+    }
 
     suspend fun deleteExercise(exercise: ExerciseEntity) = programDao.deleteExercise(exercise)
 
@@ -190,10 +257,7 @@ class ProgramRepository @Inject constructor(
         val newExerciseId = programDao.insertExercise(
             exercise.copy(
                 id = 0,
-                name = "${exercise.name} (Copy)",
                 order = maxOrder + 1,
-                restTimerSeconds = exercise.restTimerSeconds,
-                useDefaultRestTimer = exercise.useDefaultRestTimer,
                 createdAt = System.currentTimeMillis()
             )
         )
@@ -284,7 +348,6 @@ class ProgramRepository @Inject constructor(
     suspend fun deleteWorkoutDay(day: WorkoutDayEntity) = programDao.deleteDay(day)
 
     suspend fun moveDay(dayId: Long, up: Boolean) {
-        // Simple swap logic
         val day = programDao.getDayById(dayId) ?: return
         val days = programDao.getDaysForProgram(day.programId).sortedBy { it.order }
         val currentIndex = days.indexOfFirst { it.id == dayId }
@@ -315,7 +378,19 @@ class ProgramRepository @Inject constructor(
         // Duplicate Exercises and Sets
         val exercises = programDao.getExercisesForDay(dayId)
         for (exercise in exercises) {
-            val newExerciseId = programDao.insertExercise(exercise.copy(id = 0, dayId = newDayId))
+            val newExerciseId = programDao.insertExercise(
+                exercise.copy(
+                    id = 0, 
+                    dayId = newDayId,
+                    libraryExerciseId = exercise.libraryExerciseId,
+                    targetSets = exercise.targetSets,
+                    targetRepMin = exercise.targetRepMin,
+                    targetRepMax = exercise.targetRepMax,
+                    targetRPE = exercise.targetRPE,
+                    restTimerSeconds = exercise.restTimerSeconds,
+                    useDefaultRestTimer = exercise.useDefaultRestTimer
+                )
+            )
             val sets = programDao.getSetsForExercise(exercise.id)
             for (set in sets) {
                 programDao.insertSet(set.copy(id = 0, exerciseId = newExerciseId))

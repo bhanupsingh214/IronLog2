@@ -65,7 +65,18 @@ fun WorkoutLoggingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(exercise?.name ?: "Workout Logging", fontWeight = FontWeight.Bold) },
+                title = { 
+                    Column {
+                        Text(exercise?.exerciseName ?: "Workout Logging", fontWeight = FontWeight.Bold)
+                        exercise?.let {
+                            Text(
+                                text = "${it.programExercise.targetSets} sets • ${it.programExercise.targetRepMin}-${it.programExercise.targetRepMax} reps",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

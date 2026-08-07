@@ -3,11 +3,8 @@ package com.bhanu.ironlog.ui.screens.programs
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bhanu.ironlog.data.local.entity.ExerciseEntity
-import com.bhanu.ironlog.data.local.entity.SessionExercise
-import com.bhanu.ironlog.data.local.entity.SessionSet
-import com.bhanu.ironlog.data.local.entity.SetEntity
-import com.bhanu.ironlog.data.local.entity.WorkoutSession
+import com.bhanu.ironlog.data.local.entity.*
+import com.bhanu.ironlog.data.local.pojo.ProgramExerciseWithLibrary
 import com.bhanu.ironlog.data.repository.ProgramRepository
 import com.bhanu.ironlog.data.repository.WorkoutSessionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,8 +24,8 @@ class WorkoutLoggingViewModel @Inject constructor(
 
     val isArgumentValid = exerciseId != -1L && sessionId != -1L
 
-    val exercise: StateFlow<ExerciseEntity?> = if (isArgumentValid) {
-        repository.getExercise(exerciseId)
+    val exercise: StateFlow<ProgramExerciseWithLibrary?> = if (isArgumentValid) {
+        repository.getExerciseWithLibrary(exerciseId)
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
