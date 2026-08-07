@@ -24,11 +24,14 @@ class WorkoutDetailsViewModel @Inject constructor(
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val workoutDetails: StateFlow<WorkoutDetails?> = if (isArgumentValid) {
         combine(
-            historyRepository.getSessionById(sessionId).filterNotNull(),
-            sessionRepository.getWorkoutCompletionSummary(sessionId).filterNotNull(),
-            sessionRepository.getExercisesWithSetsForSession(sessionId)
-        ) { session, summary, exercises ->
-            WorkoutDetails(session, summary, exercises)
+            historyRepository.getSessionAggregate(sessionId).filterNotNull(),
+            sessionRepository.getWorkoutCompletionSummary(sessionId).filterNotNull()
+        ) { aggregate, summary ->
+            WorkoutDetails(
+                session = aggregate.metadata.toEntity(),
+                summary = summary,
+                exercises = aggregate.exercises.map { it.toPOJOWithSets() }
+            )
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),

@@ -11,6 +11,7 @@ import com.bhanu.ironlog.data.repository.ProgramRepository
 import com.bhanu.ironlog.data.repository.WorkoutSessionRepository
 import com.bhanu.ironlog.data.service.PersonalRecordEngine
 import com.bhanu.ironlog.data.model.WorkoutSessionStatus
+import com.bhanu.ironlog.data.model.workout.WorkoutSessionAggregate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -32,11 +33,10 @@ class SessionExercisesViewModel @Inject constructor(
     val isArgumentValid = dayId != -1L && sessionId != -1L
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val session: StateFlow<WorkoutSession?> = if (isArgumentValid) {
-        sessionRepository.getSessionById(sessionId)
-            .onEach { sess ->
-                // Ensure session is IN_PROGRESS if we are on this screen and it was CREATED
-                if (sess?.status == WorkoutSessionStatus.CREATED) {
+    val aggregate: StateFlow<WorkoutSessionAggregate?> = if (isArgumentValid) {
+        sessionRepository.getSessionAggregate(sessionId)
+            .onEach { agg ->
+                if (agg?.metadata?.status == WorkoutSessionStatus.CREATED) {
                     sessionRepository.resumeSession(sessionId)
                 }
             }
@@ -49,31 +49,23 @@ class SessionExercisesViewModel @Inject constructor(
         MutableStateFlow(null)
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val exercises: StateFlow<List<SessionExerciseWithTemplate>> = session.flatMapLatest { session ->
-        if (session != null) {
-            if (session.status != WorkoutSessionStatus.COMPLETED && session.status != WorkoutSessionStatus.DISCARDED) {
-                sessionRepository.getExercisesForActiveSession(session.sessionId)
-            } else {
-                sessionRepository.getExercisesWithTemplateForSession(session.sessionId)
-            }
-        } else {
-            flowOf(emptyList())
-        }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    // Compatibility properties for current UI implementation
+    val session: StateFlow<WorkoutSession?> = aggregate.map { it?.metadata?.toEntity() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val timerSeconds: StateFlow<Long> = session.flatMapLatest { sess ->
-        if (sess == null || (sess.status != WorkoutSessionStatus.IN_PROGRESS && sess.status != WorkoutSessionStatus.CREATED)) {
-            flowOf(sess?.durationSeconds ?: 0L)
+    val exercises: StateFlow<List<SessionExerciseWithTemplate>> = aggregate.map { agg ->
+        agg?.exercises?.map { it.toPOJO() } ?: emptyList()
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val timerSeconds: StateFlow<Long> = aggregate.flatMapLatest { agg ->
+        if (agg == null || (agg.metadata.status != WorkoutSessionStatus.IN_PROGRESS && agg.metadata.status != WorkoutSessionStatus.CREATED)) {
+            flowOf(agg?.metadata?.durationSeconds ?: 0L)
         } else {
             flow {
                 while (true) {
-                    val duration = (System.currentTimeMillis() - sess.startTime) / 1000
+                    val duration = (System.currentTimeMillis() - agg.metadata.startTime) / 1000
                     emit(duration)
                     delay(1000)
                 }
@@ -82,11 +74,17 @@ class SessionExercisesViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val progress: StateFlow<WorkoutProgress?> = session.flatMapLatest { sess ->
-        if (sess != null && sess.status != WorkoutSessionStatus.COMPLETED && sess.status != WorkoutSessionStatus.DISCARDED) {
-            sessionRepository.getWorkoutProgress(sess.sessionId)
-        } else {
-            flowOf(null)
+    val progress: StateFlow<WorkoutProgress?> = aggregate.map { agg ->
+        agg?.let {
+            WorkoutProgress(
+                completedExercises = it.statistics.completedExercisesCount,
+                totalExercises = it.statistics.totalExercisesCount,
+                completedSets = it.statistics.completedSetsCount,
+                totalSets = it.statistics.totalSetsCount,
+                percentage = if (it.statistics.totalExercisesCount > 0) 
+                    it.statistics.completedExercisesCount.toFloat() / it.statistics.totalExercisesCount 
+                else 0f
+            )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
@@ -115,13 +113,8 @@ class SessionExercisesViewModel @Inject constructor(
 
     fun finishWorkout() {
         viewModelScope.launch {
-            // 1. Process PRs (existing engine - internal cache/records)
             prEngine.processSessionPRs(sessionId)
-            
-            // 2. Finish Session in DB
             sessionRepository.finishSession(sessionId)
-            
-            // 3. Move to completed state
             _completionState.value = WorkoutCompletionState.COMPLETED
         }
     }
@@ -135,8 +128,8 @@ class SessionExercisesViewModel @Inject constructor(
 
     fun onLeaveSession() {
         viewModelScope.launch {
-            val sess = session.value ?: return@launch
-            if (sess.status != WorkoutSessionStatus.COMPLETED && sess.status != WorkoutSessionStatus.DISCARDED && !sess.hasShownBackgroundDialog) {
+            val sess = aggregate.value?.metadata ?: return@launch
+            if (sess.status != WorkoutSessionStatus.COMPLETED && sess.status != WorkoutSessionStatus.DISCARDED) {
                 _showBackgroundDialog.value = true
             } else {
                 _finishSignal.emit(Unit)
@@ -148,8 +141,8 @@ class SessionExercisesViewModel @Inject constructor(
         _showBackgroundDialog.value = false
         if (!stay) {
             viewModelScope.launch {
-                val sess = session.value ?: return@launch
-                sessionRepository.updateSession(sess.copy(hasShownBackgroundDialog = true))
+                val agg = aggregate.value ?: return@launch
+                sessionRepository.updateSession(agg.metadata.toEntity().copy(hasShownBackgroundDialog = true))
                 _finishSignal.emit(Unit)
             }
         }

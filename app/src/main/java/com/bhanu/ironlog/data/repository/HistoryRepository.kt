@@ -4,6 +4,7 @@ import com.bhanu.ironlog.data.local.dao.WorkoutSessionDao
 import com.bhanu.ironlog.data.local.entity.WorkoutSession
 import com.bhanu.ironlog.data.local.pojo.*
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -21,6 +22,9 @@ class HistoryRepository @Inject constructor(
         workoutSessionDao.getCompletedSessionsWithVolume()
 
     fun getSessionById(sessionId: Long): Flow<WorkoutSession?> = workoutSessionDao.getSessionById(sessionId)
+
+    fun getSessionAggregate(sessionId: Long): Flow<com.bhanu.ironlog.data.model.workout.WorkoutSessionAggregate?> =
+        workoutSessionDao.getSessionAggregate(sessionId).map { it?.toAggregate() }
 
     fun getTotalVolume(): Flow<Double?> = workoutSessionDao.getTotalVolume()
 

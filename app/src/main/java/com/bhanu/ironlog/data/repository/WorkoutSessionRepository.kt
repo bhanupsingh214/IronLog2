@@ -8,6 +8,7 @@ import com.bhanu.ironlog.data.local.entity.WorkoutSession
 import com.bhanu.ironlog.data.local.pojo.*
 import com.bhanu.ironlog.data.model.RestTimerState
 import com.bhanu.ironlog.data.model.WorkoutSessionStatus
+import com.bhanu.ironlog.data.model.workout.WorkoutSessionAggregate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import java.util.Calendar
@@ -29,6 +30,17 @@ class WorkoutSessionRepository @Inject constructor(
             initialValue = null
         )
 
+    /**
+     * Exposes the active session as a domain aggregate.
+     */
+    val activeSessionAggregate: StateFlow<WorkoutSessionAggregate?> = workoutSessionDao.getActiveSessionAggregate()
+        .map { it?.toAggregate() }
+        .stateIn(
+            scope = repositoryScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+
     fun getWorkoutSettings(): Flow<com.bhanu.ironlog.data.local.entity.WorkoutSettingsEntity?> = 
         workoutSettingsDao.getSettings()
 
@@ -38,6 +50,9 @@ class WorkoutSessionRepository @Inject constructor(
     fun getAllSessions(): Flow<List<WorkoutSession>> = workoutSessionDao.getAllSessions()
 
     fun getSessionById(sessionId: Long): Flow<WorkoutSession?> = workoutSessionDao.getSessionById(sessionId)
+
+    fun getSessionAggregate(sessionId: Long): Flow<WorkoutSessionAggregate?> = 
+        workoutSessionDao.getSessionAggregate(sessionId).map { it?.toAggregate() }
 
     fun getActiveSessionFlow(): Flow<WorkoutSession?> = workoutSessionDao.getActiveSession()
     
@@ -176,25 +191,11 @@ class WorkoutSessionRepository @Inject constructor(
     }
 
     fun getWorkoutCompletionSummary(sessionId: Long): Flow<WorkoutCompletionSummary?> =
-        workoutSessionDao.getExercisesWithSetsForSession(sessionId).map { list ->
-            val session = workoutSessionDao.getSessionByIdOnce(sessionId) ?: return@map null
+        workoutSessionDao.getSessionAggregate(sessionId).map { aggregatePojo ->
+            val aggregate = aggregatePojo?.toAggregate() ?: return@map null
+            val stats = aggregate.statistics
 
-            val totalExercises = list.size
-            val completedExercises = list.count { it.sessionExercise.status == "COMPLETED" }
-            val skippedExercises = list.count { it.sessionExercise.status == "SKIPPED" }
-            val totalSets = list.sumOf { it.sets.size }
-            val completedSets = list.sumOf { it.sets.count { s -> s.completed } }
-            val totalVolume = list.sumOf { ex -> ex.sets.sumOf { s -> if (s.completed) s.weight * s.reps else 0.0 } }
-            
-            val percentage = if (totalExercises > 0) completedExercises.toFloat() / totalExercises else 0f
-            
-            val duration = if (session.status == WorkoutSessionStatus.COMPLETED) {
-                session.durationSeconds
-            } else {
-                (System.currentTimeMillis() - session.startTime) / 1000
-            }
-
-            val achievements = if (session.status == WorkoutSessionStatus.COMPLETED) {
+            val achievements = if (aggregate.metadata.status == WorkoutSessionStatus.COMPLETED) {
                 detectAchievements(sessionId)
             } else {
                 emptyList()
@@ -202,18 +203,18 @@ class WorkoutSessionRepository @Inject constructor(
 
             WorkoutCompletionSummary(
                 sessionId = sessionId,
-                workoutName = session.dayName,
-                programName = session.programName,
-                durationSeconds = duration,
-                totalVolume = totalVolume,
-                exercisesCompleted = completedExercises,
-                totalExercises = totalExercises,
-                setsCompleted = completedSets,
-                totalSets = totalSets,
-                skippedExercises = skippedExercises,
-                completionPercentage = percentage,
-                startTime = session.startTime,
-                endTime = session.endTime ?: System.currentTimeMillis(),
+                workoutName = aggregate.metadata.dayName,
+                programName = aggregate.metadata.programName,
+                durationSeconds = stats.durationSeconds,
+                totalVolume = stats.totalVolume,
+                exercisesCompleted = stats.completedExercisesCount,
+                totalExercises = stats.totalExercisesCount,
+                setsCompleted = stats.completedSetsCount,
+                totalSets = stats.totalSetsCount,
+                skippedExercises = aggregate.exercises.count { it.execution.status == "SKIPPED" },
+                completionPercentage = if (stats.totalExercisesCount > 0) stats.completedExercisesCount.toFloat() / stats.totalExercisesCount else 0f,
+                startTime = aggregate.metadata.startTime,
+                endTime = aggregate.metadata.endTime ?: System.currentTimeMillis(),
                 achievements = achievements
             )
         }
@@ -269,20 +270,18 @@ class WorkoutSessionRepository @Inject constructor(
     }
 
     fun getWorkoutProgress(sessionId: Long): Flow<WorkoutProgress> = 
-        workoutSessionDao.getExercisesWithSetsForSession(sessionId).map { list ->
-            val totalExercises = list.size
-            val completedExercises = list.count { it.sessionExercise.status == "COMPLETED" || it.sessionExercise.status == "SKIPPED" }
-            val totalSets = list.sumOf { it.sets.size }
-            val completedSets = list.sumOf { it.sets.count { s -> s.completed } }
-            
-            val percentage = if (totalExercises > 0) completedExercises.toFloat() / totalExercises else 0f
+        workoutSessionDao.getSessionAggregate(sessionId).map { aggregatePojo ->
+            val aggregate = aggregatePojo?.toAggregate()
+            val stats = aggregate?.statistics
             
             WorkoutProgress(
-                completedExercises = completedExercises,
-                totalExercises = totalExercises,
-                completedSets = completedSets,
-                totalSets = totalSets,
-                percentage = percentage
+                completedExercises = stats?.completedExercisesCount ?: 0,
+                totalExercises = stats?.totalExercisesCount ?: 0,
+                completedSets = stats?.completedSetsCount ?: 0,
+                totalSets = stats?.totalSetsCount ?: 0,
+                percentage = if ((stats?.totalExercisesCount ?: 0) > 0) 
+                    (stats?.completedExercisesCount ?: 0).toFloat() / stats!!.totalExercisesCount 
+                else 0f
             )
         }
 
@@ -549,10 +548,6 @@ class WorkoutSessionRepository @Inject constructor(
 
     suspend fun updateSessionExerciseNotes(sessionExerciseId: Long, notes: String) {
         workoutSessionDao.updateSessionExerciseNotes(sessionExerciseId, notes)
-    }
-
-    suspend fun updateSessionExerciseRestTimer(sessionExerciseId: Long, seconds: Int) {
-        workoutSessionDao.updateSessionExerciseRestTimer(sessionExerciseId, seconds)
     }
 
     suspend fun deleteSession(session: WorkoutSession) = workoutSessionDao.deleteSession(session)
