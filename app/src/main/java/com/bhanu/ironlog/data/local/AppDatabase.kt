@@ -28,7 +28,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         WorkoutSettingsEntity::class,
         LibraryExerciseEntity::class
     ],
-    version = 15,
+    version = 16,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -187,6 +187,64 @@ abstract class AppDatabase : RoomDatabase() {
                 """)
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_exercise_library_normalizedName` ON `exercise_library` (`normalizedName`)")
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_exercise_library_systemKey` ON `exercise_library` (`systemKey`)")
+            }
+        }
+
+        val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 1. Create new table with full schema including Foreign Keys
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `exercises_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                        `dayId` INTEGER NOT NULL, 
+                        `libraryExerciseId` INTEGER NOT NULL DEFAULT 0, 
+                        `order` INTEGER NOT NULL, 
+                        `enabled` INTEGER NOT NULL, 
+                        `notes` TEXT NOT NULL DEFAULT '', 
+                        `restTimerSeconds` INTEGER NOT NULL DEFAULT 90, 
+                        `useDefaultRestTimer` INTEGER NOT NULL DEFAULT 1, 
+                        `targetSets` INTEGER NOT NULL DEFAULT 3, 
+                        `targetRepMin` INTEGER NOT NULL DEFAULT 8, 
+                        `targetRepMax` INTEGER NOT NULL DEFAULT 12, 
+                        `targetRPE` REAL, 
+                        `name` TEXT NOT NULL DEFAULT '', 
+                        `muscleGroup` TEXT NOT NULL DEFAULT '', 
+                        `equipment` TEXT NOT NULL DEFAULT '', 
+                        `exerciseType` TEXT NOT NULL DEFAULT 'Compound', 
+                        `createdAt` INTEGER NOT NULL, 
+                        FOREIGN KEY(`dayId`) REFERENCES `workout_days`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE, 
+                        FOREIGN KEY(`libraryExerciseId`) REFERENCES `exercise_library`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT
+                    )
+                """)
+
+                // 2. Copy existing data
+                db.execSQL("""
+                    INSERT INTO `exercises_new` (id, dayId, `order`, enabled, notes, restTimerSeconds, useDefaultRestTimer, name, muscleGroup, equipment, exerciseType, createdAt)
+                    SELECT id, dayId, `order`, enabled, notes, restTimerSeconds, useDefaultRestTimer, name, muscleGroup, equipment, exerciseType, createdAt FROM `exercises`
+                """)
+
+                // 3. Swap tables
+                db.execSQL("DROP TABLE `exercises`")
+                db.execSQL("ALTER TABLE `exercises_new` RENAME TO `exercises`")
+
+                // 4. Migration to Library
+                db.execSQL("""
+                    INSERT OR IGNORE INTO exercise_library (name, normalizedName, muscleGroup, equipment, exerciseType, createdBy, isActive, createdAt, updatedAt)
+                    SELECT DISTINCT name, 
+                           LOWER(name) as normalizedName, 
+                           muscleGroup, equipment, exerciseType, 'User', 1, 0, 0
+                    FROM exercises
+                """)
+
+                // 5. Update libraryExerciseId references
+                db.execSQL("""
+                    UPDATE exercises 
+                    SET libraryExerciseId = (
+                        SELECT id FROM exercise_library 
+                        WHERE exercise_library.name = exercises.name 
+                        LIMIT 1
+                    )
+                """)
             }
         }
     }

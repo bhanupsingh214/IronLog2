@@ -61,6 +61,16 @@ class ExerciseLibraryRepository @Inject constructor(
         libraryDao.softDelete(id)
     }
 
+    suspend fun insertExercise(exercise: LibraryExerciseEntity): Long {
+        val normalized = ExerciseNormalizationUtil.normalize(exercise.name)
+        val existing = libraryDao.findByNormalizedName(normalized)
+        return if (existing != null) {
+            existing.id
+        } else {
+            libraryDao.insert(exercise.copy(normalizedName = normalized, updatedAt = System.currentTimeMillis()))
+        }
+    }
+
     /**
      * Internal helper for similarity detection during save flow.
      */

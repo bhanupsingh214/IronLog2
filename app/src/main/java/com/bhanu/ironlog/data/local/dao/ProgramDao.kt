@@ -65,6 +65,14 @@ interface ProgramDao {
     @Query("SELECT * FROM workout_days WHERE programId = :programId")
     suspend fun getDaysForProgram(programId: Long): List<WorkoutDayEntity>
 
+    @Transaction
+    @Query("SELECT * FROM exercises WHERE dayId = :dayId ORDER BY `order` ASC")
+    fun getExercisesWithLibraryForDayFlow(dayId: Long): Flow<List<com.bhanu.ironlog.data.local.pojo.ProgramExerciseWithLibrary>>
+
+    @Transaction
+    @Query("SELECT * FROM exercises WHERE id = :id")
+    fun getExerciseWithLibraryFlow(id: Long): Flow<com.bhanu.ironlog.data.local.pojo.ProgramExerciseWithLibrary?>
+
     @Query("SELECT * FROM exercises WHERE dayId = :dayId ORDER BY `order` ASC")
     fun getExercisesForDayFlow(dayId: Long): Flow<List<ExerciseEntity>>
 
