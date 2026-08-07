@@ -1,5 +1,6 @@
 package com.bhanu.ironlog.ui.screens.programs
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -40,6 +41,7 @@ fun WorkoutLoggingScreen(
     val sets by viewModel.sets.collectAsState()
     val previousSets by viewModel.previousSets.collectAsState()
     val previousPerformance by viewModel.previousPerformance.collectAsState()
+    val exerciseStats by viewModel.exerciseStats.collectAsState()
     val session by viewModel.session.collectAsState()
     val sessionId = viewModel.sessionId
 
@@ -69,11 +71,25 @@ fun WorkoutLoggingScreen(
                     Column {
                         Text(exercise?.exerciseName ?: "Workout Logging", fontWeight = FontWeight.Bold)
                         exercise?.let {
-                            Text(
-                                text = "${it.programExercise.targetSets} sets • ${it.programExercise.targetRepMin}-${it.programExercise.targetRepMax} reps",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.outline
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    text = "${it.programExercise.targetSets} sets • ${it.programExercise.targetRepMin}-${it.programExercise.targetRepMax} reps",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                                if (it.programExercise.targetRPE != null) {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                                        shape = MaterialTheme.shapes.extraSmall
+                                    ) {
+                                        Text(
+                                            text = "RPE ${it.programExercise.targetRPE}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 },
@@ -151,16 +167,37 @@ fun WorkoutLoggingScreen(
             ) {
                 if (sessionId > 0 && sessionExercise != null) {
                     item {
-                        ExerciseNotesEditor(
-                            notes = sessionExercise!!.notes,
-                            onNotesChange = { viewModel.updateExerciseNotes(it) }
-                        )
+                        ExpandableSection(title = "Exercise Instructions") {
+                            ExerciseNotesEditor(
+                                notes = sessionExercise!!.notes,
+                                onNotesChange = { viewModel.updateExerciseNotes(it) }
+                            )
+                        }
                     }
                 }
 
                 if (sessionId > 0) {
                     item {
                         PreviousPerformanceCard(previousPerformance)
+                    }
+                }
+                
+                if (sessionId > 0) {
+                    item {
+                        ExpandableSection(title = "Rest Timer") {
+                            RestTimerSection(
+                                configuredRest = sessionExercise?.restTimerSeconds ?: 90,
+                                onStartTimer = { viewModel.startRestTimer(it) }
+                            )
+                        }
+                    }
+                }
+
+                if (sessionId > 0) {
+                    item {
+                        ExpandableSection(title = "Exercise Summary") {
+                            ExerciseSummaryContent(stats = exerciseStats)
+                        }
                     }
                 }
 
@@ -350,18 +387,35 @@ fun SetItem(
                 )
             }
             
-            if (set.isCompleted || isReadOnly) {
-                Spacer(Modifier.height(8.dp))
+            var showNotes by remember { mutableStateOf(set.notes.isNotBlank()) }
+            
+            if (!isReadOnly) {
+                TextButton(
+                    onClick = { showNotes = !showNotes },
+                    modifier = Modifier.align(Alignment.Start),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Icon(
+                        imageVector = if (set.notes.isBlank()) Icons.Default.NoteAdd else Icons.Default.Note,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(if (set.notes.isBlank()) "Add Note" else "View Note", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+
+            if (showNotes || isReadOnly && set.notes.isNotBlank()) {
                 OutlinedTextField(
                     value = notesFieldValue,
                     onValueChange = { 
                         notesFieldValue = it
                         onUpdate(set.copy(notes = it.text))
                     },
-                    label = { Text("Notes", style = MaterialTheme.typography.bodySmall) },
+                    label = { Text("Set Notes", style = MaterialTheme.typography.bodySmall) },
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = MaterialTheme.typography.bodySmall,
-                    singleLine = true,
+                    maxLines = 2,
                     enabled = !isReadOnly
                 )
             }
@@ -498,7 +552,7 @@ fun PreviousPerformanceCard(
             if (performance == null) {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "No previous performance yet.\nComplete this exercise once to start tracking your progress.",
+                    text = "No previous performance.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )
@@ -551,6 +605,100 @@ fun PreviousPerformanceCard(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun ExpandableSection(
+    title: String,
+    content: @Composable () -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+            Icon(
+                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+        if (expanded) {
+            content()
+        }
+    }
+}
+
+@Composable
+fun ExerciseSummaryContent(stats: ExerciseStats) {
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f)
+        )
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                SummaryStatItem("Volume", String.format(Locale.getDefault(), "%,.0f kg", stats.volume))
+                SummaryStatItem("Sets", "${stats.completedSets}/${stats.totalSets}")
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                SummaryStatItem("Avg. RPE", if (stats.averageRpe != null) String.format(Locale.getDefault(), "%.1f", stats.averageRpe) else "-")
+                SummaryStatItem("Completion", "${(stats.completionPercentage * 100).toInt()}%")
+            }
+        }
+    }
+}
+
+@Composable
+fun SummaryStatItem(label: String, value: String) {
+    Column {
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+        Text(text = value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun RestTimerSection(
+    configuredRest: Int,
+    onStartTimer: (Int) -> Unit
+) {
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.2f)
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text("Target Rest", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                Text("${configuredRest}s", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+            }
+            Button(
+                onClick = { onStartTimer(configuredRest) },
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Icon(Icons.Default.Timer, null)
+                Spacer(Modifier.width(8.dp))
+                Text("Start Timer")
             }
         }
     }

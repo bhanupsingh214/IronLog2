@@ -70,6 +70,18 @@ interface WorkoutSessionDao {
     fun getLatestCompletedExerciseRecord(exerciseTemplateId: Long, currentSessionId: Long): Flow<SessionExerciseWithSetsAndSession?>
 
     @Transaction
+    @Query("""
+        SELECT se.* FROM session_exercises se
+        JOIN workout_session_logs wsl ON se.sessionId = wsl.sessionId
+        WHERE se.libraryExerciseId = :libraryExerciseId 
+        AND wsl.status = 'COMPLETED'
+        AND se.sessionId != :currentSessionId
+        ORDER BY wsl.startTime DESC
+        LIMIT 1
+    """)
+    fun getLatestExecutionByLibraryId(libraryExerciseId: Long, currentSessionId: Long): Flow<SessionExerciseWithSetsAndSession?>
+
+    @Transaction
     @Query("SELECT * FROM session_exercises WHERE sessionId = :sessionId ORDER BY exerciseOrder ASC")
     fun getExercisesWithTemplateForSession(sessionId: Long): Flow<List<SessionExerciseWithTemplate>>
 

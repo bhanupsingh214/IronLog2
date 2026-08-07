@@ -328,6 +328,14 @@ fun HistoricalExerciseItem(
                                 )
                             }
                         }
+                        if (!set.notes.isNullOrBlank()) {
+                            Text(
+                                text = set.notes,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline,
+                                modifier = Modifier.padding(start = 64.dp, bottom = 4.dp)
+                            )
+                        }
                     }
                 }
             }

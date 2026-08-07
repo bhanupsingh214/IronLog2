@@ -90,6 +90,7 @@ class WorkoutSessionRepository @Inject constructor(
                 SessionExercise(
                     sessionId = sessionId,
                     exerciseTemplateId = exercise.id,
+                    libraryExerciseId = exercise.libraryExerciseId,
                     exerciseName = exercise.name,
                     muscleGroup = exercise.muscleGroup,
                     equipment = exercise.equipment,
@@ -566,6 +567,9 @@ class WorkoutSessionRepository @Inject constructor(
 
     fun getPreviousPerformance(exerciseTemplateId: Long, currentSessionId: Long): Flow<SessionExerciseWithSetsAndSession?> =
         workoutSessionDao.getLatestCompletedExerciseRecord(exerciseTemplateId, currentSessionId)
+
+    fun getPreviousPerformanceByLibraryId(libraryExerciseId: Long, currentSessionId: Long): Flow<SessionExerciseWithSetsAndSession?> =
+        workoutSessionDao.getLatestExecutionByLibraryId(libraryExerciseId, currentSessionId)
 
     fun getExerciseDetails(exerciseTemplateId: Long): Flow<ExerciseDetails?> =
         workoutSessionDao.getCompletedExerciseRecords(exerciseTemplateId).map { records ->

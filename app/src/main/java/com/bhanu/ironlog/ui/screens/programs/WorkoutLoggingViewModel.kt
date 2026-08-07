@@ -100,12 +100,24 @@ class WorkoutLoggingViewModel @Inject constructor(
         MutableStateFlow(emptyList())
     }
 
-    val previousPerformance: StateFlow<com.bhanu.ironlog.data.local.pojo.SessionExerciseWithSetsAndSession?> = if (isArgumentValid && sessionId > 0) {
-        sessionRepository.getPreviousPerformance(exerciseId, sessionId)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-    } else {
-        MutableStateFlow(null)
-    }
+    val previousPerformance: StateFlow<com.bhanu.ironlog.data.local.pojo.SessionExerciseWithSetsAndSession?> = exercise.flatMapLatest { ex ->
+        if (ex != null && sessionId > 0) {
+            sessionRepository.getPreviousPerformanceByLibraryId(ex.programExercise.libraryExerciseId, sessionId)
+        } else {
+            flowOf(null)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val exerciseStats: StateFlow<ExerciseStats> = sets.map { list ->
+        val completed = list.filter { it.isCompleted }
+        ExerciseStats(
+            volume = completed.sumOf { it.weight * it.reps },
+            averageRpe = completed.mapNotNull { it.rpe }.average().takeIf { !it.isNaN() },
+            completionPercentage = if (list.isNotEmpty()) completed.size.toFloat() / list.size else 0f,
+            completedSets = completed.size,
+            totalSets = list.size
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ExerciseStats())
 
     private val _navigationEvent = MutableSharedFlow<LoggingNavigationEvent>()
     val navigationEvent = _navigationEvent.asSharedFlow()
@@ -354,6 +366,12 @@ class WorkoutLoggingViewModel @Inject constructor(
         }
     }
 
+    fun startRestTimer(duration: Int) {
+        viewModelScope.launch {
+            sessionRepository.startRestTimer(sessionId, duration)
+        }
+    }
+
     private suspend fun handleAdvance() {
         val sess = sessionRepository.getSessionById(sessionId).first()
         val nextId = sess?.currentExerciseId
@@ -369,6 +387,14 @@ sealed class LoggingNavigationEvent {
     data class NavigateToExercise(val exerciseId: Long) : LoggingNavigationEvent()
     object WorkoutFinished : LoggingNavigationEvent()
 }
+
+data class ExerciseStats(
+    val volume: Double = 0.0,
+    val averageRpe: Double? = null,
+    val completionPercentage: Float = 0f,
+    val completedSets: Int = 0,
+    val totalSets: Int = 0
+)
 
 private fun SetEntity.toUiModel() = WorkoutSetUiModel(
     id = id,
