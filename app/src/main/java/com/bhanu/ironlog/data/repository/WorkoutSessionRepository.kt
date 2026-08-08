@@ -195,11 +195,18 @@ class WorkoutSessionRepository @Inject constructor(
         workoutSessionDao.getSessionAggregate(sessionId).map { aggregatePojo ->
             val aggregate = aggregatePojo?.toAggregate() ?: return@map null
             val stats = aggregate.statistics
+            val currentSession = aggregate.metadata.toEntity()
 
             val achievements = if (aggregate.metadata.status == WorkoutSessionStatus.COMPLETED) {
                 detectAchievements(sessionId)
             } else {
                 emptyList()
+            }
+
+            val comparison = if (aggregate.metadata.status == WorkoutSessionStatus.COMPLETED) {
+                getWorkoutComparison(currentSession)
+            } else {
+                null
             }
 
             WorkoutCompletionSummary(
@@ -212,13 +219,34 @@ class WorkoutSessionRepository @Inject constructor(
                 totalExercises = stats.totalExercisesCount,
                 setsCompleted = stats.completedSetsCount,
                 totalSets = stats.totalSetsCount,
+                averageRPE = stats.averageRPE,
                 skippedExercises = aggregate.exercises.count { it.execution.status == "SKIPPED" },
                 completionPercentage = if (stats.totalExercisesCount > 0) stats.completedExercisesCount.toFloat() / stats.totalExercisesCount else 0f,
                 startTime = aggregate.metadata.startTime,
                 endTime = aggregate.metadata.endTime ?: System.currentTimeMillis(),
-                achievements = achievements
+                achievements = achievements,
+                comparison = comparison
             )
         }
+
+    private suspend fun getWorkoutComparison(currentSession: WorkoutSession): WorkoutComparison? {
+        val previousSession = workoutSessionDao.getLatestCompletedSessionBefore(currentSession.workoutDayId, currentSession.startTime)
+        if (previousSession == null) {
+            return WorkoutComparison(null, null, null, null, isFirstSession = true)
+        }
+
+        val prevAggregatePojo = workoutSessionDao.getSessionAggregate(previousSession.sessionId).first()
+        val prevAggregate = prevAggregatePojo?.toAggregate() ?: return WorkoutComparison(null, null, null, null, isFirstSession = true)
+            
+        val stats = prevAggregate.statistics
+        return WorkoutComparison(
+            previousVolume = stats.totalVolume,
+            previousDurationSeconds = stats.durationSeconds,
+            previousSetsCompleted = stats.completedSetsCount,
+            previousAverageRPE = stats.averageRPE,
+            isFirstSession = false
+        )
+    }
 
     private suspend fun detectAchievements(sessionId: Long): List<PersonalRecordAchievement> {
         val achievements = mutableListOf<PersonalRecordAchievement>()

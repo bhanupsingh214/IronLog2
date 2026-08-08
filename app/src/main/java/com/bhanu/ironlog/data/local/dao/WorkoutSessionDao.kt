@@ -51,6 +51,9 @@ interface WorkoutSessionDao {
     @Query("SELECT * FROM workout_session_logs WHERE workoutDayId = :dayId AND createdAt BETWEEN :start AND :end LIMIT 1")
     suspend fun getSessionByDayAndDate(dayId: Long, start: Long, end: Long): WorkoutSession?
 
+    @Query("SELECT * FROM workout_session_logs WHERE workoutDayId = :dayId AND status = 'COMPLETED' AND startTime < :beforeStartTime ORDER BY startTime DESC LIMIT 1")
+    suspend fun getLatestCompletedSessionBefore(dayId: Long, beforeStartTime: Long): WorkoutSession?
+
     @Query("SELECT * FROM workout_session_logs ORDER BY createdAt DESC")
     fun getAllSessions(): Flow<List<WorkoutSession>>
 
