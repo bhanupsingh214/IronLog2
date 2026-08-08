@@ -19,6 +19,7 @@ import com.bhanu.ironlog.data.local.entity.ExerciseEntity
 import com.bhanu.ironlog.data.local.entity.WorkoutDayEntity
 import com.bhanu.ironlog.data.local.pojo.WorkoutDayWithStats
 import com.bhanu.ironlog.ui.components.formatTimer
+import com.bhanu.ironlog.ui.components.formatWorkoutTime
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -90,7 +91,7 @@ fun WorkoutScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(activeSession!!.dayName, fontWeight = FontWeight.Bold)
-                    Text("Started: ${SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(activeSession!!.startTime))}")
+                    Text("Started: ${formatWorkoutTime(activeSession!!.startTime)}")
                     val elapsed = (System.currentTimeMillis() - activeSession!!.startTime) / 1000
                     Text("Elapsed: ${formatTimer(elapsed)}")
                     Spacer(Modifier.height(8.dp))

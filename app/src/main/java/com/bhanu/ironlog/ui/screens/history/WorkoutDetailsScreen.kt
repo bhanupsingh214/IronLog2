@@ -22,7 +22,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bhanu.ironlog.data.local.pojo.WorkoutDetails
 import com.bhanu.ironlog.ui.components.ErrorScreen
 import com.bhanu.ironlog.ui.components.formatTimer
-import java.text.SimpleDateFormat
+import com.bhanu.ironlog.ui.components.formatWorkoutDate
+import com.bhanu.ironlog.ui.components.formatWorkoutTime
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,9 +97,6 @@ fun WorkoutDetailsScreen(
 
 @Composable
 fun WorkoutDetailsHeader(details: WorkoutDetails) {
-    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("en", "IN"))
-    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-    
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = details.session.dayName,
@@ -129,16 +127,16 @@ fun WorkoutDetailsHeader(details: WorkoutDetails) {
         Spacer(Modifier.height(24.dp))
         
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            DetailStat("Date", dateFormat.format(Date(details.session.createdAt)))
+            DetailStat("Date", formatWorkoutDate(details.session.createdAt))
             DetailStat("Duration", formatTimer(details.session.durationSeconds))
         }
         
         Spacer(Modifier.height(16.dp))
         
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            DetailStat("Start Time", timeFormat.format(Date(details.session.startTime)))
+            DetailStat("Start Time", formatWorkoutTime(details.session.startTime))
             details.session.endTime?.let {
-                DetailStat("End Time", timeFormat.format(Date(it)))
+                DetailStat("End Time", formatWorkoutTime(it))
             }
         }
     }
