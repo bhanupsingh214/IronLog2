@@ -16,6 +16,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bhanu.ironlog.data.local.entity.ExerciseEntity
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 @Composable
@@ -71,6 +73,16 @@ fun formatTimer(seconds: Long): String {
     } else {
         String.format(Locale.getDefault(), "%02d:%02d", mins, secs)
     }
+}
+
+fun formatWorkoutTime(timestamp: Long): String {
+    val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
+    return sdf.format(Date(timestamp))
+}
+
+fun formatWorkoutDate(timestamp: Long): String {
+    val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.forLanguageTag("en-IN"))
+    return sdf.format(Date(timestamp))
 }
 
 @Composable

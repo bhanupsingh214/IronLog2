@@ -25,6 +25,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bhanu.ironlog.data.local.pojo.WorkoutSessionWithStats
 import com.bhanu.ironlog.ui.components.SearchBar
 import com.bhanu.ironlog.ui.components.formatTimer
+import com.bhanu.ironlog.ui.components.formatWorkoutDate
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -190,8 +191,6 @@ fun HistoryItemWithStats(
     item: WorkoutSessionWithStats,
     onClick: () -> Unit
 ) {
-    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("en", "IN"))
-    
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -251,7 +250,7 @@ fun HistoryItemWithStats(
             
             Spacer(Modifier.height(8.dp))
             Text(
-                text = dateFormat.format(Date(item.session.createdAt)),
+                text = formatWorkoutDate(item.session.createdAt),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline
             )
@@ -477,11 +476,10 @@ fun HistoryFilterSheet(
             Spacer(Modifier.height(16.dp))
 
             Text("Date Range", style = MaterialTheme.typography.labelLarge)
-            val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("en", "IN"))
             val dateText = if (startDate != null && endDate != null) {
-                "${dateFormat.format(Date(startDate))} - ${dateFormat.format(Date(endDate))}"
+                "${formatWorkoutDate(startDate)} - ${formatWorkoutDate(endDate)}"
             } else if (startDate != null) {
-                "From ${dateFormat.format(Date(startDate))}"
+                "From ${formatWorkoutDate(startDate)}"
             } else {
                 "All Time"
             }

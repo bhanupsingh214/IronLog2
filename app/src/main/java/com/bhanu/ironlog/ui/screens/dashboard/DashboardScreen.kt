@@ -19,12 +19,13 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bhanu.ironlog.data.local.entity.WorkoutSession
 import com.bhanu.ironlog.data.local.pojo.ProgramWithStats
 import com.bhanu.ironlog.data.local.pojo.WorkoutDayWithStats
+import com.bhanu.ironlog.ui.components.formatWorkoutDate
+import com.bhanu.ironlog.ui.components.formatWorkoutTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
 import java.util.Locale
 
 @Composable
@@ -145,7 +146,7 @@ fun DashboardScreen(
 @Composable
 fun DashboardHeader() {
     val calendar = Calendar.getInstance()
-    val dateFormat = SimpleDateFormat("EEEE, dd/MM/yyyy", Locale("en", "IN"))
+    val dateFormat = SimpleDateFormat("EEEE, dd/MM/yyyy", Locale.forLanguageTag("en-IN"))
     
     Column {
         Text(
@@ -246,8 +247,6 @@ fun ActiveWorkoutCard(
     currentExerciseName: String?,
     onResume: () -> Unit
 ) {
-    val startedTimeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-    
     var duration by remember { mutableLongStateOf((System.currentTimeMillis() - session.startTime) / 1000) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -268,7 +267,7 @@ fun ActiveWorkoutCard(
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "${session.programName} • Started ${startedTimeFormat.format(Date(session.startTime))}",
+                text = "${session.programName} • Started ${formatWorkoutTime(session.startTime)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline
             )
@@ -435,9 +434,8 @@ fun RecentHistoryCard(
                                 text = session.dayName,
                                 style = MaterialTheme.typography.bodyMedium
                             )
-                            val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("en", "IN"))
                             Text(
-                                text = dateFormat.format(Date(session.createdAt)),
+                                text = formatWorkoutDate(session.createdAt),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.outline
                             )

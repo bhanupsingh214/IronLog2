@@ -29,10 +29,12 @@ import com.bhanu.ironlog.ui.components.ErrorScreen
 import com.bhanu.ironlog.ui.components.ExerciseSessionItem
 import com.bhanu.ironlog.ui.components.WorkoutProgress
 import com.bhanu.ironlog.ui.components.formatTimer
+import com.bhanu.ironlog.ui.components.formatWorkoutDate
+import com.bhanu.ironlog.ui.components.formatWorkoutTime
 import kotlinx.coroutines.delay
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
+import com.bhanu.ironlog.data.local.pojo.WorkoutComparison
+import com.bhanu.ironlog.data.local.pojo.WorkoutCompletionSummary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -363,21 +365,6 @@ fun WorkoutCompleteScreen(
                     
                     Row(modifier = Modifier.fillMaxWidth()) {
                         StatItem(
-                            label = "Duration",
-                            value = formatTimer(summary.durationSeconds),
-                            modifier = Modifier.weight(1f)
-                        )
-                        StatItem(
-                            label = "Volume",
-                            value = String.format(Locale.getDefault(), "%,.0f kg", summary.totalVolume),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    
-                    HorizontalDivider(thickness = 0.5.dp)
-                    
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        StatItem(
                             label = "Exercises",
                             value = "${summary.exercisesCompleted}/${summary.totalExercises}",
                             modifier = Modifier.weight(1f)
@@ -523,8 +510,8 @@ private fun formatPRValue(value: Double): String {
 
 @Composable
 fun WorkoutComparisonSection(
-    comparison: com.bhanu.ironlog.data.local.pojo.WorkoutComparison,
-    currentSummary: com.bhanu.ironlog.data.local.pojo.WorkoutCompletionSummary
+    comparison: WorkoutComparison,
+    currentSummary: WorkoutCompletionSummary
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -541,47 +528,40 @@ fun WorkoutComparisonSection(
                 color = MaterialTheme.colorScheme.outline
             )
         } else {
-            ElevatedCard(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.elevatedCardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                )
-            ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    comparison.previousVolume?.let { prevVolume ->
-                        ComparisonRow(
-                            label = "Total Volume",
-                            current = currentSummary.totalVolume,
-                            previous = prevVolume,
-                            formatter = { String.format(Locale.getDefault(), "%,.0f kg", it) }
-                        )
-                    }
-                    comparison.previousDurationSeconds?.let { prevDuration ->
-                        ComparisonRow(
-                            label = "Duration",
-                            current = currentSummary.durationSeconds.toDouble(),
-                            previous = prevDuration.toDouble(),
-                            formatter = { formatTimer(it.toLong()) },
-                            isLowerBetter = true
-                        )
-                    }
-                    comparison.previousSetsCompleted?.let { prevSets ->
-                        ComparisonRow(
-                            label = "Completed Sets",
-                            current = currentSummary.setsCompleted.toDouble(),
-                            previous = prevSets.toDouble(),
-                            formatter = { it.toInt().toString() }
-                        )
-                    }
-                    if (currentSummary.averageRPE != null && comparison.previousAverageRPE != null) {
-                        ComparisonRow(
-                            label = "Average RPE",
-                            current = currentSummary.averageRPE,
-                            previous = comparison.previousAverageRPE,
-                            formatter = { String.format(Locale.getDefault(), "%.1f", it) },
-                            isLowerBetter = true
-                        )
-                    }
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                comparison.previousVolume?.let { prevVolume ->
+                    ComparisonCard(
+                        label = "Total Volume",
+                        current = currentSummary.totalVolume,
+                        previous = prevVolume,
+                        formatter = { String.format(Locale.getDefault(), "%,.0f kg", it) }
+                    )
+                }
+                comparison.previousDurationSeconds?.let { prevDuration ->
+                    ComparisonCard(
+                        label = "Duration",
+                        current = currentSummary.durationSeconds.toDouble(),
+                        previous = prevDuration.toDouble(),
+                        formatter = { formatTimer(it.toLong()) },
+                        isLowerBetter = true
+                    )
+                }
+                comparison.previousSetsCompleted?.let { prevSets ->
+                    ComparisonCard(
+                        label = "Completed Sets",
+                        current = currentSummary.setsCompleted.toDouble(),
+                        previous = prevSets.toDouble(),
+                        formatter = { it.toInt().toString() }
+                    )
+                }
+                if (currentSummary.averageRPE != null && comparison.previousAverageRPE != null) {
+                    ComparisonCard(
+                        label = "Average RPE",
+                        current = currentSummary.averageRPE,
+                        previous = comparison.previousAverageRPE,
+                        formatter = { String.format(Locale.getDefault(), "%.1f", it) },
+                        isNeutral = true
+                    )
                 }
             }
         }
@@ -589,40 +569,61 @@ fun WorkoutComparisonSection(
 }
 
 @Composable
-fun ComparisonRow(
+fun ComparisonCard(
     label: String,
     current: Double,
     previous: Double,
     formatter: (Double) -> String,
-    isLowerBetter: Boolean = false
+    isLowerBetter: Boolean = false,
+    isNeutral: Boolean = false
 ) {
     val diff = current - previous
     val isPositive = diff > 0
-    val color = if (isPositive) {
-        if (isLowerBetter) MaterialTheme.colorScheme.error else Color(0xFF4CAF50)
-    } else if (diff < 0) {
-        if (isLowerBetter) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
-    } else {
-        MaterialTheme.colorScheme.outline
+    val color = when {
+        isNeutral -> MaterialTheme.colorScheme.outline
+        isPositive -> if (isLowerBetter) MaterialTheme.colorScheme.error else Color(0xFF4CAF50)
+        diff < 0 -> if (isLowerBetter) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.outline
     }
 
-    Row(
+    ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        )
     ) {
-        Text(text = label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = formatter(current), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-            if (diff != 0.0) {
-                Spacer(Modifier.width(8.dp))
-                val icon = if (isPositive) Icons.Default.TrendingUp else Icons.Default.TrendingDown
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(16.dp)
-                )
+        Column(Modifier.padding(12.dp)) {
+            Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Text(text = "Today", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                    Text(text = formatter(current), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = "Previous", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                    Text(text = formatter(previous), style = MaterialTheme.typography.bodyMedium)
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(text = "Change", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        val sign = if (isPositive) "+" else ""
+                        Text(
+                            text = "$sign${formatter(diff).removeSuffix(" kg")}", 
+                            style = MaterialTheme.typography.bodyMedium, 
+                            fontWeight = FontWeight.Bold,
+                            color = color
+                        )
+                        if (diff != 0.0) {
+                            Icon(
+                                imageVector = if (isPositive) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
+                                contentDescription = null,
+                                tint = color,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
     }

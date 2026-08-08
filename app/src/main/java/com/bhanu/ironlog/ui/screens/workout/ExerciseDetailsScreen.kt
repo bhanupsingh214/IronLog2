@@ -21,7 +21,7 @@ import com.bhanu.ironlog.data.local.pojo.ExerciseDetails
 import com.bhanu.ironlog.data.local.pojo.ExerciseSessionRecord
 import com.bhanu.ironlog.ui.components.ErrorScreen
 import com.bhanu.ironlog.ui.components.formatTimer
-import java.text.SimpleDateFormat
+import com.bhanu.ironlog.ui.components.formatWorkoutDate
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -120,8 +120,6 @@ fun ExerciseHeader(details: ExerciseDetails) {
 
 @Composable
 fun LifetimeSummary(details: ExerciseDetails) {
-    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("en", "IN"))
-    
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.elevatedCardColors(
@@ -144,8 +142,8 @@ fun LifetimeSummary(details: ExerciseDetails) {
             HorizontalDivider(thickness = 0.5.dp)
 
             Row(modifier = Modifier.fillMaxWidth()) {
-                SummaryItem(label = "First Done", value = dateFormat.format(Date(details.firstPerformed)), modifier = Modifier.weight(1f))
-                SummaryItem(label = "Last Done", value = dateFormat.format(Date(details.lastPerformed)), modifier = Modifier.weight(1f))
+                SummaryItem(label = "First Done", value = formatWorkoutDate(details.firstPerformed), modifier = Modifier.weight(1f))
+                SummaryItem(label = "Last Done", value = formatWorkoutDate(details.lastPerformed), modifier = Modifier.weight(1f))
             }
         }
     }
@@ -165,7 +163,6 @@ fun ExerciseSessionCard(
     onClick: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("en", "IN"))
 
     Card(
         modifier = Modifier
@@ -180,7 +177,7 @@ fun ExerciseSessionCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = dateFormat.format(Date(record.date)),
+                        text = formatWorkoutDate(record.date),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
