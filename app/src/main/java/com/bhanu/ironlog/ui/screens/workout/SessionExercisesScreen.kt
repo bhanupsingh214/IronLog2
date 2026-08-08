@@ -363,6 +363,21 @@ fun WorkoutCompleteScreen(
                     
                     Row(modifier = Modifier.fillMaxWidth()) {
                         StatItem(
+                            label = "Duration",
+                            value = formatTimer(summary.durationSeconds),
+                            modifier = Modifier.weight(1f)
+                        )
+                        StatItem(
+                            label = "Volume",
+                            value = String.format(Locale.getDefault(), "%,.0f kg", summary.totalVolume),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    
+                    HorizontalDivider(thickness = 0.5.dp)
+                    
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        StatItem(
                             label = "Exercises",
                             value = "${summary.exercisesCompleted}/${summary.totalExercises}",
                             modifier = Modifier.weight(1f)
@@ -370,6 +385,16 @@ fun WorkoutCompleteScreen(
                         StatItem(
                             label = "Sets",
                             value = "${summary.setsCompleted}/${summary.totalSets}",
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    HorizontalDivider(thickness = 0.5.dp)
+
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        StatItem(
+                            label = "Avg. RPE",
+                            value = summary.averageRPE?.let { String.format(Locale.getDefault(), "%.1f", it) } ?: "-",
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -406,6 +431,12 @@ fun WorkoutCompleteScreen(
                         PRAchievementsSection(summary.achievements)
                     }
                 }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            summary.comparison?.let { comp ->
+                WorkoutComparisonSection(comp, summary)
             }
             
             Spacer(Modifier.height(48.dp))
@@ -488,4 +519,111 @@ fun PRAchievementsSection(achievements: List<com.bhanu.ironlog.data.local.pojo.P
 
 private fun formatPRValue(value: Double): String {
     return if (value % 1 == 0.0) value.toInt().toString() else String.format(Locale.getDefault(), "%.1f", value)
+}
+
+@Composable
+fun WorkoutComparisonSection(
+    comparison: com.bhanu.ironlog.data.local.pojo.WorkoutComparison,
+    currentSummary: com.bhanu.ironlog.data.local.pojo.WorkoutCompletionSummary
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Performance Comparison",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+        
+        if (comparison.isFirstSession) {
+            Text(
+                text = "This is your first completed workout for this routine. Future sessions will be compared here.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.outline
+            )
+        } else {
+            ElevatedCard(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.elevatedCardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                )
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    comparison.previousVolume?.let { prevVolume ->
+                        ComparisonRow(
+                            label = "Total Volume",
+                            current = currentSummary.totalVolume,
+                            previous = prevVolume,
+                            formatter = { String.format(Locale.getDefault(), "%,.0f kg", it) }
+                        )
+                    }
+                    comparison.previousDurationSeconds?.let { prevDuration ->
+                        ComparisonRow(
+                            label = "Duration",
+                            current = currentSummary.durationSeconds.toDouble(),
+                            previous = prevDuration.toDouble(),
+                            formatter = { formatTimer(it.toLong()) },
+                            isLowerBetter = true
+                        )
+                    }
+                    comparison.previousSetsCompleted?.let { prevSets ->
+                        ComparisonRow(
+                            label = "Completed Sets",
+                            current = currentSummary.setsCompleted.toDouble(),
+                            previous = prevSets.toDouble(),
+                            formatter = { it.toInt().toString() }
+                        )
+                    }
+                    if (currentSummary.averageRPE != null && comparison.previousAverageRPE != null) {
+                        ComparisonRow(
+                            label = "Average RPE",
+                            current = currentSummary.averageRPE,
+                            previous = comparison.previousAverageRPE,
+                            formatter = { String.format(Locale.getDefault(), "%.1f", it) },
+                            isLowerBetter = true
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ComparisonRow(
+    label: String,
+    current: Double,
+    previous: Double,
+    formatter: (Double) -> String,
+    isLowerBetter: Boolean = false
+) {
+    val diff = current - previous
+    val isPositive = diff > 0
+    val color = if (isPositive) {
+        if (isLowerBetter) MaterialTheme.colorScheme.error else Color(0xFF4CAF50)
+    } else if (diff < 0) {
+        if (isLowerBetter) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
+    } else {
+        MaterialTheme.colorScheme.outline
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(text = formatter(current), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            if (diff != 0.0) {
+                Spacer(Modifier.width(8.dp))
+                val icon = if (isPositive) Icons.Default.TrendingUp else Icons.Default.TrendingDown
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
 }
