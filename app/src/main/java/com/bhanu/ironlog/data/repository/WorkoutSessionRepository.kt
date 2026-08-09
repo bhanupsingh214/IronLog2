@@ -599,8 +599,9 @@ class WorkoutSessionRepository @Inject constructor(
     fun getPreviousPerformanceByLibraryId(libraryExerciseId: Long, currentSessionId: Long): Flow<SessionExerciseWithSetsAndSession?> =
         workoutSessionDao.getLatestExecutionByLibraryId(libraryExerciseId, currentSessionId)
 
-    fun getExerciseDetails(exerciseTemplateId: Long): Flow<ExerciseDetails?> =
-        workoutSessionDao.getCompletedExerciseRecords(exerciseTemplateId).map { records ->
+    fun getExerciseDetails(libraryExerciseId: Long): Flow<ExerciseDetails?> =
+        if (libraryExerciseId <= 0) flowOf(null)
+        else workoutSessionDao.getCompletedExerciseRecordsByLibraryId(libraryExerciseId).map { records ->
             if (records.isEmpty()) return@map null
             
             val mostRecent = records.first()
@@ -608,8 +609,8 @@ class WorkoutSessionRepository @Inject constructor(
             var totalVolume = 0.0
             var bestWeight = 0.0
             var bestE1RM = 0.0
-            val firstPerformed = records.last().session.createdAt
-            val lastPerformed = mostRecent.session.createdAt
+            val firstPerformed = records.last().session?.createdAt ?: 0L
+            val lastPerformed = mostRecent.session?.createdAt ?: 0L
             
             val sessionHistory = records.map { record ->
                 val sessionVolume = record.sets.sumOf { if (it.completed) it.weight * it.reps else 0.0 }
@@ -624,9 +625,9 @@ class WorkoutSessionRepository @Inject constructor(
                 }
                 
                 ExerciseSessionRecord(
-                    sessionId = record.session.sessionId,
-                    date = record.session.createdAt,
-                    workoutName = record.session.dayName,
+                    sessionId = record.session?.sessionId ?: 0L,
+                    date = record.session?.createdAt ?: 0L,
+                    workoutName = record.session?.dayName ?: "Unknown Session",
                     status = record.sessionExercise.status,
                     sessionVolume = sessionVolume,
                     sets = record.sets
@@ -634,7 +635,7 @@ class WorkoutSessionRepository @Inject constructor(
             }
             
             ExerciseDetails(
-                exerciseTemplateId = exerciseTemplateId,
+                exerciseTemplateId = libraryExerciseId, // Represents canonical library ID
                 exerciseName = mostRecent.sessionExercise.exerciseName.ifBlank { mostRecent.template?.name ?: "Deleted Exercise" },
                 muscleGroup = mostRecent.sessionExercise.muscleGroup.ifBlank { mostRecent.template?.muscleGroup ?: "" },
                 totalSessions = totalSessions,

@@ -549,7 +549,7 @@ fun PreviousPerformanceCard(
                 fontWeight = FontWeight.Bold
             )
             
-            if (performance == null) {
+            if (performance?.session == null) {
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = "No previous performance.",

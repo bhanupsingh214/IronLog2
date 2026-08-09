@@ -85,7 +85,7 @@ fun WorkoutDetailsScreen(
                 items(details.exercises, key = { it.sessionExercise.sessionExerciseId }) { exercise ->
                     HistoricalExerciseItem(
                         item = exercise,
-                        onClick = { onNavigateToExerciseDetails(exercise.sessionExercise.exerciseTemplateId) }
+                        onClick = { onNavigateToExerciseDetails(exercise.sessionExercise.libraryExerciseId) }
                     )
                 }
                 

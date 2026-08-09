@@ -83,6 +83,7 @@ data class ExerciseAggregate(
                 sessionExerciseId = snapshot.sessionExerciseId,
                 sessionId = 0,
                 exerciseTemplateId = snapshot.templateId,
+                libraryExerciseId = snapshot.libraryExerciseId,
                 exerciseName = snapshot.name,
                 muscleGroup = snapshot.muscleGroup,
                 equipment = snapshot.equipment,
@@ -118,6 +119,7 @@ data class ExerciseAggregate(
 data class ExerciseSnapshot(
     val sessionExerciseId: Long,
     val templateId: Long,
+    val libraryExerciseId: Long,
     val name: String,
     val muscleGroup: String,
     val equipment: String,

@@ -40,6 +40,7 @@ data class WorkoutSessionWithExercises(
                     snapshot = ExerciseSnapshot(
                         sessionExerciseId = se.sessionExerciseId,
                         templateId = se.exerciseTemplateId,
+                        libraryExerciseId = se.libraryExerciseId,
                         name = se.exerciseName,
                         muscleGroup = se.muscleGroup,
                         equipment = se.equipment,
