@@ -87,10 +87,10 @@ fun DashboardScreen(
         item {
             if (activeSession != null) {
                 ActiveWorkoutCard(
-                    session = activeSession!!,
+                    aggregate = activeSession!!,
                     currentExerciseName = currentExerciseName,
                     onResume = {
-                        onNavigateToSessionExercises(activeSession!!.workoutDayId, activeSession!!.sessionId)
+                        onNavigateToSessionExercises(activeSession!!.metadata.workoutDayId, activeSession!!.metadata.sessionId)
                     }
                 )
             } else {
@@ -243,10 +243,11 @@ fun DashboardCard(
 
 @Composable
 fun ActiveWorkoutCard(
-    session: WorkoutSession,
+    aggregate: com.bhanu.ironlog.data.model.workout.WorkoutSessionAggregate,
     currentExerciseName: String?,
     onResume: () -> Unit
 ) {
+    val session = aggregate.metadata
     var duration by remember { mutableLongStateOf((System.currentTimeMillis() - session.startTime) / 1000) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -285,9 +286,10 @@ fun ActiveWorkoutCard(
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text("Completed", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                    val completedCount = session.completedExerciseIds.split(",").filter { it.isNotBlank() }.size
+                    val completedCount = aggregate.statistics.completedExercisesCount
+                    val totalCount = aggregate.exercises.size
                     Text(
-                        text = "$completedCount exercises",
+                        text = "$completedCount of $totalCount",
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold
                     )

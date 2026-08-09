@@ -93,12 +93,13 @@ class DashboardViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
-    val activeSession: StateFlow<WorkoutSession?> = sessionRepository.activeWorkoutSession
+    val activeSession: StateFlow<com.bhanu.ironlog.data.model.workout.WorkoutSessionAggregate?> = sessionRepository.activeSessionAggregate
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val currentExerciseName: StateFlow<String?> = activeSession.flatMapLatest { session ->
-        if (session?.currentExerciseId != null) {
-            programRepository.getExercise(session.currentExerciseId).map { it?.name }
+    val currentExerciseName: StateFlow<String?> = activeSession.flatMapLatest { aggregate ->
+        val currentExerciseId = aggregate?.metadata?.currentExerciseId
+        if (currentExerciseId != null) {
+            programRepository.getExercise(currentExerciseId).map { it?.name }
         } else {
             flowOf(null)
         }
