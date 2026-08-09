@@ -131,7 +131,6 @@ class WorkoutSessionRepository @Inject constructor(
 
     suspend fun createHistoricalSession(dayId: Long, programId: Long, startTime: Long): Long {
         val sessionId = createSessionSnapshot(dayId, programId, startTime)
-        finishSession(sessionId)
         return sessionId
     }
 
