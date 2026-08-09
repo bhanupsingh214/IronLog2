@@ -36,7 +36,7 @@ fun ExerciseDetailsScreen(
         return
     }
 
-    val details by viewModel.exerciseDetails.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
@@ -50,16 +50,27 @@ fun ExerciseDetailsScreen(
             )
         }
     ) { padding ->
-        if (details == null) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        when (val state = uiState) {
+            is ExerciseDetailsUiState.Loading -> {
+                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
-        } else {
-            ExerciseDetailsContent(
-                details = details!!,
-                onSessionClick = onNavigateToSession,
-                modifier = Modifier.padding(padding)
-            )
+            is ExerciseDetailsUiState.Success -> {
+                ExerciseDetailsContent(
+                    details = state.details,
+                    onSessionClick = onNavigateToSession,
+                    modifier = Modifier.padding(padding)
+                )
+            }
+            is ExerciseDetailsUiState.Empty -> {
+                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    Text("No history found for this exercise.")
+                }
+            }
+            is ExerciseDetailsUiState.Error -> {
+                ErrorScreen(onBack = onBack, message = state.message)
+            }
         }
     }
 }

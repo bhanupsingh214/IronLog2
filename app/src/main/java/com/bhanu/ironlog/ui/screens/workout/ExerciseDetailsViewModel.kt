@@ -6,9 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.bhanu.ironlog.data.local.pojo.ExerciseDetails
 import com.bhanu.ironlog.data.repository.WorkoutSessionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
 @HiltViewModel
@@ -17,17 +15,28 @@ class ExerciseDetailsViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val exerciseId: Long = savedStateHandle.get<Long>("exerciseId") ?: -1L
-    val isArgumentValid = exerciseId != -1L
+    private val libraryExerciseId: Long = savedStateHandle.get<Long>("exerciseId") ?: -1L
+    val isArgumentValid = libraryExerciseId != -1L
 
-    val exerciseDetails: StateFlow<ExerciseDetails?> = if (isArgumentValid) {
-        sessionRepository.getExerciseDetails(exerciseId)
+    val uiState: StateFlow<ExerciseDetailsUiState> = if (isArgumentValid) {
+        sessionRepository.getExerciseDetails(libraryExerciseId)
+            .map { details ->
+                if (details == null) ExerciseDetailsUiState.Empty
+                else ExerciseDetailsUiState.Success(details)
+            }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
-                initialValue = null
+                initialValue = ExerciseDetailsUiState.Loading
             )
     } else {
-        kotlinx.coroutines.flow.MutableStateFlow(null)
+        MutableStateFlow(ExerciseDetailsUiState.Error("Invalid Exercise ID"))
     }
+}
+
+sealed class ExerciseDetailsUiState {
+    object Loading : ExerciseDetailsUiState()
+    data class Success(val details: ExerciseDetails) : ExerciseDetailsUiState()
+    object Empty : ExerciseDetailsUiState()
+    data class Error(val message: String) : ExerciseDetailsUiState()
 }

@@ -11,9 +11,10 @@ data class SessionExerciseWithSetsAndSession(
     @Embedded val sessionExercise: SessionExercise,
     @Relation(
         parentColumn = "sessionId",
-        entityColumn = "sessionId"
+        entityColumn = "sessionId",
+        entity = WorkoutSession::class
     )
-    val session: WorkoutSession,
+    val session: WorkoutSession?,
     @Relation(
         parentColumn = "sessionExerciseId",
         entityColumn = "sessionExerciseId"
