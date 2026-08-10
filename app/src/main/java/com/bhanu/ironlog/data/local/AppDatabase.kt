@@ -28,7 +28,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         WorkoutSettingsEntity::class,
         LibraryExerciseEntity::class
     ],
-    version = 19,
+    version = 20,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -458,6 +458,84 @@ abstract class AppDatabase : RoomDatabase() {
                         HAVING COUNT(*) = 1
                     )
                 """)
+            }
+        }
+
+        val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 1. Create the new table with composite Primary Key
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `personal_records_new` (
+                        `libraryExerciseId` INTEGER NOT NULL,
+                        `exerciseTemplateId` INTEGER NOT NULL,
+                        `weightPR` REAL NOT NULL,
+                        `weightPRDate` INTEGER NOT NULL,
+                        `weightPRSessionId` INTEGER NOT NULL,
+                        `estimated1RM` REAL NOT NULL,
+                        `estimated1RMDate` INTEGER NOT NULL,
+                        `estimated1RMSessionId` INTEGER NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`libraryExerciseId`, `exerciseTemplateId`)
+                    )
+                """)
+
+                // 2. Resolve IDs and prepare mapping (Temp Table)
+                db.execSQL("""
+                    CREATE TEMP TABLE `pr_resolved` AS
+                    SELECT
+                        pr.*,
+                        IFNULL(e.libraryExerciseId, 0) as resolvedLibId
+                    FROM personal_records pr
+                    LEFT JOIN exercises e ON pr.exerciseTemplateId = e.id
+                """)
+
+                // 3. Migrate Library-backed PRs (Merge logic)
+                // We pick the best weight and best e1RM independently to avoid Frankenstein records
+                db.execSQL("""
+                    INSERT INTO personal_records_new (
+                        libraryExerciseId, exerciseTemplateId,
+                        weightPR, weightPRDate, weightPRSessionId,
+                        estimated1RM, estimated1RMDate, estimated1RMSessionId,
+                        createdAt, updatedAt
+                    )
+                    SELECT
+                        resolvedLibId as libraryExerciseId,
+                        0 as exerciseTemplateId,
+                        (SELECT weightPR FROM pr_resolved r2 WHERE r2.resolvedLibId = r1.resolvedLibId ORDER BY weightPR DESC, weightPRDate DESC LIMIT 1),
+                        (SELECT weightPRDate FROM pr_resolved r2 WHERE r2.resolvedLibId = r1.resolvedLibId ORDER BY weightPR DESC, weightPRDate DESC LIMIT 1),
+                        (SELECT weightPRSessionId FROM pr_resolved r2 WHERE r2.resolvedLibId = r1.resolvedLibId ORDER BY weightPR DESC, weightPRDate DESC LIMIT 1),
+                        (SELECT estimated1RM FROM pr_resolved r2 WHERE r2.resolvedLibId = r1.resolvedLibId ORDER BY estimated1RM DESC, estimated1RMDate DESC LIMIT 1),
+                        (SELECT estimated1RMDate FROM pr_resolved r2 WHERE r2.resolvedLibId = r1.resolvedLibId ORDER BY estimated1RM DESC, estimated1RMDate DESC LIMIT 1),
+                        (SELECT estimated1RMSessionId FROM pr_resolved r2 WHERE r2.resolvedLibId = r1.resolvedLibId ORDER BY estimated1RM DESC, estimated1RMDate DESC LIMIT 1),
+                        MIN(createdAt),
+                        MAX(updatedAt)
+                    FROM pr_resolved r1
+                    WHERE resolvedLibId > 0
+                    GROUP BY resolvedLibId
+                """)
+
+                // 4. Migrate Unresolved/Custom PRs (Isolate logic)
+                db.execSQL("""
+                    INSERT INTO personal_records_new (
+                        libraryExerciseId, exerciseTemplateId,
+                        weightPR, weightPRDate, weightPRSessionId,
+                        estimated1RM, estimated1RMDate, estimated1RMSessionId,
+                        createdAt, updatedAt
+                    )
+                    SELECT
+                        0, exerciseTemplateId,
+                        weightPR, weightPRDate, weightPRSessionId,
+                        estimated1RM, estimated1RMDate, estimated1RMSessionId,
+                        createdAt, updatedAt
+                    FROM pr_resolved
+                    WHERE resolvedLibId = 0
+                """)
+
+                // 5. Swap tables
+                db.execSQL("DROP TABLE `personal_records`")
+                db.execSQL("ALTER TABLE `personal_records_new` RENAME TO `personal_records`")
+                db.execSQL("DROP TABLE `pr_resolved`")
             }
         }
     }

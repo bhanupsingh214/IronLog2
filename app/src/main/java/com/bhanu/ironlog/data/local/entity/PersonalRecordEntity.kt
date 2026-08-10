@@ -3,10 +3,13 @@ package com.bhanu.ironlog.data.local.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "personal_records")
+@Entity(
+    tableName = "personal_records",
+    primaryKeys = ["libraryExerciseId", "exerciseTemplateId"]
+)
 data class PersonalRecordEntity(
-    @PrimaryKey
-    val exerciseTemplateId: Long, // Link to the master exercise
+    val libraryExerciseId: Long, // Link to canonical physical exercise
+    val exerciseTemplateId: Long, // Fallback/Isolated link for custom exercises
     
     // Weight PR
     val weightPR: Double = 0.0,

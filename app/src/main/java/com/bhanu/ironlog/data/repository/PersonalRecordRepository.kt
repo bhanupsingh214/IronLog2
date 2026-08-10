@@ -15,6 +15,22 @@ class PersonalRecordRepository @Inject constructor(
     private val personalRecordDao: PersonalRecordDao,
     private val sessionDao: WorkoutSessionDao
 ) {
+    suspend fun getPRForExercise(libraryId: Long, templateId: Long): PersonalRecordEntity? {
+        return if (libraryId > 0) {
+            personalRecordDao.getPRByIds(libraryId, 0)
+        } else {
+            personalRecordDao.getPRByIds(0, templateId)
+        }
+    }
+
+    fun getPRForExerciseFlow(libraryId: Long, templateId: Long): Flow<PersonalRecordEntity?> {
+        return if (libraryId > 0) {
+            personalRecordDao.getPRByIdsFlow(libraryId, 0)
+        } else {
+            personalRecordDao.getPRByIdsFlow(0, templateId)
+        }
+    }
+
     suspend fun getPRForExercise(exerciseId: Long): PersonalRecordEntity? =
         personalRecordDao.getPRForExercise(exerciseId)
 
