@@ -386,13 +386,16 @@ abstract class AppDatabase : RoomDatabase() {
                     SET libraryExerciseId = (
                         SELECT id FROM exercise_library 
                         WHERE LOWER(TRIM(name)) = LOWER(TRIM(session_exercises.exerciseName)) 
-                        LIMIT 1
+                        GROUP BY LOWER(TRIM(name))
+                        HAVING COUNT(*) = 1
                     )
                     WHERE (libraryExerciseId = 0 OR libraryExerciseId IS NULL)
                     AND exerciseName IS NOT NULL AND exerciseName != ''
                     AND EXISTS (
                         SELECT 1 FROM exercise_library 
                         WHERE LOWER(TRIM(name)) = LOWER(TRIM(session_exercises.exerciseName))
+                        GROUP BY LOWER(TRIM(name))
+                        HAVING COUNT(*) = 1
                     )
                 """)
                 
@@ -402,13 +405,16 @@ abstract class AppDatabase : RoomDatabase() {
                     SET libraryExerciseId = (
                         SELECT id FROM exercise_library 
                         WHERE LOWER(TRIM(name)) = LOWER(TRIM(exercises.name)) 
-                        LIMIT 1
+                        GROUP BY LOWER(TRIM(name))
+                        HAVING COUNT(*) = 1
                     )
                     WHERE (libraryExerciseId = 0 OR libraryExerciseId IS NULL)
                     AND name IS NOT NULL AND name != ''
                     AND EXISTS (
                         SELECT 1 FROM exercise_library 
                         WHERE LOWER(TRIM(name)) = LOWER(TRIM(exercises.name))
+                        GROUP BY LOWER(TRIM(name))
+                        HAVING COUNT(*) = 1
                     )
                 """)
 
