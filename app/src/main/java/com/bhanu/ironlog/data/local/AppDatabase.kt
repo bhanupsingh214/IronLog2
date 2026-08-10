@@ -28,7 +28,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         WorkoutSettingsEntity::class,
         LibraryExerciseEntity::class
     ],
-    version = 18,
+    version = 19,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -353,6 +353,103 @@ abstract class AppDatabase : RoomDatabase() {
                     WHERE EXISTS (
                         SELECT 1 FROM exercises 
                         WHERE exercises.id = session_exercises.exerciseTemplateId
+                    )
+                """)
+            }
+        }
+
+        val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Pass 1: Relational Repair (Propagate from Template to Log)
+                db.execSQL("""
+                    UPDATE session_exercises 
+                    SET libraryExerciseId = (
+                        SELECT libraryExerciseId FROM exercises 
+                        WHERE exercises.id = session_exercises.exerciseTemplateId
+                    )
+                    WHERE (libraryExerciseId = 0 OR libraryExerciseId IS NULL)
+                    AND exerciseTemplateId > 0
+                    AND EXISTS (
+                        SELECT 1 FROM exercises 
+                        WHERE exercises.id = session_exercises.exerciseTemplateId 
+                        AND libraryExerciseId > 0
+                    )
+                """)
+
+                // SQL-based normalization matching the app's regex [^a-z0-9]
+                val cleanSql = "LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(%s, ' ', ''), '(', ''), ')', ''), '-', ''), ',', ''), '.', ''), '/', ''), '''', ''), '[', ''), ']', ''), '&', ''), '+', ''))"
+
+                // Pass 2: Exact Case-Insensitive Name Match
+                // For session_exercises
+                db.execSQL("""
+                    UPDATE session_exercises 
+                    SET libraryExerciseId = (
+                        SELECT id FROM exercise_library 
+                        WHERE LOWER(TRIM(name)) = LOWER(TRIM(session_exercises.exerciseName)) 
+                        LIMIT 1
+                    )
+                    WHERE (libraryExerciseId = 0 OR libraryExerciseId IS NULL)
+                    AND exerciseName IS NOT NULL AND exerciseName != ''
+                    AND EXISTS (
+                        SELECT 1 FROM exercise_library 
+                        WHERE LOWER(TRIM(name)) = LOWER(TRIM(session_exercises.exerciseName))
+                    )
+                """)
+                
+                // For exercises (blueprints)
+                db.execSQL("""
+                    UPDATE exercises 
+                    SET libraryExerciseId = (
+                        SELECT id FROM exercise_library 
+                        WHERE LOWER(TRIM(name)) = LOWER(TRIM(exercises.name)) 
+                        LIMIT 1
+                    )
+                    WHERE (libraryExerciseId = 0 OR libraryExerciseId IS NULL)
+                    AND name IS NOT NULL AND name != ''
+                    AND EXISTS (
+                        SELECT 1 FROM exercise_library 
+                        WHERE LOWER(TRIM(name)) = LOWER(TRIM(exercises.name))
+                    )
+                """)
+
+                // Pass 3: Deterministic Normalized Match (Only if unique)
+                // We use nested REPLACE to strip common symbols and match alphanumeric-only
+                
+                // For session_exercises
+                db.execSQL("""
+                    UPDATE session_exercises 
+                    SET libraryExerciseId = (
+                        SELECT id FROM exercise_library 
+                        WHERE ${cleanSql.format("name")} = ${cleanSql.format("session_exercises.exerciseName")}
+                        GROUP BY ${cleanSql.format("name")}
+                        HAVING COUNT(*) = 1
+                    )
+                    WHERE (libraryExerciseId = 0 OR libraryExerciseId IS NULL)
+                    AND exerciseName IS NOT NULL AND exerciseName != ''
+                    AND EXISTS (
+                        SELECT 1 FROM exercise_library 
+                        WHERE ${cleanSql.format("name")} = ${cleanSql.format("session_exercises.exerciseName")}
+                        GROUP BY ${cleanSql.format("name")}
+                        HAVING COUNT(*) = 1
+                    )
+                """)
+
+                // For exercises (blueprints)
+                db.execSQL("""
+                    UPDATE exercises 
+                    SET libraryExerciseId = (
+                        SELECT id FROM exercise_library 
+                        WHERE ${cleanSql.format("name")} = ${cleanSql.format("exercises.name")}
+                        GROUP BY ${cleanSql.format("name")}
+                        HAVING COUNT(*) = 1
+                    )
+                    WHERE (libraryExerciseId = 0 OR libraryExerciseId IS NULL)
+                    AND name IS NOT NULL AND name != ''
+                    AND EXISTS (
+                        SELECT 1 FROM exercise_library 
+                        WHERE ${cleanSql.format("name")} = ${cleanSql.format("exercises.name")}
+                        GROUP BY ${cleanSql.format("name")}
+                        HAVING COUNT(*) = 1
                     )
                 """)
             }
