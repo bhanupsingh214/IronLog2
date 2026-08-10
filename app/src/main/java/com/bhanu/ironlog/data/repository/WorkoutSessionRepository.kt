@@ -254,6 +254,7 @@ class WorkoutSessionRepository @Inject constructor(
 
         for (record in currentExercises) {
             val templateId = record.sessionExercise.exerciseTemplateId
+            val libraryId = record.sessionExercise.libraryExerciseId
             val exerciseName = record.sessionExercise.exerciseName
             
             if (record.sets.none { it.completed }) continue
@@ -264,7 +265,11 @@ class WorkoutSessionRepository @Inject constructor(
             val currentVolume = record.sets.filter { it.completed }.sumOf { it.weight * it.reps }
 
             // Previous Best values before this session
-            val historicalRecords = workoutSessionDao.getCompletedExerciseRecordsBefore(templateId, currentSession.startTime)
+            val historicalRecords = if (libraryId > 0) {
+                workoutSessionDao.getCompletedExerciseRecordsBeforeByLibraryId(libraryId, currentSession.startTime)
+            } else {
+                workoutSessionDao.getCompletedExerciseRecordsBefore(templateId, currentSession.startTime)
+            }
             
             var prevBestWeight = 0.0
             var prevBestE1RM = 0.0

@@ -33,12 +33,16 @@ class PersonalRecordEngine @Inject constructor(
         
         for (sessionExercise in sessionExercises) {
             val templateId = sessionExercise.sessionExercise.exerciseTemplateId
+            val libraryId = sessionExercise.sessionExercise.libraryExerciseId
             val exerciseName = sessionExercise.sessionExercise.exerciseName.ifBlank { sessionExercise.template?.name ?: "Unknown" }
             val sets = sessionRepository.getSetsForExercise(sessionExercise.sessionExercise.sessionExerciseId).first()
             
             if (sets.isEmpty()) continue
             
-            val currentPR = prRepository.getPRForExercise(templateId) ?: PersonalRecordEntity(exerciseTemplateId = templateId)
+            val currentPR = prRepository.getPRForExercise(libraryId, templateId) ?: PersonalRecordEntity(
+                libraryExerciseId = if (libraryId > 0) libraryId else 0L,
+                exerciseTemplateId = if (libraryId > 0) 0L else templateId
+            )
             var updatedPR = currentPR
             var weightImproved = false
             var e1RMImproved = false

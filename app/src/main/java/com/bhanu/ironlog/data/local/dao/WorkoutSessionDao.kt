@@ -119,8 +119,17 @@ interface WorkoutSessionDao {
 
     @Transaction
     @Query("""
-        SELECT * FROM session_exercises 
-        WHERE exerciseTemplateId = :exerciseTemplateId 
+        SELECT * FROM session_exercises
+        WHERE libraryExerciseId = :libraryExerciseId
+        AND libraryExerciseId > 0
+        AND sessionId IN (SELECT sessionId FROM workout_session_logs WHERE status = 'COMPLETED' AND startTime < :startTime)
+    """)
+    suspend fun getCompletedExerciseRecordsBeforeByLibraryId(libraryExerciseId: Long, startTime: Long): List<SessionExerciseWithSets>
+
+    @Transaction
+    @Query("""
+        SELECT * FROM session_exercises
+        WHERE exerciseTemplateId = :exerciseTemplateId
         AND sessionId IN (SELECT sessionId FROM workout_session_logs WHERE status = 'COMPLETED' AND startTime < :startTime)
     """)
     suspend fun getCompletedExerciseRecordsBefore(exerciseTemplateId: Long, startTime: Long): List<SessionExerciseWithSets>
