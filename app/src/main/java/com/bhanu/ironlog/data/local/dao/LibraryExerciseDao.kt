@@ -9,6 +9,9 @@ interface LibraryExerciseDao {
     @Query("SELECT * FROM exercise_library WHERE isActive = 1 ORDER BY name ASC")
     fun getAllActiveExercises(): Flow<List<LibraryExerciseEntity>>
 
+    @Query("SELECT * FROM exercise_library ORDER BY name ASC")
+    suspend fun getAllExercises(): List<LibraryExerciseEntity>
+
     @Query("SELECT * FROM exercise_library WHERE isActive = 1 AND (name LIKE '%' || :query || '%' OR muscleGroup LIKE '%' || :query || '%') ORDER BY name ASC")
     fun searchExercises(query: String): Flow<List<LibraryExerciseEntity>>
 
