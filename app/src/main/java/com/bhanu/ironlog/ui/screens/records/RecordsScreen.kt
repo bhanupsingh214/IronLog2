@@ -93,11 +93,11 @@ fun RecordsScreen(
                             contentPadding = PaddingValues(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            items(state.records, key = { it.pr.exerciseTemplateId }) { record ->
-                                RecordCard(
-                                    record = record,
-                                    onClick = { onNavigateToDetail(record.pr.exerciseTemplateId) }
-                                )
+                            items(
+                                state.records,
+                                key = { "${it.pr.libraryExerciseId}_${it.pr.exerciseTemplateId}" }
+                            ) { record ->
+                                RecordCard(record = record)
                             }
                         }
                     }
@@ -109,16 +109,13 @@ fun RecordsScreen(
 
 @Composable
 fun RecordCard(
-    record: PRWithExerciseName,
-    onClick: () -> Unit
+    record: PRWithExerciseName
 ) {
     val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("en", "IN"))
     val isNew = record.pr.updatedAt > (System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000)
 
     ElevatedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(
@@ -128,12 +125,12 @@ fun RecordCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = record.exercise?.name ?: record.snapshotName ?: "Deleted Exercise",
+                        text = record.snapshotName ?: "Deleted Exercise",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = record.exercise?.muscleGroup ?: record.snapshotMuscle ?: "",
+                        text = record.snapshotMuscle ?: "",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
