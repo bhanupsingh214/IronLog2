@@ -2,10 +2,10 @@ package com.bhanu.ironlog.ui.screens.progress
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bhanu.ironlog.data.local.entity.ExerciseEntity
 import com.bhanu.ironlog.data.local.pojo.DailyVolume
 import com.bhanu.ironlog.data.local.pojo.ExerciseStrengthHistory
 import com.bhanu.ironlog.data.local.pojo.PRWithExerciseName
+import com.bhanu.ironlog.data.local.pojo.TrackableExercise
 import com.bhanu.ironlog.data.repository.AnalyticsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -14,14 +14,19 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
 
+data class SelectedExerciseIdentity(
+    val libraryId: Long,
+    val templateId: Long
+)
+
 @HiltViewModel
 class ProgressViewModel @Inject constructor(
     private val analyticsRepository: AnalyticsRepository
 ) : ViewModel() {
 
     // --- Chart Controls ---
-    private val _selectedExerciseId = MutableStateFlow<Long?>(null)
-    val selectedExerciseId = _selectedExerciseId.asStateFlow()
+    private val _selectedExercise = MutableStateFlow<SelectedExerciseIdentity?>(null)
+    val selectedExercise = _selectedExercise.asStateFlow()
 
     private val _isE1RMToggle = MutableStateFlow(false)
     val isE1RMToggle = _isE1RMToggle.asStateFlow()
@@ -30,16 +35,16 @@ class ProgressViewModel @Inject constructor(
     val volumeTimeFilter = _volumeTimeFilter.asStateFlow()
 
     // --- Data Streams ---
-    val allExercises: StateFlow<List<ExerciseEntity>> = analyticsRepository.getAllExercises()
+    val allExercises: StateFlow<List<TrackableExercise>> = analyticsRepository.getTrackableExercises()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val strengthHistory: StateFlow<List<ExerciseStrengthHistory>> = combine(
-        _selectedExerciseId,
+        _selectedExercise,
         _isE1RMToggle
-    ) { id, isE1RM -> id to isE1RM }.flatMapLatest { (id, isE1RM) ->
-        if (id == null) flowOf(emptyList())
-        else analyticsRepository.getExerciseStrengthHistory(id).map { history ->
+    ) { identity, isE1RM -> identity to isE1RM }.flatMapLatest { (identity, isE1RM) ->
+        if (identity == null) flowOf(emptyList())
+        else analyticsRepository.getExerciseStrengthHistory(identity.libraryId, identity.templateId).map { history ->
             val prPoints = mutableListOf<ExerciseStrengthHistory>()
             var currentMax = 0.0
             
@@ -68,6 +73,7 @@ class ProgressViewModel @Inject constructor(
         analyticsRepository.getMonthlyVolume(),
         analyticsRepository.getLatestPRs()
     ) { args: Array<Any> ->
+        @Suppress("UNCHECKED_CAST")
         ProgressUiState.Success(
             totalWorkouts = args[0] as Int,
             totalVolume = args[1] as Double,
@@ -85,8 +91,8 @@ class ProgressViewModel @Inject constructor(
         initialValue = ProgressUiState.Loading
     )
 
-    fun onExerciseSelected(exerciseId: Long) {
-        _selectedExerciseId.value = exerciseId
+    fun onExerciseSelected(libraryId: Long, templateId: Long) {
+        _selectedExercise.value = SelectedExerciseIdentity(libraryId, templateId)
     }
 
     fun toggleE1RM(enabled: Boolean) {
@@ -101,8 +107,9 @@ class ProgressViewModel @Inject constructor(
         // Initialize with first exercise if available
         viewModelScope.launch {
             allExercises.filter { it.isNotEmpty() }.first().let { list ->
-                if (_selectedExerciseId.value == null) {
-                    _selectedExerciseId.value = list.first().id
+                if (_selectedExercise.value == null) {
+                    val first = list.first()
+                    _selectedExercise.value = SelectedExerciseIdentity(first.libraryExerciseId, first.exerciseTemplateId)
                 }
             }
         }

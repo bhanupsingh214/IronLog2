@@ -227,6 +227,20 @@ interface WorkoutSessionDao {
     """)
     fun getDailyVolumeHistory(since: Long): Flow<List<DailyVolume>>
 
+    @Transaction
+    @Query("""
+        SELECT DISTINCT
+            libraryExerciseId,
+            CASE WHEN libraryExerciseId = 0 THEN exerciseTemplateId ELSE 0 END as exerciseTemplateId,
+            MAX(exerciseName) as snapshotName,
+            MAX(muscleGroup) as snapshotMuscle
+        FROM session_exercises
+        WHERE sessionId IN (SELECT sessionId FROM workout_session_logs WHERE status = 'COMPLETED')
+        GROUP BY libraryExerciseId,
+                 CASE WHEN libraryExerciseId = 0 THEN exerciseTemplateId ELSE 0 END
+    """)
+    fun getTrackableExercises(): Flow<List<TrackableExercise>>
+
     @Query("""
         SELECT sess.createdAt as date, MAX(s.weight) as maxWeight, MAX(s.weight * (1 + s.reps / 30.0)) as maxE1RM
         FROM session_sets s
@@ -237,6 +251,22 @@ interface WorkoutSessionDao {
         ORDER BY sess.createdAt ASC
     """)
     fun getExerciseStrengthHistory(exerciseId: Long): Flow<List<ExerciseStrengthHistory>>
+
+    @Query("""
+        SELECT sess.createdAt as date, MAX(s.weight) as maxWeight, MAX(s.weight * (1 + s.reps / 30.0)) as maxE1RM
+        FROM session_sets s
+        JOIN session_exercises e ON s.sessionExerciseId = e.sessionExerciseId
+        JOIN workout_session_logs sess ON e.sessionId = sess.sessionId
+        WHERE sess.status = 'COMPLETED'
+          AND (
+            (e.libraryExerciseId = :libraryId AND e.libraryExerciseId > 0)
+            OR
+            (e.libraryExerciseId = 0 AND e.exerciseTemplateId = :templateId)
+          )
+        GROUP BY sess.sessionId
+        ORDER BY sess.createdAt ASC
+    """)
+    fun getExerciseStrengthHistoryCanonical(libraryId: Long, templateId: Long): Flow<List<ExerciseStrengthHistory>>
 
     @Delete
     suspend fun deleteSession(session: WorkoutSession)
