@@ -35,8 +35,14 @@ class HistoryRepository @Inject constructor(
     fun getDailyVolumeHistory(since: Long): Flow<List<DailyVolume>> =
         workoutSessionDao.getDailyVolumeHistory(since)
 
+    fun getTrackableExercises(): Flow<List<TrackableExercise>> =
+        workoutSessionDao.getTrackableExercises()
+
     fun getExerciseStrengthHistory(exerciseId: Long): Flow<List<ExerciseStrengthHistory>> =
         workoutSessionDao.getExerciseStrengthHistory(exerciseId)
+
+    fun getExerciseStrengthHistoryCanonical(libraryId: Long, templateId: Long): Flow<List<ExerciseStrengthHistory>> =
+        workoutSessionDao.getExerciseStrengthHistoryCanonical(libraryId, templateId)
 
     private fun getStartOfWeek(): Long {
         val calendar = Calendar.getInstance()

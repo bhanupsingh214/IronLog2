@@ -51,9 +51,12 @@ class AnalyticsRepository @Inject constructor(
             list.sortedByDescending { it.pr.updatedAt }.take(limit)
         }
 
+    fun getTrackableExercises(): Flow<List<TrackableExercise>> =
+        historyRepository.getTrackableExercises()
+
     fun getDailyVolumeHistory(since: Long): Flow<List<DailyVolume>> =
         historyRepository.getDailyVolumeHistory(since)
 
-    fun getExerciseStrengthHistory(exerciseId: Long): Flow<List<ExerciseStrengthHistory>> =
-        historyRepository.getExerciseStrengthHistory(exerciseId)
+    fun getExerciseStrengthHistory(libraryId: Long, templateId: Long): Flow<List<ExerciseStrengthHistory>> =
+        historyRepository.getExerciseStrengthHistoryCanonical(libraryId, templateId)
 }

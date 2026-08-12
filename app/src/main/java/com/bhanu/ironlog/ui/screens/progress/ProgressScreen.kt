@@ -19,7 +19,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bhanu.ironlog.data.local.pojo.PRWithExerciseName
+import com.bhanu.ironlog.data.local.pojo.TrackableExercise
 import com.bhanu.ironlog.ui.components.StrengthProgressionChart
+import com.bhanu.ironlog.ui.screens.progress.SelectedExerciseIdentity
 import com.patrykandpatrick.vico.compose.axis.horizontal.rememberBottomAxis
 import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
 import com.patrykandpatrick.vico.compose.chart.Chart
@@ -42,7 +44,7 @@ fun ProgressScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val allExercises by viewModel.allExercises.collectAsState()
-    val selectedExerciseId by viewModel.selectedExerciseId.collectAsState()
+    val selectedExercise by viewModel.selectedExercise.collectAsState()
     val isE1RM by viewModel.isE1RMToggle.collectAsState()
     val strengthHistory by viewModel.strengthHistory.collectAsState()
     val volumeHistory by viewModel.volumeHistory.collectAsState()
@@ -80,12 +82,12 @@ fun ProgressScreen(
                         ProgressContent(
                             state = state,
                             exercises = allExercises,
-                            selectedExerciseId = selectedExerciseId,
+                            selectedExercise = selectedExercise,
                             isE1RM = isE1RM,
                             strengthHistory = strengthHistory,
                             volumeHistory = volumeHistory,
                             volumeFilter = volumeFilter,
-                            onExerciseSelected = { viewModel.onExerciseSelected(it) },
+                            onExerciseSelected = { libId, tempId -> viewModel.onExerciseSelected(libId, tempId) },
                             onToggleE1RM = { viewModel.toggleE1RM(it) },
                             onVolumeFilterSelected = { viewModel.onVolumeFilterSelected(it) },
                             onNavigateToRecords = onNavigateToRecords
@@ -101,13 +103,13 @@ fun ProgressScreen(
 @Composable
 fun ProgressContent(
     state: ProgressUiState.Success,
-    exercises: List<com.bhanu.ironlog.data.local.entity.ExerciseEntity>,
-    selectedExerciseId: Long?,
+    exercises: List<TrackableExercise>,
+    selectedExercise: SelectedExerciseIdentity?,
     isE1RM: Boolean,
     strengthHistory: List<com.bhanu.ironlog.data.local.pojo.ExerciseStrengthHistory>,
     volumeHistory: List<com.bhanu.ironlog.data.local.pojo.DailyVolume>,
     volumeFilter: TimeFilter,
-    onExerciseSelected: (Long) -> Unit,
+    onExerciseSelected: (Long, Long) -> Unit,
     onToggleE1RM: (Boolean) -> Unit,
     onVolumeFilterSelected: (TimeFilter) -> Unit,
     onNavigateToRecords: () -> Unit
@@ -162,7 +164,7 @@ fun ProgressContent(
         item {
             StrengthChartSection(
                 exercises = exercises,
-                selectedExerciseId = selectedExerciseId,
+                selectedExercise = selectedExercise,
                 isE1RM = isE1RM,
                 history = strengthHistory,
                 onExerciseSelected = onExerciseSelected,
@@ -218,15 +220,18 @@ fun ProgressContent(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StrengthChartSection(
-    exercises: List<com.bhanu.ironlog.data.local.entity.ExerciseEntity>,
-    selectedExerciseId: Long?,
+    exercises: List<TrackableExercise>,
+    selectedExercise: SelectedExerciseIdentity?,
     isE1RM: Boolean,
     history: List<com.bhanu.ironlog.data.local.pojo.ExerciseStrengthHistory>,
-    onExerciseSelected: (Long) -> Unit,
+    onExerciseSelected: (Long, Long) -> Unit,
     onToggleE1RM: (Boolean) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val selectedExercise = exercises.find { it.id == selectedExerciseId }
+    val currentExercise = exercises.find {
+        it.libraryExerciseId == selectedExercise?.libraryId &&
+        it.exerciseTemplateId == selectedExercise?.templateId
+    }
 
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
@@ -235,7 +240,7 @@ fun StrengthChartSection(
                 onExpandedChange = { expanded = it }
             ) {
                 OutlinedTextField(
-                    value = selectedExercise?.name ?: "Select Exercise",
+                    value = currentExercise?.displayName ?: "Select Exercise",
                     onValueChange = {},
                     readOnly = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -248,9 +253,14 @@ fun StrengthChartSection(
                 ) {
                     exercises.forEach { exercise ->
                         DropdownMenuItem(
-                            text = { Text(exercise.name) },
+                            text = {
+                                Column {
+                                    Text(exercise.displayName)
+                                    Text(exercise.displayMuscle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                }
+                            },
                             onClick = {
-                                onExerciseSelected(exercise.id)
+                                onExerciseSelected(exercise.libraryExerciseId, exercise.exerciseTemplateId)
                                 expanded = false
                             }
                         )

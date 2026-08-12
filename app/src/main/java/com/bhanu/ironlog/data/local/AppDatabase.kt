@@ -28,7 +28,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         WorkoutSettingsEntity::class,
         LibraryExerciseEntity::class
     ],
-    version = 20,
+    version = 21,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -536,6 +536,12 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("DROP TABLE `personal_records`")
                 db.execSQL("ALTER TABLE `personal_records_new` RENAME TO `personal_records`")
                 db.execSQL("DROP TABLE `pr_resolved`")
+            }
+        }
+
+        val MIGRATION_20_21 = object : Migration(20, 21) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_session_exercises_identity` ON `session_exercises` (`libraryExerciseId`, `exerciseTemplateId`)")
             }
         }
     }
