@@ -2,6 +2,8 @@ package com.bhanu.ironlog.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.bhanu.ironlog.data.local.AppDatabase
 import com.bhanu.ironlog.data.local.dao.PlaceholderDao
 import com.bhanu.ironlog.data.local.dao.ProgramDao
@@ -43,7 +45,12 @@ object AppModule {
             AppDatabase.MIGRATION_17_18,
             AppDatabase.MIGRATION_18_19,
             AppDatabase.MIGRATION_19_20
-        ).build()
+        ).addCallback(object : RoomDatabase.Callback() {
+            override fun onCreate(db: SupportSQLiteDatabase) {
+                super.onCreate(db)
+                db.execSQL("INSERT OR IGNORE INTO workout_settings (id, defaultRestTimerSeconds, autoStartTimer, hapticFeedback, soundAlert) VALUES (1, 90, 1, 1, 1)")
+            }
+        }).build()
     }
 
     @Provides
