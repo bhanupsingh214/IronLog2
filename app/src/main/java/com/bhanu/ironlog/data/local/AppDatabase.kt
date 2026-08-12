@@ -2,6 +2,7 @@ package com.bhanu.ironlog.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.withTransaction
 import com.bhanu.ironlog.data.local.dao.PlaceholderDao
 import com.bhanu.ironlog.data.local.dao.ProgramDao
 import com.bhanu.ironlog.data.local.dao.SessionDao
@@ -39,6 +40,33 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun personalRecordDao(): PersonalRecordDao
     abstract fun workoutSettingsDao(): WorkoutSettingsDao
     abstract fun libraryExerciseDao(): LibraryExerciseDao
+
+    /**
+     * Clears all user-owned training data from the database.
+     * Order of operations respects foreign key constraints (leaf to root).
+     */
+    suspend fun clearAllUserData() {
+        withTransaction {
+            // Sessions & History
+            query("DELETE FROM session_sets", null).close()
+            query("DELETE FROM session_exercises", null).close()
+            query("DELETE FROM workout_session_logs", null).close()
+
+            // Programs & Blueprints
+            query("DELETE FROM exercise_sets", null).close()
+            query("DELETE FROM exercises", null).close()
+            query("DELETE FROM workout_days", null).close()
+            query("DELETE FROM programs", null).close()
+
+            // Global State & Identity
+            query("DELETE FROM personal_records", null).close()
+            query("DELETE FROM exercise_library", null).close()
+            query("DELETE FROM workout_settings", null).close()
+
+            // Legacy Table (Phase 2 engine)
+            query("DELETE FROM workout_sessions", null).close()
+        }
+    }
 
     companion object {
         val MIGRATION_6_7 = object : Migration(6, 7) {
@@ -108,9 +136,9 @@ abstract class AppDatabase : RoomDatabase() {
                         `weightPR` REAL NOT NULL, 
                         `weightPRDate` INTEGER NOT NULL, 
                         `weightPRSessionId` INTEGER NOT NULL, 
-                        `estimated1RM` REAL NOT NULL, 
-                        `estimated1RMDate` INTEGER NOT NULL, 
-                        `estimated1RMSessionId` INTEGER NOT NULL, 
+                        `estimated1RM` REAL NOT NULL,
+                        `estimated1RMDate` INTEGER NOT NULL,
+                        `estimated1RMSessionId` INTEGER NOT NULL,
                         `createdAt` INTEGER NOT NULL, 
                         `updatedAt` INTEGER NOT NULL
                     )

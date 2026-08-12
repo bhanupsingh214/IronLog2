@@ -62,13 +62,15 @@ data class WorkoutDayDto(
     val id: Long,
     val programId: Long,
     val name: String,
-    val notes: String,
     val order: Int,
+    val notes: String,
+    val isEnabled: Boolean = true,
+    val estimatedDurationMinutes: Int = 0,
     val exercises: List<ExerciseDto>
 )
 
 fun WorkoutDayEntity.toDto(exercises: List<ExerciseDto>) = WorkoutDayDto(
-    id, programId, name, notes, order, exercises
+    id, programId, name, order, notes, isEnabled, estimatedDurationMinutes, exercises
 )
 
 @Serializable
