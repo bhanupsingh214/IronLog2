@@ -1,6 +1,5 @@
 package com.bhanu.ironlog.ui.screens.profile
 
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -61,7 +60,6 @@ fun ProfileScreen(
     val openDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
-        Log.d("IronLogImportDebug", "1. ActivityResult callback fired. Uri: $uri")
         uri?.let { viewModel.startImport(it) }
     }
 
@@ -129,7 +127,7 @@ fun ProfileScreen(
                 ErrorMessage((exportState as ExportState.Error).message)
             }
 
-            if (importState is ExportState.Error) {
+            if (importState is ImportState.Error) {
                 ErrorMessage((importState as ImportState.Error).message)
             }
 

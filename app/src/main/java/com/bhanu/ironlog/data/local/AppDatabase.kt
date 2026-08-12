@@ -1,6 +1,5 @@
 package com.bhanu.ironlog.data.local
 
-import android.util.Log
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.withTransaction
@@ -47,7 +46,6 @@ abstract class AppDatabase : RoomDatabase() {
      * Order of operations respects foreign key constraints (leaf to root).
      */
     suspend fun clearAllUserData() {
-        Log.d("IronLogImportDebug", "10. AppDatabase.clearAllUserData() entered")
         withTransaction {
             // Sessions & History
             query("DELETE FROM session_sets", null).close()
@@ -68,7 +66,6 @@ abstract class AppDatabase : RoomDatabase() {
             // Legacy Table (Phase 2 engine)
             query("DELETE FROM workout_sessions", null).close()
         }
-        Log.d("IronLogImportDebug", "10. AppDatabase.clearAllUserData() completed")
     }
 
     companion object {
@@ -139,9 +136,9 @@ abstract class AppDatabase : RoomDatabase() {
                         `weightPR` REAL NOT NULL, 
                         `weightPRDate` INTEGER NOT NULL, 
                         `weightPRSessionId` INTEGER NOT NULL, 
-                        `estimated1RM` REAL NOT NULL, 
-                        `estimated1RMDate` INTEGER NOT NULL, 
-                        `estimated1RMSessionId` INTEGER NOT NULL, 
+                        `estimated1RM` REAL NOT NULL,
+                        `estimated1RMDate` INTEGER NOT NULL,
+                        `estimated1RMSessionId` INTEGER NOT NULL,
                         `createdAt` INTEGER NOT NULL, 
                         `updatedAt` INTEGER NOT NULL
                     )

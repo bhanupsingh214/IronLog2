@@ -1,5 +1,6 @@
 package com.bhanu.ironlog.ui.screens.profile
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bhanu.ironlog.data.local.entity.WorkoutSettingsEntity
@@ -19,8 +20,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
-import android.net.Uri
-import android.util.Log
 import javax.inject.Inject
 
 @HiltViewModel
@@ -70,21 +69,16 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun startImport(uri: Uri) {
-        Log.d("IronLogImportDebug", "2. ProfileViewModel.startImport() entered with Uri: $uri")
         if (_importState.value is ImportState.Loading) return
 
         viewModelScope.launch {
             _importState.value = ImportState.Loading
             try {
-                Log.d("IronLogImportDebug", "3. Calling importService.parseBackup()")
                 val payload = importService.parseBackup(uri)
-                Log.d("IronLogImportDebug", "8. ProfileViewModel begins calling RestoreRepository. Restore phases count: ${payload.history.size} sessions, ${payload.programs.size} programs")
                 restoreRepository.restoreBackup(payload)
-                Log.d("IronLogImportDebug", "13. ProfileViewModel success - restoreBackup completed")
                 _importState.value = ImportState.Success
                 _importEvent.emit(ImportEvent.RestoreComplete)
             } catch (e: Exception) {
-                Log.e("IronLogImportDebug", "14. ProfileViewModel exception caught during import", e)
                 _importState.value = ImportState.Error(e.message ?: "Unknown import error")
             }
         }

@@ -1,6 +1,5 @@
 package com.bhanu.ironlog.data.repository
 
-import android.util.Log
 import androidx.room.withTransaction
 import com.bhanu.ironlog.data.local.AppDatabase
 import com.bhanu.ironlog.data.local.backup.*
@@ -24,14 +23,11 @@ class RestoreRepository @Inject constructor(
      * Uses remapping to prevent ID collisions.
      */
     suspend fun restoreBackup(payload: BackupPayload) {
-        Log.d("IronLogImportDebug", "9. RestoreRepository.restoreBackup() entered")
         database.withTransaction {
             // 1. Clear existing data
-            Log.d("IronLogImportDebug", "10. clearAllUserData() started")
             database.clearAllUserData()
 
             // 2. Restore Library (Physical Identities)
-            Log.d("IronLogImportDebug", "11. Restore phase: library. Count: ${payload.library.size}")
             val libraryIdMap = mutableMapOf<Long, Long>()
             payload.library.forEach { dto ->
                 val entity = LibraryExerciseEntity(
@@ -59,12 +55,11 @@ class RestoreRepository @Inject constructor(
                 if (finalId != null && finalId > 0) {
                     libraryIdMap[dto.id] = finalId
                 } else {
-                    Log.e("IronLogImportDebug", "Failed to resolve library identity for: ${dto.name}")
+                    error("Failed to resolve library identity for: ${dto.name}")
                 }
             }
 
             // 3. Restore Programs Tree
-            Log.d("IronLogImportDebug", "11. Restore phase: programs/days/exercises/sets")
             val programIdMap = mutableMapOf<Long, Long>()
             val dayIdMap = mutableMapOf<Long, Long>()
             val templateExerciseIdMap = mutableMapOf<Long, Long>()
@@ -141,14 +136,15 @@ class RestoreRepository @Inject constructor(
             }
 
             // 4. Restore Workout History
-            Log.d("IronLogImportDebug", "11. Restore phase: sessions/session_exercises/session_sets")
             val sessionIdMap = mutableMapOf<Long, Long>()
             payload.history.forEach { sessionDto ->
                 val newProgramId = programIdMap[sessionDto.programId] ?: 0L
                 val newDayId = dayIdMap[sessionDto.workoutDayId] ?: 0L
 
                 // Map currentExerciseId if it existed (autosave)
-                val newCurrentExerciseId = sessionDto.currentExerciseId?.let { templateExerciseIdMap[it] }
+                val newCurrentExerciseId = sessionDto.currentExerciseId?.let {
+                    templateExerciseIdMap[it] ?: error("Missing template mapping for currentExerciseId in session ${sessionDto.sessionId}")
+                }
 
                 val sessionId = workoutSessionDao.insertSession(WorkoutSession(
                     programId = newProgramId,
@@ -162,7 +158,10 @@ class RestoreRepository @Inject constructor(
                     createdAt = sessionDto.createdAt,
                     completedExerciseIds = sessionDto.completedExerciseIds.split(",")
                         .filter { it.isNotBlank() }
-                        .mapNotNull { templateExerciseIdMap[it.toLongOrNull()] }
+                        .mapNotNull {
+                            val oldId = it.toLongOrNull() ?: return@mapNotNull null
+                            templateExerciseIdMap[oldId] ?: error("Missing template mapping for completedExerciseId $oldId in session ${sessionDto.sessionId}")
+                        }
                         .joinToString(","),
                     durationSeconds = sessionDto.durationSeconds,
                     currentExerciseId = newCurrentExerciseId,
@@ -187,7 +186,10 @@ class RestoreRepository @Inject constructor(
                         idMap = libraryIdMap
                     )
 
-                    val newTemplateId = templateExerciseIdMap[seDto.exerciseTemplateId] ?: 0L
+                    val newTemplateId = if (seDto.exerciseTemplateId > 0) {
+                        templateExerciseIdMap[seDto.exerciseTemplateId] ?: error("Missing template mapping for session exercise ${seDto.sessionExerciseId}")
+                    } else 0L
+
                     val sessionExerciseId = workoutSessionDao.insertSessionExercise(SessionExercise(
                         sessionId = sessionId,
                         exerciseTemplateId = newTemplateId,
@@ -203,7 +205,9 @@ class RestoreRepository @Inject constructor(
                         restTimerSeconds = seDto.restTimerSeconds,
                         exerciseOrder = seDto.exerciseOrder,
                         isSwapped = seDto.isSwapped,
-                        originalExerciseId = seDto.originalExerciseId?.let { templateExerciseIdMap[it] },
+                        originalExerciseId = seDto.originalExerciseId?.let {
+                            templateExerciseIdMap[it] ?: error("Missing template mapping for originalExerciseId in session exercise ${seDto.sessionExerciseId}")
+                        },
                         status = seDto.status,
                         notes = seDto.notes
                     ))
@@ -225,10 +229,14 @@ class RestoreRepository @Inject constructor(
             }
 
             // 5. Restore Personal Records
-            Log.d("IronLogImportDebug", "11. Restore phase: personal_records")
             payload.records.forEach { prDto ->
-                val newLibId = libraryIdMap[prDto.libraryExerciseId] ?: 0L
-                val newTemplateId = if (prDto.libraryExerciseId > 0) 0L else (templateExerciseIdMap[prDto.exerciseTemplateId] ?: 0L)
+                val newLibId = if (prDto.libraryExerciseId > 0) {
+                    libraryIdMap[prDto.libraryExerciseId] ?: error("Missing library mapping for physical PR")
+                } else 0L
+
+                val newTemplateId = if (prDto.libraryExerciseId > 0) 0L else {
+                    templateExerciseIdMap[prDto.exerciseTemplateId] ?: error("Missing template mapping for custom PR")
+                }
 
                 if (newLibId > 0 || newTemplateId > 0) {
                     prDao.insertOrUpdatePR(PersonalRecordEntity(
@@ -247,14 +255,12 @@ class RestoreRepository @Inject constructor(
             }
 
             // 6. Restore Settings
-            Log.d("IronLogImportDebug", "11. Restore phase: settings")
             settingsDao.updateSettings(WorkoutSettingsEntity(
                 defaultRestTimerSeconds = payload.settings.defaultRestTimerSeconds,
                 autoStartTimer = payload.settings.autoStartTimer,
                 hapticFeedback = payload.settings.hapticFeedback,
                 soundAlert = payload.settings.soundAlert
             ))
-            Log.d("IronLogImportDebug", "12. restoreBackup transaction completed")
         }
     }
 
@@ -279,7 +285,6 @@ class RestoreRepository @Inject constructor(
         libraryDao.findByNormalizedName(normalized)?.id?.let { return it }
 
         // d. Create exactly one new library record if no match exists
-        Log.d("IronLogImportDebug", "Creating on-the-fly library identity for: $name")
         val newId = libraryDao.insert(LibraryExerciseEntity(
             name = name,
             normalizedName = normalized,
@@ -291,7 +296,7 @@ class RestoreRepository @Inject constructor(
 
         // If insert failed due to concurrent race (unlikely in transaction but safe), fetch existing
         return if (newId == -1L) {
-            libraryDao.findByNormalizedName(normalized)?.id ?: throw IllegalStateException("Failed to create or find library identity for $name")
+            libraryDao.findByNormalizedName(normalized)?.id ?: error("Failed to create or find library identity for $name")
         } else newId
     }
 }
