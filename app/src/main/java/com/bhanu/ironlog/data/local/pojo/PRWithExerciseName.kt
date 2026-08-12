@@ -27,13 +27,19 @@ data class PRWithExerciseName(
 ) {
     val snapshotName: String? by lazy {
         libraryExercise?.name ?:
-        sessions.find { it.exerciseTemplateId == pr.exerciseTemplateId }?.exerciseName ?:
+        sessions.find {
+            if (pr.libraryExerciseId > 0) it.libraryExerciseId == pr.libraryExerciseId
+            else it.exerciseTemplateId == pr.exerciseTemplateId
+        }?.exerciseName ?:
         exercise?.name
     }
 
     val snapshotMuscle: String? by lazy {
         libraryExercise?.muscleGroup ?:
-        sessions.find { it.exerciseTemplateId == pr.exerciseTemplateId }?.muscleGroup ?:
+        sessions.find {
+            if (pr.libraryExerciseId > 0) it.libraryExerciseId == pr.libraryExerciseId
+            else it.exerciseTemplateId == pr.exerciseTemplateId
+        }?.muscleGroup ?:
         exercise?.muscleGroup
     }
 }
