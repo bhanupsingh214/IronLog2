@@ -86,13 +86,18 @@ class RestoreRepository @Inject constructor(
                     dayIdMap[dayDto.id] = dayId
 
                     dayDto.exercises.forEach { exerciseDto ->
+                        val systemKey = if (exerciseDto.libraryExerciseId > 0) {
+                            payload.library.find { it.id == exerciseDto.libraryExerciseId }?.systemKey
+                        } else null
+
                         val newLibId = getOrResolveLibraryId(
                             oldId = exerciseDto.libraryExerciseId,
                             name = exerciseDto.name,
                             muscle = exerciseDto.muscleGroup,
                             equipment = exerciseDto.equipment,
                             type = exerciseDto.exerciseType,
-                            idMap = libraryIdMap
+                            idMap = libraryIdMap,
+                            systemKey = systemKey
                         )
 
                         val exerciseId = programDao.insertExercise(ExerciseEntity(
@@ -138,8 +143,10 @@ class RestoreRepository @Inject constructor(
             // 4. Restore Workout History
             val sessionIdMap = mutableMapOf<Long, Long>()
             payload.history.forEach { sessionDto ->
-                val newProgramId = programIdMap[sessionDto.programId] ?: 0L
-                val newDayId = dayIdMap[sessionDto.workoutDayId] ?: 0L
+                val newProgramId = programIdMap[sessionDto.programId]
+                    ?: error("Missing program mapping for session ${sessionDto.sessionId} (Program ID: ${sessionDto.programId})")
+                val newDayId = dayIdMap[sessionDto.workoutDayId]
+                    ?: error("Missing workout day mapping for session ${sessionDto.sessionId} (Day ID: ${sessionDto.workoutDayId})")
 
                 // Map currentExerciseId if it existed (autosave)
                 val newCurrentExerciseId = sessionDto.currentExerciseId?.let {
@@ -177,13 +184,18 @@ class RestoreRepository @Inject constructor(
                 sessionIdMap[sessionDto.sessionId] = sessionId
 
                 sessionDto.exercises.forEach { seDto ->
+                    val systemKey = if (seDto.libraryExerciseId > 0) {
+                        payload.library.find { it.id == seDto.libraryExerciseId }?.systemKey
+                    } else null
+
                     val newLibId = getOrResolveLibraryId(
                         oldId = seDto.libraryExerciseId,
                         name = seDto.exerciseName,
                         muscle = seDto.muscleGroup,
                         equipment = seDto.equipment,
                         type = seDto.exerciseType,
-                        idMap = libraryIdMap
+                        idMap = libraryIdMap,
+                        systemKey = systemKey
                     )
 
                     val newTemplateId = if (seDto.exerciseTemplateId > 0) {
@@ -244,10 +256,16 @@ class RestoreRepository @Inject constructor(
                         exerciseTemplateId = newTemplateId,
                         weightPR = prDto.weightPR,
                         weightPRDate = prDto.weightPRDate,
-                        weightPRSessionId = sessionIdMap[prDto.weightPRSessionId] ?: 0L,
+                        weightPRSessionId = if (prDto.weightPRSessionId > 0L) {
+                            sessionIdMap[prDto.weightPRSessionId]
+                                ?: error("Missing session mapping for weight PR in record lib:${prDto.libraryExerciseId}/temp:${prDto.exerciseTemplateId}")
+                        } else 0L,
                         estimated1RM = prDto.estimated1RM,
                         estimated1RMDate = prDto.estimated1RMDate,
-                        estimated1RMSessionId = sessionIdMap[prDto.estimated1RMSessionId] ?: 0L,
+                        estimated1RMSessionId = if (prDto.estimated1RMSessionId > 0L) {
+                            sessionIdMap[prDto.estimated1RMSessionId]
+                                ?: error("Missing session mapping for estimated 1RM PR in record lib:${prDto.libraryExerciseId}/temp:${prDto.exerciseTemplateId}")
+                        } else 0L,
                         createdAt = prDto.createdAt,
                         updatedAt = prDto.updatedAt
                     ))
@@ -273,18 +291,22 @@ class RestoreRepository @Inject constructor(
         muscle: String,
         equipment: String,
         type: String,
-        idMap: Map<Long, Long>
+        idMap: Map<Long, Long>,
+        systemKey: String?
     ): Long {
         // a. If oldId > 0 and idMap contains a valid positive ID, use it.
         idMap[oldId]?.let { if (it > 0) return it }
 
-        // b & c. Resolve by canonical identity (SystemKey then NormalizedName)
-        val normalized = ExerciseNormalizationUtil.normalize(name)
+        // b. System exercise with systemKey -> find by systemKey
+        if (systemKey != null) {
+            libraryDao.findBySystemKey(systemKey)?.id?.let { return it }
+        }
 
-        // System Lookup (By normalized name as proxy for key if key is null in current context)
+        // c. User/custom exercise -> find by normalizedName
+        val normalized = ExerciseNormalizationUtil.normalize(name)
         libraryDao.findByNormalizedName(normalized)?.id?.let { return it }
 
-        // d. Create exactly one new library record if no match exists
+        // d. If genuinely unresolved -> create exactly one new library record
         val newId = libraryDao.insert(LibraryExerciseEntity(
             name = name,
             normalizedName = normalized,
