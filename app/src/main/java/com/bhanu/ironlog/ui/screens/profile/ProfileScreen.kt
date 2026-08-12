@@ -1,5 +1,7 @@
 package com.bhanu.ironlog.ui.screens.profile
 
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -9,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,6 +30,9 @@ fun ProfileScreen(
     val context = LocalContext.current
     val settings by viewModel.settings.collectAsState()
     val exportState by viewModel.exportState.collectAsState()
+    val importState by viewModel.importState.collectAsState()
+
+    var showImportConfirmation by remember { mutableStateOf(false) }
 
     val appVersion = try {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0.0"
@@ -45,12 +51,18 @@ fun ProfileScreen(
                         }
                     }
                     viewModel.onExportHandled()
-                    // Optional: Show snackbar success
                 } catch (e: Exception) {
                     // Handle error
                 }
             }
         }
+    }
+
+    val openDocumentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        Log.d("IronLogImportDebug", "1. ActivityResult callback fired. Uri: $uri")
+        uri?.let { viewModel.startImport(it) }
     }
 
     LaunchedEffect(Unit) {
@@ -59,6 +71,17 @@ fun ProfileScreen(
                 is ExportEvent.RequestSave -> {
                     val timestamp = System.currentTimeMillis()
                     createDocumentLauncher.launch("ironlog_backup_$timestamp.ironlog")
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.importEvent.collect { event ->
+            when (event) {
+                is ImportEvent.RestoreComplete -> {
+                    Toast.makeText(context, "Backup restored successfully!", Toast.LENGTH_LONG).show()
+                    viewModel.onImportHandled()
                 }
             }
         }
@@ -94,10 +117,26 @@ fun ProfileScreen(
                 loading = exportState is ExportState.Loading
             )
 
+            SettingsClickItem(
+                title = "Import Backup",
+                subtitle = "Restore data from an .ironlog file",
+                onClick = { showImportConfirmation = true },
+                icon = Icons.Default.Upload,
+                loading = importState is ImportState.Loading
+            )
+
             if (exportState is ExportState.Error) {
+                ErrorMessage((exportState as ExportState.Error).message)
+            }
+
+            if (importState is ExportState.Error) {
+                ErrorMessage((importState as ImportState.Error).message)
+            }
+
+            if (importState is ImportState.Success) {
                 Text(
-                    text = (exportState as ExportState.Error).message,
-                    color = MaterialTheme.colorScheme.error,
+                    text = "Backup restored successfully!",
+                    color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(horizontal = 8.dp)
                 )
@@ -137,6 +176,40 @@ fun ProfileScreen(
             }
         }
     }
+
+    if (showImportConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showImportConfirmation = false },
+            title = { Text("Restore Backup?") },
+            text = { Text("This will permanently replace all your current programs and workout history. This action cannot be undone.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showImportConfirmation = false
+                        openDocumentLauncher.launch(arrayOf("application/octet-stream", "*/*"))
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Confirm Restore")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showImportConfirmation = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun ErrorMessage(message: String) {
+    Text(
+        text = message,
+        color = MaterialTheme.colorScheme.error,
+        style = MaterialTheme.typography.labelSmall,
+        modifier = Modifier.padding(horizontal = 8.dp)
+    )
 }
 
 @Composable

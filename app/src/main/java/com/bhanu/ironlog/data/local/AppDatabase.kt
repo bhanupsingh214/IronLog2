@@ -1,7 +1,9 @@
 package com.bhanu.ironlog.data.local
 
+import android.util.Log
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.withTransaction
 import com.bhanu.ironlog.data.local.dao.PlaceholderDao
 import com.bhanu.ironlog.data.local.dao.ProgramDao
 import com.bhanu.ironlog.data.local.dao.SessionDao
@@ -39,6 +41,35 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun personalRecordDao(): PersonalRecordDao
     abstract fun workoutSettingsDao(): WorkoutSettingsDao
     abstract fun libraryExerciseDao(): LibraryExerciseDao
+
+    /**
+     * Clears all user-owned training data from the database.
+     * Order of operations respects foreign key constraints (leaf to root).
+     */
+    suspend fun clearAllUserData() {
+        Log.d("IronLogImportDebug", "10. AppDatabase.clearAllUserData() entered")
+        withTransaction {
+            // Sessions & History
+            query("DELETE FROM session_sets", null).close()
+            query("DELETE FROM session_exercises", null).close()
+            query("DELETE FROM workout_session_logs", null).close()
+
+            // Programs & Blueprints
+            query("DELETE FROM exercise_sets", null).close()
+            query("DELETE FROM exercises", null).close()
+            query("DELETE FROM workout_days", null).close()
+            query("DELETE FROM programs", null).close()
+
+            // Global State & Identity
+            query("DELETE FROM personal_records", null).close()
+            query("DELETE FROM exercise_library", null).close()
+            query("DELETE FROM workout_settings", null).close()
+
+            // Legacy Table (Phase 2 engine)
+            query("DELETE FROM workout_sessions", null).close()
+        }
+        Log.d("IronLogImportDebug", "10. AppDatabase.clearAllUserData() completed")
+    }
 
     companion object {
         val MIGRATION_6_7 = object : Migration(6, 7) {

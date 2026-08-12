@@ -2,13 +2,13 @@ package com.bhanu.ironlog.data.service
 
 import android.content.Context
 import com.bhanu.ironlog.data.local.backup.BackupPayload
+import com.bhanu.ironlog.util.BackupSecurityUtil
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
-import java.security.MessageDigest
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import javax.inject.Inject
@@ -42,7 +42,7 @@ class ExportService @Inject constructor(
         dataFile.writeText(dataJson)
 
         // 2. Calculate Checksum
-        val checksum = calculateChecksum(dataJson)
+        val checksum = BackupSecurityUtil.calculateChecksum(dataJson)
 
         // 3. Create Metadata
         val metadata = payload.metadata.copy(checksum = checksum)
@@ -62,12 +62,6 @@ class ExportService @Inject constructor(
         metadataFile.delete()
 
         return zipFile
-    }
-
-    private fun calculateChecksum(data: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        val hashBytes = digest.digest(data.toByteArray(Charsets.UTF_8))
-        return hashBytes.joinToString("") { "%02x".format(it) }
     }
 
     private fun addFileToZip(
