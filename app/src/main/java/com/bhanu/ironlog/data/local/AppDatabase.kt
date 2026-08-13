@@ -47,24 +47,25 @@ abstract class AppDatabase : RoomDatabase() {
      */
     suspend fun clearAllUserData() {
         withTransaction {
+            val db = openHelper.writableDatabase
             // Sessions & History
-            query("DELETE FROM session_sets", null).close()
-            query("DELETE FROM session_exercises", null).close()
-            query("DELETE FROM workout_session_logs", null).close()
+            db.execSQL("DELETE FROM session_sets")
+            db.execSQL("DELETE FROM session_exercises")
+            db.execSQL("DELETE FROM workout_session_logs")
 
             // Programs & Blueprints
-            query("DELETE FROM exercise_sets", null).close()
-            query("DELETE FROM exercises", null).close()
-            query("DELETE FROM workout_days", null).close()
-            query("DELETE FROM programs", null).close()
+            db.execSQL("DELETE FROM exercise_sets")
+            db.execSQL("DELETE FROM exercises")
+            db.execSQL("DELETE FROM workout_days")
+            db.execSQL("DELETE FROM programs")
 
             // Global State & Identity
-            query("DELETE FROM personal_records", null).close()
-            query("DELETE FROM exercise_library", null).close()
-            query("DELETE FROM workout_settings", null).close()
+            db.execSQL("DELETE FROM personal_records")
+            db.execSQL("DELETE FROM exercise_library")
+            db.execSQL("DELETE FROM workout_settings")
 
             // Legacy Table (Phase 2 engine)
-            query("DELETE FROM workout_sessions", null).close()
+            db.execSQL("DELETE FROM workout_sessions")
         }
     }
 
