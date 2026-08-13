@@ -3,6 +3,7 @@ package com.bhanu.ironlog.ui.screens.profile
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bhanu.ironlog.data.local.backup.BackupPayload
 import com.bhanu.ironlog.data.local.entity.WorkoutSettingsEntity
 import com.bhanu.ironlog.data.repository.BackupRepository
 import com.bhanu.ironlog.data.repository.RestoreRepository
@@ -75,13 +76,31 @@ class ProfileViewModel @Inject constructor(
             _importState.value = ImportState.Loading
             try {
                 val payload = importService.parseBackup(uri)
-                restoreRepository.restoreBackup(payload)
+                _importState.value = ImportState.Ready(payload)
+            } catch (e: Exception) {
+                _importState.value = ImportState.Error(e.message ?: "Unable to read backup")
+            }
+        }
+    }
+
+    fun confirmImport() {
+        val state = _importState.value
+        if (state !is ImportState.Ready) return
+
+        viewModelScope.launch {
+            _importState.value = ImportState.Loading
+            try {
+                restoreRepository.restoreBackup(state.payload)
                 _importState.value = ImportState.Success
                 _importEvent.emit(ImportEvent.RestoreComplete)
             } catch (e: Exception) {
-                _importState.value = ImportState.Error(e.message ?: "Unknown import error")
+                _importState.value = ImportState.Error(e.message ?: "Unable to restore backup")
             }
         }
+    }
+
+    fun cancelImport() {
+        _importState.value = ImportState.Idle
     }
 
     fun onExportHandled() {
@@ -103,6 +122,7 @@ sealed class ExportState {
 sealed class ImportState {
     object Idle : ImportState()
     object Loading : ImportState()
+    data class Ready(val payload: BackupPayload) : ImportState()
     object Success : ImportState()
     data class Error(val message: String) : ImportState()
 }

@@ -20,6 +20,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import java.text.DateFormat
+import java.util.Date
 
 @Composable
 fun ProfileScreen(
@@ -30,8 +32,6 @@ fun ProfileScreen(
     val settings by viewModel.settings.collectAsState()
     val exportState by viewModel.exportState.collectAsState()
     val importState by viewModel.importState.collectAsState()
-
-    var showImportConfirmation by remember { mutableStateOf(false) }
 
     val appVersion = try {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0.0"
@@ -118,7 +118,9 @@ fun ProfileScreen(
             SettingsClickItem(
                 title = "Import Backup",
                 subtitle = "Restore data from an .ironlog file",
-                onClick = { showImportConfirmation = true },
+                onClick = {
+                    openDocumentLauncher.launch(arrayOf("application/octet-stream", "*/*"))
+                },
                 icon = Icons.Default.Upload,
                 loading = importState is ImportState.Loading
             )
@@ -149,7 +151,7 @@ fun ProfileScreen(
                     checked = s.autoStartTimer,
                     onCheckedChange = { viewModel.updateSettings(s.copy(autoStartTimer = it)) }
                 )
-                
+
                 SettingsSliderItem(
                     title = "Default Rest Duration",
                     value = s.defaultRestTimerSeconds,
@@ -175,24 +177,51 @@ fun ProfileScreen(
         }
     }
 
-    if (showImportConfirmation) {
+    val readyImport = importState as? ImportState.Ready
+
+    if (readyImport != null) {
+        val metadata = readyImport.payload.metadata
+        val backupTimestamp = remember(metadata.timestamp) {
+            DateFormat.getDateTimeInstance(
+                DateFormat.MEDIUM,
+                DateFormat.SHORT
+            ).format(Date(metadata.timestamp))
+        }
+
         AlertDialog(
-            onDismissRequest = { showImportConfirmation = false },
+            onDismissRequest = { viewModel.cancelImport() },
             title = { Text("Restore Backup?") },
-            text = { Text("This will permanently replace all your current programs and workout history. This action cannot be undone.") },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Backup information",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Text("Created: $backupTimestamp")
+                    Text("App version: ${metadata.appVersion}")
+                    Text("Programs: ${metadata.programCount}")
+                    Text("Workout sessions: ${metadata.sessionCount}")
+                    Text("Backup version: ${metadata.version}")
+                    HorizontalDivider()
+                    Text(
+                        text = "This will permanently replace your current programs and workout history. This action cannot be undone."
+                    )
+                }
+            },
             confirmButton = {
                 Button(
-                    onClick = {
-                        showImportConfirmation = false
-                        openDocumentLauncher.launch(arrayOf("application/octet-stream", "*/*"))
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    onClick = { viewModel.confirmImport() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
                 ) {
-                    Text("Confirm Restore")
+                    Text("Restore")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showImportConfirmation = false }) {
+                TextButton(onClick = { viewModel.cancelImport() }) {
                     Text("Cancel")
                 }
             }
