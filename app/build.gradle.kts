@@ -33,6 +33,12 @@ android {
     buildFeatures {
         compose = true
     }
+    packaging {
+        resources {
+            excludes += "/META-INF/INDEX.LIST"
+            excludes += "/META-INF/DEPENDENCIES"
+        }
+    }
 }
 
 dependencies {
@@ -48,6 +54,23 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinxCoroutinesPlayServices)
+
+    // Google Services & Auth
+    implementation(libs.androidxCredentials)
+    implementation(libs.androidxCredentialsAuth)
+    implementation(libs.googleIdLib)
+    implementation(libs.googlePlayAuth)
+
+    // Google Drive REST API
+    implementation(libs.googleDriveApi)
+    implementation(libs.googleApiClientLib)
+    implementation(libs.googleHttpAndroidLib)
+    implementation(libs.googleHttpGson)
+    implementation(libs.googleAuthLibraryOauth2Http)
+
+    // Datastore
+    implementation(libs.androidx.datastore.preferences)
 
     // Vico Charts
     implementation(libs.vico.compose)
