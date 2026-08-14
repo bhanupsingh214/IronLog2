@@ -1,7 +1,7 @@
 # IronLog — Decision Log
 
-**Documentation version:** v3.2  
-**As of:** 2026-08-14
+**Documentation version:** v3.3  
+**As of:** 2026-08-15
 
 ## Durable Decisions
 
@@ -36,7 +36,7 @@ PR4.5 must not rely on stale Drive authorization across Google-account changes. 
 
 **Reason:** cloud restore acts on user data and must not risk another account's backup being used after account switching.
 
-### D026 — Cloud restore uses staged download before destructive mutation
+### D026 — PR4.5 cloud restore uses staged download before destructive mutation
 The cloud `.ironlog` artifact must be downloaded/staged before restore mutation. Download and validation failures must leave existing local data unchanged.
 
 ### D027 — PR4.5 scope is cloud restore, not general cloud lifecycle management
@@ -64,6 +64,13 @@ PR4.5 requires active Google identity / Drive authorization consistency, but no 
 PR4.5 does not introduce a general `listBackups()`/backup-history API by default. Cloud discovery should locate the current IronLog backup using the established deterministic identity/filename behavior unless the actual approved UX proves broader listing necessary.
 
 **Reason:** a generalized backup-history/listing capability would expand the PR beyond the approved cloud-restore objective without a demonstrated requirement.
+
+### D033 — Preserve local data during connected instrumentation tests
+The development test environment must keep the production IronLog package installed after connected instrumentation tests so that the primary data-bearing emulator is not unintentionally reset by test cleanup.
+
+**Reason:** AGP's connected instrumentation-test lifecycle was observed to remove the production package after a test run, which erased the local Room database. The project now sets `android.injected.androidTest.leaveApksInstalledAfterRun=true` and verified the mitigation with 7/7 connected tests passing, the package remaining installed, Programs/History remaining present, and a manual smoke test passing with zero data loss.
+
+This is a development/test-environment safeguard. It does not replace backups, disposable-device testing, or production data-protection mechanisms.
 
 ## Decision Change Rule
 
