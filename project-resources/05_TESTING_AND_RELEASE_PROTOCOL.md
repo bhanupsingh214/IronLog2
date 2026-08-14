@@ -1,7 +1,7 @@
 # IronLog — Testing & Release Protocol
 
-**Documentation version:** v3.2
-**As of:** 2026-08-14
+**Documentation version:** v3.3
+**As of:** 2026-08-15
 
 ## 1. Standard PR lifecycle
 
@@ -60,7 +60,7 @@ Verify:
 3. Delete feature branch when approved.
 4. Sync `master`.
 5. Confirm clean working tree.
-6. Update affected resources.
+6. Update affected resources through the ChatGPT documentation workflow.
 7. Run three-pass documentation audit.
 8. Verify canonical-stack integrity.
 
@@ -172,7 +172,29 @@ Required scenarios are in `10_FEATURE_REGRESSION_MATRIX.md` and include:
 
 For portability work, use a disposable/fresh emulator or device where practical. Do not clear data manually to hide a restore failure.
 
-## 9. Release evidence
+## 9. Instrumentation-test data safety
+
+The primary development emulator may contain restored/manual IronLog data that must not be destroyed merely because instrumentation tests are run.
+
+For this project, `gradle.properties` must contain:
+
+```properties
+android.injected.androidTest.leaveApksInstalledAfterRun=true
+```
+
+This prevents the connected instrumentation-test lifecycle from uninstalling the production IronLog package after the test run. The behavior was verified on the Pixel 10 / Android 17 emulator:
+- `:app:connectedDebugAndroidTest` completed successfully;
+- 7/7 tests passed;
+- the production package remained installed;
+- Programs and History remained present;
+- manual smoke testing passed;
+- data loss was zero.
+
+Do not use connected instrumentation tests as a substitute for a disposable/fresh-device strategy. The property is a development-test safety measure, not a production-app backup mechanism.
+
+If this property is removed or changed, the data-preservation verification must be repeated before using connected instrumentation tests against a data-bearing development emulator.
+
+## 10. Release evidence
 
 Before declaring a PR complete, preserve enough evidence to reconstruct:
 - what changed;
