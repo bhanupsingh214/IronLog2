@@ -1,7 +1,7 @@
 # IronLog — New Chat Handoff
 
-**Handoff version:** v3.1
-**As of:** 2026-08-14
+**Handoff version:** v3.2
+**As of:** 2026-08-15
 **Purpose:** Make a fresh chat inside the IronLog project immediately productive without relying on prior conversation memory.
 
 ## 1. First action in every new chat
@@ -18,17 +18,16 @@ If GitHub is connected, fetch `/project-resources/` from the repository and trea
 
 ## 2. Current verified baseline
 
-- Phase 4 — Backup & Recovery.
+- Phase 4 — Backup & Recovery / stability closeout.
 - PR4.1 — MERGED / VERIFIED.
 - PR4.2 — MERGED / VERIFIED.
 - PR4.3 — MERGED / VERIFIED.
 - PR4.4 / GitHub #29 — MERGED / VERIFIED.
-- PR4.4 head: `50e77cbcb8da0fce58aae990166097b512174b1d`.
-- PR4.4 merge: `fdfdfb47d4844983d5806287d103a81f8946869e`.
-- PR4.5 — APPROVED / PLANNED.
-- No other PR is authorized.
+- PR4.5 / GitHub #31 — MERGED / VERIFIED.
+- GitHub #32 — workout finish confirmation duration — MERGED / VERIFIED.
+- No new feature PR is currently authorized.
 
-## 3. Current PR4.5 objective
+## 3. PR4.5 completed boundary
 
 Google Drive Cloud Restore:
 
@@ -41,33 +40,25 @@ Google Drive appDataFolder
 → Room/UI
 ```
 
-## 4. PR4.5 critical constraints
+PR4.5 reused the established restore pipeline and did not add Drive browsing/history, synchronization, scheduled restore, backup-format redesign, or schema redesign.
 
-- validate before destructive mutation;
-- preserve transactional replacement;
-- preserve FK enforcement;
-- preserve canonical identity/remapping;
-- do not create a second restore engine;
-- verify active Google account ↔ Drive authorization consistency;
-- handle download/authorization/no-backup failures non-destructively;
-- do not redesign backup format/schema unless separately re-approved.
+## 4. Stability fixes completed
 
-## 5. Required first implementation action
+### Workout finish duration
+Active workout confirmation now uses live elapsed duration while completed sessions use persisted duration. GitHub #32 merged this fix after 7/7 connected tests, successful debug build, and manual emulator verification.
 
-Before writing code:
-1. verify `master` and current Git state;
-2. inspect PR4.4 cloud/account implementation;
-3. inspect current `ImportService`;
-4. inspect current `RestoreRepository`;
-5. inspect current UI/ViewModel restore flow;
-6. inspect schema/migrations;
-7. confirm exact input boundary for local URI vs downloaded cloud artifact;
-8. verify account/authorization lifecycle;
-9. update/confirm the PR4.5 implementation plan if source contradicts assumptions.
+### Connected-test data safety
+The connected instrumentation lifecycle was found to remove the production package after a run, which could wipe the local Room database on the primary emulator.
 
-Do not invent method signatures from this handoff.
+Verified mitigation:
 
-## 6. Critical historical regression
+```properties
+android.injected.androidTest.leaveApksInstalledAfterRun=true
+```
+
+Verified with 7/7 connected tests, package-preservation checks, Programs/History preservation, and manual smoke testing with zero data loss.
+
+## 5. Critical historical regression
 
 PR4.3 exposed a populated-database restore bug: DELETE statements were ineffective because `query().close()` did not execute them.
 
@@ -75,7 +66,7 @@ The fix used `execSQL()` with FK-safe ordering and preserved transactional resto
 
 This is a critical regression boundary. Do not casually redesign restore internals.
 
-## 7. Evidence rules
+## 6. Evidence rules
 
 - Runtime behavior → emulator/device.
 - Build → actual build output.
@@ -85,28 +76,32 @@ This is a critical regression boundary. Do not casually redesign restore interna
 
 Agent reports are evidence, not proof.
 
-## 8. Collaboration
+## 7. Collaboration
 
 Project Owner:
 - final product decisions;
 - PR authorization;
 - runtime testing;
-- final acceptance.
+- final acceptance;
+- final release authority.
 
 ChatGPT:
 - architecture/reasoning;
 - scope/risk/acceptance;
 - review;
 - continuity;
-- documentation maintenance.
+- canonical Project Resource maintenance and GitHub documentation closeout.
 
 Gemini/implementation agent:
 - substantial approved repository implementation;
 - source inspection;
+- implementation-readiness audits when requested;
 - build/tests;
 - implementation evidence.
 
-## 9. If resources disagree
+Gemini should not independently maintain the canonical Project Resources or perform documentation closeout unless explicitly delegated.
+
+## 8. If resources disagree
 
 Do not guess.
 
@@ -122,8 +117,20 @@ repository code/schema/tests
 
 Repair the canonical resource stack when necessary.
 
+## 9. Documentation workflow
+
+For normal work:
+
+```text
+Gemini implementation/evidence
+→ Project Owner runtime verification
+→ ChatGPT reconciliation against Git/GitHub
+→ ChatGPT Project Resource maintenance
+→ Project Owner final acceptance / merge lifecycle
+```
+
+Do not duplicate documentation maintenance through Gemini when ChatGPT has connected GitHub access.
+
 ## 10. Exact next action
 
-For the current baseline:
-
-> Perform the PR4.5 repository pre-flight audit against the current `master` source before implementation. Do not begin implementation until the actual source confirms the locked architecture and account/authorization assumptions.
+Complete and merge the Phase 4 documentation/stability closeout, run the three-pass Project Resource audit, verify the canonical stack, and then wait for explicit Project Owner selection of the next phase/PR before implementation.
