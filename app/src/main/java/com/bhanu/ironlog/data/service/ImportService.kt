@@ -7,6 +7,8 @@ import com.bhanu.ironlog.data.local.backup.BackupPayload
 import com.bhanu.ironlog.util.BackupSecurityUtil
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.serialization.json.Json
+import java.io.File
+import java.io.InputStream
 import java.util.zip.ZipInputStream
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -21,23 +23,39 @@ class ImportService @Inject constructor(
     }
 
     /**
-     * Validates and parses the .ironlog backup file.
+     * Validates and parses the .ironlog backup file from a Uri.
      */
     fun parseBackup(uri: Uri): BackupPayload {
-        val inputStream = context.contentResolver.openInputStream(uri) ?: throw Exception("Failed to open backup file")
+        val inputStream = context.contentResolver.openInputStream(uri)
+            ?: throw Exception("Failed to open backup file")
+        return parseBackup(inputStream)
+    }
 
+    /**
+     * Validates and parses the .ironlog backup file from a File.
+     */
+    fun parseBackup(file: File): BackupPayload {
+        return parseBackup(file.inputStream())
+    }
+
+    /**
+     * Validates and parses the .ironlog backup file from an InputStream.
+     */
+    private fun parseBackup(inputStream: InputStream): BackupPayload {
         var dataJson: String? = null
         var metadataJson: String? = null
 
-        ZipInputStream(inputStream).use { zis ->
-            var entry = zis.getNextEntry()
-            while (entry != null) {
-                when (entry.name) {
-                    "data.json" -> dataJson = zis.bufferedReader().readText()
-                    "metadata.json" -> metadataJson = zis.bufferedReader().readText()
+        inputStream.use { stream ->
+            ZipInputStream(stream).use { zis ->
+                var entry = zis.getNextEntry()
+                while (entry != null) {
+                    when (entry.name) {
+                        "data.json" -> dataJson = zis.bufferedReader().readText()
+                        "metadata.json" -> metadataJson = zis.bufferedReader().readText()
+                    }
+                    zis.closeEntry()
+                    entry = zis.getNextEntry()
                 }
-                zis.closeEntry()
-                entry = zis.getNextEntry()
             }
         }
 

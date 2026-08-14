@@ -45,6 +45,9 @@ class ProfileViewModel @Inject constructor(
     private val _cloudState = MutableStateFlow<CloudBackupState>(CloudBackupState.Idle)
     val cloudState: StateFlow<CloudBackupState> = _cloudState.asStateFlow()
 
+    private val _cloudRestoreState = MutableStateFlow<CloudRestoreState>(CloudRestoreState.Idle)
+    val cloudRestoreState: StateFlow<CloudRestoreState> = _cloudRestoreState.asStateFlow()
+
     private val _exportEvent = MutableSharedFlow<ExportEvent>()
     val exportEvent: SharedFlow<ExportEvent> = _exportEvent.asSharedFlow()
 
@@ -131,20 +134,74 @@ class ProfileViewModel @Inject constructor(
 
         viewModelScope.launch {
             _cloudState.value = CloudBackupState.Loading
+            var backupFile: File? = null
             try {
                 val payload = backupRepository.getFullBackupPayload(appVersion)
-                val backupFile = exportService.createBackupZip(payload)
-                val result = cloudStorageService.uploadBackup(backupFile)
-                when (result) {
-                    is CloudResult.Success -> {
-                        _cloudState.value = CloudBackupState.Success(System.currentTimeMillis())
+                backupFile = exportService.createBackupZip(payload)
+
+                // Rename to deterministic name for cloud to ensure "replace" behavior on Drive
+                val cloudFile = File(backupFile.parent, "ironlog_backup.ironlog")
+                if (cloudFile.exists()) cloudFile.delete()
+
+                if (backupFile.renameTo(cloudFile)) {
+                    val result = cloudStorageService.uploadBackup(cloudFile)
+                    cloudFile.delete()
+
+                    when (result) {
+                        is CloudResult.Success -> {
+                            _cloudState.value = CloudBackupState.Success(System.currentTimeMillis())
+                        }
+                        is CloudResult.Error -> {
+                            _cloudState.value = CloudBackupState.Error(result.message)
+                        }
                     }
-                    is CloudResult.Error -> {
-                        _cloudState.value = CloudBackupState.Error(result.message)
-                    }
+                } else {
+                    _cloudState.value = CloudBackupState.Error("Failed to prepare cloud backup file")
                 }
             } catch (e: Exception) {
                 _cloudState.value = CloudBackupState.Error(e.message ?: "Cloud backup failed")
+            } finally {
+                // Ensure original backupFile is cleaned up if rename failed or after upload attempt
+                backupFile?.let { if (it.exists()) it.delete() }
+            }
+        }
+    }
+
+    fun startCloudRestore(context: Context) {
+        if (_cloudRestoreState.value is CloudRestoreState.Loading) return
+
+        viewModelScope.launch {
+            _cloudRestoreState.value = CloudRestoreState.Loading
+            val tempFile = File(context.cacheDir, "cloud_restore_temp.ironlog")
+            try {
+                // Deterministic filename as used in GoogleDriveServiceImpl and established in PR4.4
+                val result = cloudStorageService.downloadBackup("ironlog_backup.ironlog", tempFile)
+
+                when (result) {
+                    is CloudResult.Success -> {
+                        try {
+                            val payload = importService.parseBackup(tempFile)
+                            // We do NOT delete tempFile here; it is passed to ImportState.Ready
+                            // and must be cleaned up when the import is handled, confirmed, or cancelled.
+                            _importState.value = ImportState.Ready(payload, tempFile)
+                            _cloudRestoreState.value = CloudRestoreState.Idle
+                        } catch (e: Exception) {
+                            tempFile.delete()
+                            _cloudRestoreState.value = CloudRestoreState.Error(e.message ?: "Invalid cloud backup")
+                        }
+                    }
+                    is CloudResult.Error -> {
+                        tempFile.delete()
+                        if (result.message.contains("No cloud backup found", ignoreCase = true)) {
+                            _cloudRestoreState.value = CloudRestoreState.NoBackup
+                        } else {
+                            _cloudRestoreState.value = CloudRestoreState.Error(result.message)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                tempFile.delete()
+                _cloudRestoreState.value = CloudRestoreState.Error(e.message ?: "Cloud restore failed")
             }
         }
     }
@@ -171,15 +228,21 @@ class ProfileViewModel @Inject constructor(
             _importState.value = ImportState.Loading
             try {
                 restoreRepository.restoreBackup(state.payload)
+                state.sourceFile?.delete()
                 _importState.value = ImportState.Success
                 _importEvent.emit(ImportEvent.RestoreComplete)
             } catch (e: Exception) {
+                state.sourceFile?.delete()
                 _importState.value = ImportState.Error(e.message ?: "Unable to restore backup")
             }
         }
     }
 
     fun cancelImport() {
+        val state = _importState.value
+        if (state is ImportState.Ready) {
+            state.sourceFile?.delete()
+        }
         _importState.value = ImportState.Idle
     }
 
@@ -188,7 +251,15 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun onImportHandled() {
+        val state = _importState.value
+        if (state is ImportState.Ready) {
+            state.sourceFile?.delete()
+        }
         _importState.value = ImportState.Idle
+    }
+
+    fun onCloudRestoreErrorHandled() {
+        _cloudRestoreState.value = CloudRestoreState.Idle
     }
 }
 
@@ -202,7 +273,7 @@ sealed class ExportState {
 sealed class ImportState {
     object Idle : ImportState()
     object Loading : ImportState()
-    data class Ready(val payload: BackupPayload) : ImportState()
+    data class Ready(val payload: BackupPayload, val sourceFile: File? = null) : ImportState()
     object Success : ImportState()
     data class Error(val message: String) : ImportState()
 }
@@ -224,4 +295,11 @@ sealed class CloudBackupState {
     object Loading : CloudBackupState()
     data class Success(val timestamp: Long) : CloudBackupState()
     data class Error(val message: String) : CloudBackupState()
+}
+
+sealed class CloudRestoreState {
+    object Idle : CloudRestoreState()
+    object Loading : CloudRestoreState()
+    object NoBackup : CloudRestoreState()
+    data class Error(val message: String) : CloudRestoreState()
 }
