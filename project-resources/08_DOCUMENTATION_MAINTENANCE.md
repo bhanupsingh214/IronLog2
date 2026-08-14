@@ -1,6 +1,6 @@
 # IronLog — Documentation Maintenance Protocol
 
-**Documentation version:** v3.1
+**Documentation version:** v3.2
 **As of:** 2026-08-14
 
 ## 1. Purpose
@@ -29,6 +29,8 @@ The active PR specification is the authorization boundary for future work.
 
 The roadmap is planning, not authorization.
 
+Agent reports are evidence, not authority. A Gemini audit report can identify implementation-specific findings, but it cannot authorize a PR or override the active specification.
+
 ## 4. Resource responsibilities
 
 - Index → authority/read order.
@@ -55,9 +57,10 @@ Update resources after:
 - material architecture decisions;
 - schema/migration changes;
 - verified regression discoveries;
-- material workflow/governance changes.
+- material workflow/governance changes;
+- a reviewed Gemini audit that changes the locked PR scope, architecture, risk, acceptance criteria, or verification plan.
 
-Do not update docs merely because an idea was discussed.
+Do not update docs merely because an idea was discussed or because an agent proposed an unreviewed possibility.
 
 ## 6. Three-pass audit
 
@@ -80,7 +83,8 @@ Compare:
 - decisions ↔ implementation;
 - testing ↔ regression matrix ↔ active PR;
 - index ↔ actual file set;
-- roles ↔ actual workflow.
+- roles ↔ actual workflow;
+- active PR ↔ reviewed Gemini audit findings when an audit exists.
 
 ### Pass 3 — Stack integrity
 Verify:
@@ -101,6 +105,14 @@ If a resource conflicts with code:
 5. classify actual state;
 6. correct affected resources;
 7. re-run cross-document audit.
+
+If a Gemini audit conflicts with the active PR or resources:
+1. treat the audit as an implementation-specific finding, not an authority;
+2. inspect the cited repository evidence;
+3. determine whether the finding is factual, inferred, or optional;
+4. if it affects scope/architecture/correctness, pause implementation;
+5. update the active PR specification only after the required Owner decision;
+6. re-run the relevant risk/mitigation/verification review.
 
 ## 8. Historical preservation
 
@@ -131,11 +143,35 @@ Project Resources are now intended to live in GitHub under `/project-resources/`
 
 The old repository documentation was legacy and was audited during migration. Unique useful information must be preserved or explicitly retired before deletion.
 
-## 11. Post-merge closeout
+## 11. Agent-audit evidence rule
+
+Gemini audits are working artifacts unless their conclusions are deliberately incorporated into a durable resource.
+
+For a meaningful PR, a pre-implementation Gemini audit should be retained by the working process long enough for ChatGPT to reconcile it against:
+- the active PR specification;
+- current repository source;
+- Project Resource invariants;
+- risks and mitigations;
+- acceptance criteria;
+- verification plan.
+
+The audit should distinguish:
+- confirmed repository facts;
+- assumptions;
+- unknowns/TBDs;
+- implementation risks;
+- blockers;
+- recommendations;
+- proposed scope changes.
+
+Do not copy an audit wholesale into Project Resources. Promote only reviewed, durable conclusions to the appropriate canonical document.
+
+## 12. Post-merge closeout
 
 ```text
 merge confirmed
 → runtime/build/Git evidence verified
+→ Gemini implementation report reviewed
 → affected resources updated
 → decisions recorded
 → active PR reset/advanced
@@ -145,4 +181,4 @@ merge confirmed
 
 ## Final rule
 
-> Documentation exists to preserve verified knowledge, explicit decisions, approved plans, engineering constraints, and continuity—not to invent facts or compete with source code.
+> Documentation exists to preserve verified knowledge, explicit decisions, approved plans, engineering constraints, and continuity—not to invent facts, compete with source code, or blindly reproduce agent reports.
