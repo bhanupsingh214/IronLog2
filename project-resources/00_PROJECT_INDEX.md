@@ -1,6 +1,6 @@
 # IronLog — Project Resource Index
 
-**Documentation version:** v3.2
+**Documentation version:** v3.4
 **Canonical location:** `/project-resources/`
 **As of:** 2026-08-15
 **Purpose:** Canonical continuity and governance index for planning, implementation, verification, release, and fresh-chat handoff.
@@ -24,7 +24,7 @@ Exactly these 14 files constitute the Project Resource stack:
 13. `IRONLOG_PROJECT_ROLES_AND_COLLABORATION_PROTOCOL.md` — roles and authority.
 14. `IRONLOG_NEW_CHAT_HANDOFF.md` — fresh-chat continuity packet.
 
-No `(1)` copies, ad-hoc replacements, ZIP files, or conversation exports are canonical resources.
+No `(1)` copies, ad-hoc replacements, ZIP files, temporary markers, or conversation exports are canonical resources.
 
 ## Required fresh-chat reading order
 
