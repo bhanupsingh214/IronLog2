@@ -208,11 +208,18 @@ class WorkoutSessionRepository @Inject constructor(
                 null
             }
 
+            val summaryEndTime = aggregate.metadata.endTime ?: System.currentTimeMillis()
+            val displayDuration = if (aggregate.metadata.status == WorkoutSessionStatus.COMPLETED) {
+                stats.durationSeconds
+            } else {
+                (summaryEndTime - aggregate.metadata.startTime) / 1000
+            }
+
             WorkoutCompletionSummary(
                 sessionId = sessionId,
                 workoutName = aggregate.metadata.dayName,
                 programName = aggregate.metadata.programName,
-                durationSeconds = stats.durationSeconds,
+                durationSeconds = displayDuration,
                 totalVolume = stats.totalVolume,
                 exercisesCompleted = stats.completedExercisesCount,
                 totalExercises = stats.totalExercisesCount,
@@ -222,7 +229,7 @@ class WorkoutSessionRepository @Inject constructor(
                 skippedExercises = aggregate.exercises.count { it.execution.status == "SKIPPED" },
                 completionPercentage = if (stats.totalExercisesCount > 0) stats.completedExercisesCount.toFloat() / stats.totalExercisesCount else 0f,
                 startTime = aggregate.metadata.startTime,
-                endTime = aggregate.metadata.endTime ?: System.currentTimeMillis(),
+                endTime = summaryEndTime,
                 achievements = achievements,
                 comparison = comparison
             )
