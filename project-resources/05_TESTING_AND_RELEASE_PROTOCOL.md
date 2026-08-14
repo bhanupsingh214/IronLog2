@@ -1,6 +1,6 @@
 # IronLog — Testing & Release Protocol
 
-**Documentation version:** v3.1
+**Documentation version:** v3.2
 **As of:** 2026-08-14
 
 ## 1. Standard PR lifecycle
@@ -16,6 +16,8 @@
 8. Define acceptance criteria.
 9. Define verification plan.
 10. Obtain Project Owner approval and lock `11_ACTIVE_PR_SPEC.md`.
+11. For meaningful repository changes, request a Gemini implementation-readiness audit before coding.
+12. Reconcile the Gemini audit against repository evidence and the locked PR. If a material risk, blocker, or architecture/scope change is found, pause and resolve it before implementation.
 
 ### During implementation
 - Keep changes inside locked scope.
@@ -23,6 +25,7 @@
 - Do not silently expand scope.
 - Record discoveries affecting correctness, security, compatibility, or scope.
 - Stop and re-audit if an assumption in the resources is contradicted by source.
+- If implementation reveals a material discrepancy from the pre-implementation Gemini audit, classify it and pause when it changes correctness, security, architecture, or scope.
 
 ### Before commit
 ```powershell
@@ -61,7 +64,35 @@ Verify:
 7. Run three-pass documentation audit.
 8. Verify canonical-stack integrity.
 
-## 2. Risk → Mitigation → Verification gate
+## 2. Pre-implementation Gemini audit gate
+
+For meaningful PRs, especially those involving authentication, cloud/storage, backup/restore, database/schema, identity, multi-file architecture, or high-risk regressions, Gemini should perform an **audit-only repository inspection before implementation**.
+
+The audit must not modify application code or create implementation commits unless separately authorized.
+
+Minimum audit output:
+- repository/base-branch state inspected;
+- confirmed assumptions/facts;
+- source/API/class/method findings;
+- implementation-specific risks;
+- blockers or unknowns/TBDs;
+- likely files/components affected;
+- dependencies/build/test constraints;
+- recommended tests;
+- scope/architecture conflicts;
+- verdict: `READY`, `READY WITH CHANGES`, or `BLOCKED`.
+
+ChatGPT then reconciles the report with the active PR and canonical resources.
+
+### Audit verdict handling
+
+- `READY` → proceed only if no unresolved material discrepancy exists and Owner authorization remains valid.
+- `READY WITH CHANGES` → resolve the listed changes; update the active PR if objective/scope/architecture/risks/verification materially change; obtain required Owner approval before implementation.
+- `BLOCKED` → do not implement; resolve the blocker first.
+
+An audit verdict never overrides the Project Owner's authority or the locked active PR specification.
+
+## 3. Risk → Mitigation → Verification gate
 
 Every meaningful PR must record:
 - risk;
@@ -73,7 +104,9 @@ Every meaningful PR must record:
 
 The PR-specific table belongs in `11_ACTIVE_PR_SPEC.md`.
 
-## 3. Evidence discipline
+Gemini may add implementation-specific risks through its audit. Those risks become part of the locked PR only after ChatGPT review and, when material, Project Owner approval.
+
+## 4. Evidence discipline
 
 Do not mark PASS from code inspection, build success, screenshots without context, or agent completion reports alone.
 
@@ -82,11 +115,12 @@ Evidence mapping:
 - build → actual build output;
 - Git state → actual Git/GitHub state;
 - schema → repository/schema evidence;
-- product acceptance → Project Owner decision.
+- product acceptance → Project Owner decision;
+- implementation readiness → repository inspection plus Gemini audit where required.
 
 Historical evidence must be labeled historical and does not automatically equal current-cycle PASS.
 
-## 4. Backup testing
+## 5. Backup testing
 
 Verify:
 - `.ironlog` creation;
@@ -109,7 +143,7 @@ Expected failure behavior:
 - no partial restore;
 - existing database protected.
 
-## 5. Populated-database replacement
+## 6. Populated-database replacement
 
 When restore logic/input changes:
 1. populate a test device;
@@ -121,7 +155,7 @@ When restore logic/input changes:
 
 This is a critical regression because PR4.3 exposed and fixed ineffective DELETE execution.
 
-## 6. PR4.5 cloud-restore testing
+## 7. PR4.5 cloud-restore testing
 
 Required scenarios are in `10_FEATURE_REGRESSION_MATRIX.md` and include:
 - valid cloud backup on empty DB;
@@ -134,11 +168,11 @@ Required scenarios are in `10_FEATURE_REGRESSION_MATRIX.md` and include:
 - revoked/expired Drive authorization;
 - local import/export regressions.
 
-## 7. Fresh-device rule
+## 8. Fresh-device rule
 
 For portability work, use a disposable/fresh emulator or device where practical. Do not clear data manually to hide a restore failure.
 
-## 8. Release evidence
+## 9. Release evidence
 
 Before declaring a PR complete, preserve enough evidence to reconstruct:
 - what changed;
@@ -146,4 +180,6 @@ Before declaring a PR complete, preserve enough evidence to reconstruct:
 - what was tested;
 - which tests passed/failed;
 - which risks were exercised;
-- which limitations remain.
+- which limitations remain;
+- what the Gemini audit identified before implementation;
+- whether any audit finding changed the implementation plan.
