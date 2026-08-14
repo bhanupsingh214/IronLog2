@@ -1,7 +1,7 @@
 # IronLog — Feature Regression Matrix
 
-**Documentation version:** v3.1
-**As of:** 2026-08-14
+**Documentation version:** v3.2
+**As of:** 2026-08-15
 
 ## Evidence legend
 
@@ -32,6 +32,16 @@
 | G6 | `.ironlog` cloud upload | PASS — PR4.4 |
 | G7 | Repeat cloud backup | PASS — PR4.4 |
 | G8 | Local export/import regression | PASS — PR4.4 |
+
+## PR4.5 merge evidence
+
+| ID | Scenario | Evidence |
+|---|---|---|
+| P45-1 | PR4.5 implementation/build verification | PASS — GitHub #31; JVM tests, clean debug build, connected Android tests |
+| P45-2 | Real-emulator Google Drive restore flow | PASS — GitHub #31 PR record; metadata confirmation and restore flow manually verified |
+| P45-3 | File-based backup validation instrumentation coverage | PASS — GitHub #31; 5 connected Android tests passed |
+
+The detailed scenario rows below remain `[ ]` unless their individual evidence is explicitly recorded. PR4.5 merge status must not be used to infer PASS for every row.
 
 ## PR4.5 required tests
 
@@ -85,10 +95,18 @@
 | L3 | Existing populated restore replacement remains correct | [ ] |
 | L4 | Programs/history/progress/PR/settings integrity remains intact | [ ] |
 
+## Stability regressions
+
+| ID | Scenario | Result | Evidence |
+|---|---|---|---|
+| S1 | Connected instrumentation tests preserve the production package and local data | PASS | 7/7 connected tests passed; package remained installed; Programs/History remained present; manual smoke test passed; zero data loss |
+| S2 | Finish Workout confirmation shows live duration for an active session | PASS | GitHub #32; 7/7 connected tests, successful debug build, manual emulator verification |
+| S3 | Completed-workout duration remains correct after the live-duration fix | PASS | GitHub #32 manual emulator verification; completed-workout screen remained correct |
+
 ## Evidence rule
 
 Do not mark a current-cycle test PASS from code inspection or an agent report alone.
 
 The populated-database replacement test is a critical regression boundary for any restore-path change.
 
-After PR4.5 verification, replace `[ ]` with PASS/FAIL plus concise evidence references. Do not erase historical failures; preserve them as historical context.
+For merged PRs, preserve the distinction between PR-level merge verification and individual scenario evidence. Do not infer PASS for untested rows.
