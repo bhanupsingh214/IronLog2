@@ -1,7 +1,7 @@
 # IronLog — Project Roles & Collaboration Protocol
 
-**Documentation version:** v3.2
-**As of:** 2026-08-14
+**Documentation version:** v3.3
+**As of:** 2026-08-15
 
 ## 1. Project Owner
 
@@ -31,6 +31,34 @@ Primary responsibilities:
 - reconciliation of Gemini audit reports with the locked PR and repository evidence.
 
 ChatGPT must not invent missing source facts.
+
+### Project Resource and GitHub maintenance ownership
+
+The canonical Project Resources are maintained by **ChatGPT**, using repository/GitHub evidence and verified implementation/runtime evidence supplied by the Project Owner.
+
+Gemini is the Android Studio implementation agent. Gemini must not independently maintain the canonical Project Resources, perform documentation closeout, create documentation commits, push documentation changes, merge PRs, or delete branches unless the Project Owner explicitly delegates a specific exception.
+
+For normal project work:
+
+```text
+Gemini
+→ implements approved repository/application changes
+→ runs builds/tests
+→ reports diffs and evidence
+
+ChatGPT
+→ reviews Gemini's evidence
+→ reconciles it against Git/GitHub and Project Resources
+→ updates the canonical Project Resources
+→ performs the documentation consistency audit
+→ performs or guides low-risk mechanical repository/documentation operations when connected access is available
+
+Project Owner
+→ reviews/approves the final change
+→ controls final product acceptance and, when operating manually, the Git commit/push/merge/branch lifecycle
+```
+
+This separation exists to avoid duplicate work and conflicting project-state updates. A Gemini completion report is evidence for ChatGPT to review; it is not itself a Project Resource update.
 
 ## 3. Gemini / implementation agent
 
@@ -204,11 +232,11 @@ Project Owner final acceptance
         ↓
 Git merge
         ↓
-Documentation closeout
+Documentation closeout by ChatGPT
 ```
 
 For small, mechanical tasks that do not need repository implementation-agent involvement, ChatGPT may use the connected GitHub/terminal workflow directly when low-risk and unambiguous.
 
 ## Final rule
 
-> You own IronLog. ChatGPT reasons, scopes, risk-assesses, plans, reconciles evidence, reviews implementation, and maintains continuity. Gemini inspects the actual repository, provides implementation-readiness audits when required, and implements substantial approved changes. You verify real application behavior and make final decisions. No audit or completion claim replaces appropriate evidence, and no agent may silently expand or authorize PR scope.
+> You own IronLog. ChatGPT reasons, scopes, risk-assesses, plans, reconciles evidence, reviews implementation, and maintains continuity and canonical Project Resources. Gemini inspects the actual repository, provides implementation-readiness audits when required, and implements substantial approved changes. You verify real application behavior and make final decisions. No audit or completion claim replaces appropriate evidence, and no agent may silently expand or authorize PR scope.
