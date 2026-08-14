@@ -1,6 +1,6 @@
 # IronLog — Project State
 
-**Documentation version:** v3.2
+**Documentation version:** v3.4
 **As of:** 2026-08-15
 **State classification:** CURRENT / VERIFIED BASELINE
 
@@ -19,7 +19,9 @@ The merged PR4.5 and PR32 baseline is the starting point for Phase 4 closeout. A
 
 ## Current phase
 
-**Phase 4 — Backup & Recovery / Stability Closeout**
+**Phase 4 — Backup & Recovery / Stability Closeout COMPLETE**
+
+The implementation and stability work is complete. The documentation closeout and canonical-stack audit are now complete as well. No new feature implementation is authorized until a new objective is explicitly selected.
 
 ## Completed milestones
 
@@ -30,6 +32,7 @@ The merged PR4.5 and PR32 baseline is the starting point for Phase 4 closeout. A
 - PR4.4 — Google Account & Google Drive Backup — MERGED / VERIFIED.
 - PR4.5 / GitHub #31 — Google Drive Cloud Restore — MERGED / VERIFIED.
 - GitHub #32 — Workout finish confirmation live duration — MERGED / VERIFIED.
+- Phase 4 documentation/stability closeout — MERGED / VERIFIED.
 
 ## PR4.5 verified boundary
 
@@ -53,13 +56,13 @@ A separate development-test data-loss regression was also investigated. The conn
 android.injected.androidTest.leaveApksInstalledAfterRun=true
 ```
 
-A controlled verification passed with 7/7 connected tests, the production package remaining installed, Programs and History remaining present, and a manual smoke test passing with zero data loss. The mitigation is included in the current stability-closeout change set.
+A controlled verification passed with 7/7 connected tests, the production package remaining installed, Programs and History remaining present, and a manual smoke test passing with zero data loss. The mitigation is included in the stability-closeout change set.
 
 ## Current authorization
 
 **No new product feature PR is currently authorized.**
 
-The next step is Phase 4 documentation/stability closeout, followed by fresh planning for the next phase. Do not begin a new feature from roadmap candidates alone.
+Phase 4 documentation/stability closeout is complete. The next step is explicit Project Owner selection of the next phase/objective, followed by a new locked `11_ACTIVE_PR_SPEC.md` before any implementation begins.
 
 ## Business constraint
 

@@ -1,6 +1,6 @@
 # IronLog Roadmap & PR Ledger
 
-**Documentation version:** v3.2  
+**Documentation version:** v3.4  
 **As of:** 2026-08-15
 
 ## Purpose
@@ -72,7 +72,7 @@ The merged PR intentionally excluded Drive browsing/history, synchronization, sc
 The fix calculates live elapsed duration for active sessions while retaining persisted duration for completed sessions. Verification recorded 7/7 connected tests, a successful debug build, and manual emulator verification.
 
 ### Connected-test data-safety mitigation
-**Status: VERIFIED / IN CLOSEOUT**
+**Status: VERIFIED / CLOSED**
 
 Development instrumentation testing was found to remove the production package after a connected test run, which could wipe the local Room database on a data-bearing emulator.
 
@@ -93,9 +93,11 @@ This is a development/test-environment safeguard and is not a product feature.
 
 ## Phase 4 closeout state
 
-**Current:** documentation and stability closeout.
+**Status: COMPLETE / VERIFIED.**
 
-No new feature PR is authorized by this ledger. After closeout, the next phase/PR must be selected explicitly by the Project Owner and recorded in `11_ACTIVE_PR_SPEC.md` before implementation.
+PR4.5, the workout-duration stability fix, and the connected-test data-safety mitigation are complete. The canonical Project Resource stack has been reconciled and audited, and the temporary closeout marker has been removed.
+
+No new feature PR is authorized by this ledger. The next phase/objective must be selected explicitly by the Project Owner and recorded in `11_ACTIVE_PR_SPEC.md` before implementation.
 
 ## Phase 4 future candidates
 
@@ -150,6 +152,6 @@ Do not invent calendar deadlines. Future items remain CANDIDATE/PLANNED/TBD/INFE
 
 ## Current Orientation
 
-**Completed:** PR4.1 → PR4.2 → PR4.3 → PR4.4 → PR4.5 → stability fix #32  
-**Current:** Phase 4 documentation/stability closeout  
-**Next:** TBD; choose only after closeout and explicit Project Owner approval.
+**Completed:** PR4.1 → PR4.2 → PR4.3 → PR4.4 → PR4.5 → stability fix #32 → Phase 4 closeout  
+**Current:** clean Phase 4 baseline; no active PR  
+**Next:** TBD; choose only after explicit Project Owner approval.

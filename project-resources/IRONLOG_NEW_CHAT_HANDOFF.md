@@ -1,6 +1,6 @@
 # IronLog — New Chat Handoff
 
-**Handoff version:** v3.2
+**Handoff version:** v3.4
 **As of:** 2026-08-15
 **Purpose:** Make a fresh chat inside the IronLog project immediately productive without relying on prior conversation memory.
 
@@ -18,13 +18,15 @@ If GitHub is connected, fetch `/project-resources/` from the repository and trea
 
 ## 2. Current verified baseline
 
-- Phase 4 — Backup & Recovery / stability closeout.
+- Phase 4 — Backup & Recovery / stability closeout COMPLETE.
 - PR4.1 — MERGED / VERIFIED.
 - PR4.2 — MERGED / VERIFIED.
 - PR4.3 — MERGED / VERIFIED.
 - PR4.4 / GitHub #29 — MERGED / VERIFIED.
 - PR4.5 / GitHub #31 — MERGED / VERIFIED.
 - GitHub #32 — workout finish confirmation duration — MERGED / VERIFIED.
+- Connected-test data-safety mitigation — VERIFIED / CLOSED.
+- Phase 4 documentation/stability closeout — VERIFIED / CLOSED.
 - No new feature PR is currently authorized.
 
 ## 3. PR4.5 completed boundary
@@ -133,4 +135,4 @@ Do not duplicate documentation maintenance through Gemini when ChatGPT has conne
 
 ## 10. Exact next action
 
-Complete and merge the Phase 4 documentation/stability closeout, run the three-pass Project Resource audit, verify the canonical stack, and then wait for explicit Project Owner selection of the next phase/PR before implementation.
+Phase 4 closeout is complete. Wait for explicit Project Owner selection of the next phase/PR. Once selected, create a locked `11_ACTIVE_PR_SPEC.md` with objective, scope, non-goals, risks, acceptance criteria, and verification plan before implementation.
