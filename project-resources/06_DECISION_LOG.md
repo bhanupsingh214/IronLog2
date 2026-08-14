@@ -1,6 +1,6 @@
 # IronLog — Decision Log
 
-**Documentation version:** v3.1
+**Documentation version:** v3.2  
 **As of:** 2026-08-14
 
 ## Durable Decisions
@@ -49,6 +49,21 @@ Project Resources are maintained in the repository under `/project-resources/` s
 
 ### D029 — Fresh-chat continuity must be repository-first
 A new chat should read the canonical resource stack and verify current repository/GitHub state before implementation reasoning. Conversation memory is continuity aid, not authority.
+
+### D030 — Gemini audit is an implementation-readiness evidence gate
+For meaningful PRs, Gemini must perform an audit-only repository inspection before implementation. ChatGPT reconciles that audit against the repository and locked PR. An audit finding does not become an implementation requirement until it is reconciled; material changes require the appropriate Project Owner approval.
+
+**Reason:** the implementing agent can identify implementation-specific API, dependency, test, and source-level risks that should be caught before code changes begin, while preserving Project Owner authority and preventing unverified agent recommendations from becoming project truth.
+
+### D031 — PR4.5 account-binding mechanism must be API-verified
+PR4.5 requires active Google identity / Drive authorization consistency, but no specific account-binding API call is pre-approved until verified against the exact installed Google Identity Services library/API. Agent-proposed method signatures are not authoritative.
+
+**Reason:** the Gemini audit correctly identified the account-binding requirement but proposed a specific API call that must be validated against the actual dependency contract before implementation.
+
+### D032 — PR4.5 uses focused cloud-backup discovery
+PR4.5 does not introduce a general `listBackups()`/backup-history API by default. Cloud discovery should locate the current IronLog backup using the established deterministic identity/filename behavior unless the actual approved UX proves broader listing necessary.
+
+**Reason:** a generalized backup-history/listing capability would expand the PR beyond the approved cloud-restore objective without a demonstrated requirement.
 
 ## Decision Change Rule
 
