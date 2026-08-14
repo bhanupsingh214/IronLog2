@@ -33,6 +33,7 @@ fun ProfileScreen(
     val accountState by viewModel.accountState.collectAsState()
     val accountError by viewModel.accountError.collectAsState()
     val cloudState by viewModel.cloudState.collectAsState()
+    val cloudRestoreState by viewModel.cloudRestoreState.collectAsState()
     val exportState by viewModel.exportState.collectAsState()
     val importState by viewModel.importState.collectAsState()
 
@@ -232,6 +233,15 @@ fun ProfileScreen(
                 enabled = isCloudAuthorized
             )
 
+            SettingsClickItem(
+                title = "Restore from Google Drive",
+                subtitle = if (isCloudAuthorized) "Download and restore latest backup" else "Authorize Drive to enable cloud restore",
+                onClick = { viewModel.startCloudRestore(context) },
+                icon = Icons.Default.CloudDownload,
+                loading = cloudRestoreState is CloudRestoreState.Loading,
+                enabled = isCloudAuthorized
+            )
+
             if (exportState is ExportState.Error) {
                 ErrorMessage((exportState as ExportState.Error).message)
             }
@@ -242,6 +252,14 @@ fun ProfileScreen(
 
             if (cloudState is CloudBackupState.Error) {
                 ErrorMessage((cloudState as CloudBackupState.Error).message)
+            }
+
+            if (cloudRestoreState is CloudRestoreState.Error) {
+                ErrorMessage((cloudRestoreState as CloudRestoreState.Error).message)
+            }
+
+            if (cloudRestoreState is CloudRestoreState.NoBackup) {
+                ErrorMessage("No cloud backup found")
             }
 
             if (importState is ImportState.Success) {

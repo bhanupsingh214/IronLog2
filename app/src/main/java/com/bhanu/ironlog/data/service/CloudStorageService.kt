@@ -5,5 +5,6 @@ import java.io.File
 
 interface CloudStorageService {
     suspend fun uploadBackup(file: File): CloudResult<Unit>
+    suspend fun downloadBackup(fileName: String, targetFile: File): CloudResult<Unit>
     suspend fun isAuthorized(): Boolean
 }

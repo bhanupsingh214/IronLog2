@@ -17,7 +17,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
-import java.io.File as JavaFile
+import java.io.File
+import java.io.FileOutputStream
 
 @Singleton
 class GoogleDriveServiceImpl @Inject constructor(
@@ -41,7 +42,7 @@ class GoogleDriveServiceImpl @Inject constructor(
         return accountRepository.getAccessToken() != null
     }
 
-    override suspend fun uploadBackup(file: JavaFile): CloudResult<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun uploadBackup(file: File): CloudResult<Unit> = withContext(Dispatchers.IO) {
         try {
             val drive = getDriveService() ?: return@withContext CloudResult.Error("Google Drive is not authorized")
 
@@ -73,6 +74,32 @@ class GoogleDriveServiceImpl @Inject constructor(
             CloudResult.Success(Unit)
         } catch (e: Exception) {
             CloudResult.Error(e.message ?: "Cloud upload failed", e)
+        }
+    }
+
+    override suspend fun downloadBackup(fileName: String, targetFile: File): CloudResult<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val drive = getDriveService() ?: return@withContext CloudResult.Error("Google Drive is not authorized")
+
+            // 1. Search for the backup file
+            val fileList: FileList = drive.files().list()
+                .setSpaces("appDataFolder")
+                .setQ("name = '$fileName' and trashed = false")
+                .execute()
+
+            val files = fileList.files
+            val backupFile = files?.firstOrNull() ?: return@withContext CloudResult.Error("No cloud backup found")
+            val fileId = (backupFile as GenericData).get("id").toString()
+
+            // 2. Download the file
+            FileOutputStream(targetFile).use { outputStream ->
+                drive.files().get(fileId)
+                    .executeMediaAndDownloadTo(outputStream)
+            }
+
+            CloudResult.Success(Unit)
+        } catch (e: Exception) {
+            CloudResult.Error(e.message ?: "Cloud download failed", e)
         }
     }
 }

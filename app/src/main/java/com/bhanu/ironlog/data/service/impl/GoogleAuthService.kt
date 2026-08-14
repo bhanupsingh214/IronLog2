@@ -1,5 +1,6 @@
 package com.bhanu.ironlog.data.service.impl
 
+import android.accounts.Account
 import android.content.Context
 import android.content.Intent
 import androidx.credentials.CredentialManager
@@ -67,8 +68,10 @@ class GoogleAuthService @Inject constructor(
      */
     suspend fun checkDriveAuthorization(): CloudResult<AuthorizationResult> {
         return try {
+            val email = preferenceStorage.getUserEmailOnce() ?: return CloudResult.Error("No signed-in Google account")
             val request = AuthorizationRequest.builder()
                 .setRequestedScopes(listOf(Scope(DriveScopes.DRIVE_APPDATA)))
+                .setAccount(Account(email, "com.google"))
                 .build()
 
             val result = authorizationClient.authorize(request).await()
@@ -88,8 +91,10 @@ class GoogleAuthService @Inject constructor(
      */
     suspend fun authorizeDrive(): CloudResult<AuthorizationResult> {
         return try {
+            val email = preferenceStorage.getUserEmailOnce() ?: return CloudResult.Error("No signed-in Google account")
             val request = AuthorizationRequest.builder()
                 .setRequestedScopes(listOf(Scope(DriveScopes.DRIVE_APPDATA)))
+                .setAccount(Account(email, "com.google"))
                 .build()
 
             val result = authorizationClient.authorize(request).await()
