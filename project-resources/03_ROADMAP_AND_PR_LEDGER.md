@@ -1,7 +1,7 @@
 # IronLog Roadmap & PR Ledger
 
-**Documentation version:** v3.1  
-**As of:** 2026-08-14
+**Documentation version:** v3.2  
+**As of:** 2026-08-15
 
 ## Purpose
 
@@ -44,42 +44,58 @@ Verified:
 
 Cloud download/restore was intentionally excluded from PR4.4.
 
-## Current PR — PR4.5
-
 ### PR4.5 — Google Drive Cloud Restore
-**Status: APPROVED / PLANNED**
+**Status: MERGED / VERIFIED**
 
-**Locked objective:** download the user's IronLog `.ironlog` backup from Google Drive `appDataFolder` and restore it through the established validation/import/restore pipeline.
+GitHub PR #31:
+- Head commit: `806f09e694699511d4c1ae11fcf11689b4b47df5`
+- Merge commit: `6317c2f2c3aa12e56709d5b62cf600e8f1bca7d4`
 
-**Locked architecture:**
-```text
-Google Drive
-→ locate `.ironlog`
-→ controlled download/staging
-→ existing validation/import boundary
-→ existing restore transaction
-→ Room
+Verified in the merged PR record:
+- JVM test suite;
+- clean debug build;
+- connected Android tests with 5 tests passing;
+- real-emulator Google Drive restore flow, including backup metadata confirmation and restore flow;
+- File-based backup validation instrumentation coverage;
+- no schema/migration change.
+
+The merged PR intentionally excluded Drive browsing/history, synchronization, scheduled restore, backup-format redesign, and schema redesign.
+
+## Phase 4 stability closeout
+
+### GitHub #32 — Workout finish confirmation duration
+**Status: MERGED / VERIFIED**
+
+- Head commit: `8dc08ce1b426f681a9e97afc43c5fa751f0f8521`
+- Merge commit: `eb3bcf34aeb656528b835a4d5fb2c46cb478109e`
+
+The fix calculates live elapsed duration for active sessions while retaining persisted duration for completed sessions. Verification recorded 7/7 connected tests, a successful debug build, and manual emulator verification.
+
+### Connected-test data-safety mitigation
+**Status: VERIFIED / IN CLOSEOUT**
+
+Development instrumentation testing was found to remove the production package after a connected test run, which could wipe the local Room database on a data-bearing emulator.
+
+Mitigation:
+```properties
+android.injected.androidTest.leaveApksInstalledAfterRun=true
 ```
 
-**Locked safety requirements:**
-- validate before destructive mutation;
-- preserve transactional replacement;
-- preserve FK enforcement;
-- preserve identity resolution;
-- do not create a second restore engine;
-- verify signed-in account / Drive authorization consistency.
+Verification:
+- 7/7 connected tests passed;
+- production package remained installed;
+- Programs and History remained present;
+- weekly-volume baseline remained intact;
+- manual smoke test passed;
+- data loss was zero.
 
-**Locked non-goals:**
-- Drive browsing/folder management;
-- multiple backup history UI;
-- scheduled/automatic restore;
-- cloud synchronization;
-- backup-format redesign;
-- schema/database redesign;
-- centralized IronLog storage;
-- unrelated UI/analytics work.
+This is a development/test-environment safeguard and is not a product feature.
 
-**Implementation authorization:** granted in `11_ACTIVE_PR_SPEC.md`.
+## Phase 4 closeout state
+
+**Current:** documentation and stability closeout.
+
+No new feature PR is authorized by this ledger. After closeout, the next phase/PR must be selected explicitly by the Project Owner and recorded in `11_ACTIVE_PR_SPEC.md` before implementation.
 
 ## Phase 4 future candidates
 
@@ -92,7 +108,7 @@ Possible future work:
 - broader retry/recovery UX;
 - lifecycle features not required by PR4.5.
 
-These are not part of PR4.5 unless separately approved.
+These are not authorized without a new decision.
 
 ## Phase 5 candidates
 
@@ -134,6 +150,6 @@ Do not invent calendar deadlines. Future items remain CANDIDATE/PLANNED/TBD/INFE
 
 ## Current Orientation
 
-**Completed:** PR4.1 → PR4.2 → PR4.3 → PR4.4  
-**Current:** PR4.5 — APPROVED / PLANNED  
-**Next after PR4.5:** TBD; select only after PR4.5 is merged and resources are refreshed.
+**Completed:** PR4.1 → PR4.2 → PR4.3 → PR4.4 → PR4.5 → stability fix #32  
+**Current:** Phase 4 documentation/stability closeout  
+**Next:** TBD; choose only after closeout and explicit Project Owner approval.
