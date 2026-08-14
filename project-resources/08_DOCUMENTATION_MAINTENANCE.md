@@ -1,7 +1,7 @@
 # IronLog — Documentation Maintenance Protocol
 
-**Documentation version:** v3.2
-**As of:** 2026-08-14
+**Documentation version:** v3.3
+**As of:** 2026-08-15
 
 ## 1. Purpose
 
@@ -62,7 +62,26 @@ Update resources after:
 
 Do not update docs merely because an idea was discussed or because an agent proposed an unreviewed possibility.
 
-## 6. Three-pass audit
+## 6. Documentation ownership workflow
+
+Canonical Project Resource maintenance belongs to **ChatGPT** when connected GitHub access is available.
+
+Normal workflow:
+
+```text
+Gemini implementation/evidence
+→ Project Owner runtime verification
+→ ChatGPT reconciliation against Git/GitHub
+→ ChatGPT updates affected Project Resources
+→ ChatGPT three-pass audit
+→ Project Owner final acceptance / merge lifecycle
+```
+
+Gemini should not independently perform documentation closeout, create documentation commits, push documentation changes, merge PRs, or delete branches unless the Project Owner explicitly delegates a specific exception.
+
+This separation prevents duplicate documentation work and conflicting project-state updates. A Gemini report is evidence to be reviewed, not a canonical resource update.
+
+## 7. Three-pass audit
 
 ### Pass 1 — Individual-file correctness
 Check:
@@ -95,7 +114,7 @@ Verify:
 - no competing authority claims;
 - no old active-state text.
 
-## 7. Conflict protocol
+## 8. Conflict protocol
 
 If a resource conflicts with code:
 1. stop implementation based on the conflicting claim;
@@ -114,13 +133,13 @@ If a Gemini audit conflicts with the active PR or resources:
 5. update the active PR specification only after the required Owner decision;
 6. re-run the relevant risk/mitigation/verification review.
 
-## 8. Historical preservation
+## 9. Historical preservation
 
 Do not rewrite historical facts to make them look current.
 
 Use `HISTORICAL` where needed and explain replacements when durable decisions change.
 
-## 9. Fresh-chat continuity standard
+## 10. Fresh-chat continuity standard
 
 A fresh chat should be able to determine:
 - what IronLog is;
@@ -137,13 +156,13 @@ A fresh chat should be able to determine:
 
 If a new chat cannot determine these without conversation history, the resource stack is incomplete.
 
-## 10. Repository migration rule
+## 11. Repository migration rule
 
 Project Resources are now intended to live in GitHub under `/project-resources/`.
 
 The old repository documentation was legacy and was audited during migration. Unique useful information must be preserved or explicitly retired before deletion.
 
-## 11. Agent-audit evidence rule
+## 12. Agent-audit evidence rule
 
 Gemini audits are working artifacts unless their conclusions are deliberately incorporated into a durable resource.
 
@@ -166,13 +185,13 @@ The audit should distinguish:
 
 Do not copy an audit wholesale into Project Resources. Promote only reviewed, durable conclusions to the appropriate canonical document.
 
-## 12. Post-merge closeout
+## 13. Post-merge closeout
 
 ```text
 merge confirmed
 → runtime/build/Git evidence verified
 → Gemini implementation report reviewed
-→ affected resources updated
+→ ChatGPT updates affected resources
 → decisions recorded
 → active PR reset/advanced
 → three-pass audit

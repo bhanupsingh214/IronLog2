@@ -1,8 +1,8 @@
 # IronLog — Project Resource Index
 
-**Documentation version:** v3.1
+**Documentation version:** v3.2
 **Canonical location:** `/project-resources/`
-**As of:** 2026-08-14
+**As of:** 2026-08-15
 **Purpose:** Canonical continuity and governance index for planning, implementation, verification, release, and fresh-chat handoff.
 
 ## Canonical resource set
@@ -91,11 +91,13 @@ No implementation may begin from a candidate, conversation statement, or roadmap
 After a meaningful merge:
 1. verify actual Git/GitHub state;
 2. verify runtime behavior where required;
-3. update affected resources;
+3. ChatGPT updates affected canonical resources through the connected GitHub workflow;
 4. record durable decisions;
 5. close/reset active PR state;
 6. run the three-pass documentation audit;
 7. verify canonical-stack integrity.
+
+Gemini implementation reports are evidence for this process, not a substitute for canonical documentation maintenance.
 
 ## Repository source
 
