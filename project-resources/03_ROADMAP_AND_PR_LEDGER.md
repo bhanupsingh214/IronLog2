@@ -1,6 +1,6 @@
 # IronLog Roadmap & PR Ledger
 
-**Documentation version:** v3.4  
+**Documentation version:** v3.5  
 **As of:** 2026-08-15
 
 ## Purpose
@@ -97,8 +97,6 @@ This is a development/test-environment safeguard and is not a product feature.
 
 PR4.5, the workout-duration stability fix, and the connected-test data-safety mitigation are complete. The canonical Project Resource stack has been reconciled and audited, and the temporary closeout marker has been removed.
 
-No new feature PR is authorized by this ledger. The next phase/objective must be selected explicitly by the Project Owner and recorded in `11_ACTIVE_PR_SPEC.md` before implementation.
-
 ## Phase 4 future candidates
 
 ### Candidate — Cloud Backup Lifecycle Hardening
@@ -110,15 +108,28 @@ Possible future work:
 - broader retry/recovery UX;
 - lifecycle features not required by PR4.5.
 
-These are not authorized without a new decision.
+These remain unapproved.
 
-## Phase 5 candidates
+## Phase 5
 
 ### Phase 5A — Progress & History Presentation
-**Status: CANDIDATE / NOT APPROVED**
-- Body Progress;
-- fitness timeline;
-- monthly/yearly recap.
+**Status: OBJECTIVE APPROVED / PLANNING LOCKED / IMPLEMENTATION PENDING FINAL SPEC APPROVAL**
+
+Approved objective:
+- improve presentation of existing workout/history data;
+- investigate Body Progress;
+- investigate fitness timeline;
+- investigate monthly/yearly recap.
+
+Planning constraints:
+- deterministic/local calculations preferred;
+- no LLM/AI dependency for ordinary progress analysis;
+- no backend/cloud analytics service;
+- no unnecessary recurring infrastructure cost;
+- no workout logging, backup/restore, Goals/Engagement, or AI Coach redesign;
+- no schema migration unless repository audit proves it is necessary and the Owner separately approves it.
+
+The locked implementation specification is maintained in `11_ACTIVE_PR_SPEC.md`. The repository audit must determine the exact final scope before source-code implementation is authorized.
 
 ### Phase 5B — Goals & Engagement
 **Status: CANDIDATE / NOT APPROVED**
@@ -153,5 +164,5 @@ Do not invent calendar deadlines. Future items remain CANDIDATE/PLANNED/TBD/INFE
 ## Current Orientation
 
 **Completed:** PR4.1 → PR4.2 → PR4.3 → PR4.4 → PR4.5 → stability fix #32 → Phase 4 closeout  
-**Current:** clean Phase 4 baseline; no active PR  
-**Next:** TBD; choose only after explicit Project Owner approval.
+**Current:** Phase 5A objective approved; repository audit/spec refinement in progress; implementation not yet authorized  
+**Next:** finalize Phase 5A scope and acceptance criteria from current repository evidence, then obtain final implementation approval.
