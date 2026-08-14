@@ -1,9 +1,9 @@
 # IronLog — Active PR Specification
 
-**Documentation version:** v3.1
-**As of:** 2026-08-14
-**Status:** APPROVED / PLANNED
-**Current PR:** PR4.5
+**Documentation version:** v3.3  
+**As of:** 2026-08-14  
+**Status:** APPROVED / IMPLEMENTATION READY  
+**Current PR:** PR4.5  
 **Implementation authorization:** APPROVED by Project Owner
 
 ## 1. PR Identity
@@ -14,28 +14,43 @@
 
 ## 2. Approval State
 
-The Project Owner approved proceeding with this PR after repository/resource feasibility review, restore-safety review, cloud/account boundary review, and scope/risk/acceptance/verification review.
+The Project Owner approved proceeding with this PR after:
+- repository/resource feasibility review;
+- restore-safety review;
+- cloud/account boundary review;
+- scope/risk/acceptance/verification review;
+- ChatGPT repository pre-flight audit;
+- Gemini implementation-readiness audit;
+- reconciliation of the two audits against the current repository.
+
+**Gemini verdict:** `READY WITH CHANGES`. The required changes have been reconciled below and are now part of the locked implementation plan.
 
 This document authorizes implementation only within the locked scope below.
 
 ## 3. Locked Architecture
 
 ```text
-Signed-in + Drive-authorized user
+Signed-in Google identity
+        ↓
+verified Drive authorization for the active identity
         ↓
 Google Drive appDataFolder
         ↓
-locate current IronLog `.ironlog`
+locate the current IronLog `.ironlog`
         ↓
 download to controlled temporary/local representation
         ↓
-existing backup validation/import boundary
+common backup validation/parsing boundary
         ↓
 BackupPayload
         ↓
 existing RestoreRepository / restore transaction
         ↓
 restored Room database
+        ↓
+refresh UI
+        ↓
+cleanup temporary artifact
 ```
 
 Rules:
@@ -47,11 +62,12 @@ Rules:
 6. Do not create a cloud-specific second restore implementation.
 7. Do not require user-visible Drive browsing.
 8. Stage the download rather than unnecessarily buffering the entire archive in memory.
-9. Exact source signatures must be verified before implementation; do not invent APIs from this specification.
+9. Exact source signatures and library APIs must be verified from the repository before use; do not invent APIs from this specification or from an agent recommendation.
+10. A Gemini audit finding is evidence, not authority; only reconciled/approved decisions in this specification authorize implementation.
 
 ## 4. Input Boundary Decision
 
-The local import flow is URI-oriented. PR4.5 must support a cloud-downloaded artifact without duplicating validation logic.
+The current local import flow is URI-oriented. PR4.5 must support a cloud-downloaded artifact without duplicating validation logic.
 
 Preferred direction:
 
@@ -61,11 +77,13 @@ Local URI ───────────────┐
 Downloaded cloud file ──┘
 ```
 
-The exact source-level abstraction is **TBD until repository inspection**. Preserve existing restore semantics.
+The exact source-level abstraction is an implementation detail to verify against the current repository. A small `File`/stream adapter is acceptable if it preserves one validation implementation. Do not create separate cloud validation/checksum/version logic.
 
 ## 5. Account / Authorization Safety
 
-Before cloud restore is allowed, establish that the active Drive authorization is valid for the current signed-in account.
+This is a **high-priority correctness/security requirement** identified independently by both audits.
+
+Before cloud restore is allowed, establish that the active Drive authorization is valid for the current signed-in Google identity.
 
 Required lifecycle cases:
 - Account A sign-in → authorize Drive → restore A backup;
@@ -74,17 +92,28 @@ Required lifecycle cases:
 - no signed-in account cannot enter cloud restore;
 - no valid Drive authorization cannot enter cloud restore.
 
-If current code cannot establish this safely, the correctness/security fix is in scope for PR4.5.
+### Implementation constraint
+
+Gemini proposed using `AuthorizationRequest` account binding via a specific `setAccount(...)` call. **That exact API recommendation is not pre-approved.** Before coding, verify the supported account-binding mechanism for the exact installed Google Identity Services library/API used by the repository.
+
+The requirement is approved; the exact mechanism is not. Do not invent or assume a method signature.
+
+If current code cannot establish account/authorization consistency safely, the correctness/security fix is in scope for PR4.5.
 
 ## 6. Cloud Backup Discovery
 
 Use the established PR4.4 cloud-storage boundary.
 
 Expected behavior:
-- locate the IronLog backup in `appDataFolder`;
+- locate the current IronLog backup in `appDataFolder`;
 - use deterministic backup identity/filename behavior where current code confirms it;
 - do not add a general Drive browser;
-- do not search arbitrary user Drive folders.
+- do not search arbitrary user Drive folders;
+- do not introduce a general backup-history/version-management feature.
+
+### API scope decision
+
+Gemini suggested a general `listBackups()` DTO. That is **not required or approved by default**. Prefer a focused operation that locates the current IronLog backup and provides the minimum metadata needed by the restore UX. A broader listing API may be introduced only if the actual UI/implementation proves it necessary, and any scope expansion must be classified under the scope-change rule.
 
 No backup → clear non-destructive state; local database unchanged.
 
@@ -92,9 +121,11 @@ No backup → clear non-destructive state; local database unchanged.
 
 - Download to controlled temporary/local representation.
 - Do not mutate the database during download.
+- Stream to the target file where the Drive API supports it; avoid unnecessary whole-file memory buffering.
 - Download failure leaves local data unchanged.
-- Clean temporary artifacts after success/failure where practical.
 - A partial artifact must never reach restore mutation.
+- Clean temporary artifacts after success/failure using structured cleanup (`use`/`try-finally` or equivalent).
+- Validate the completed artifact before invoking the restore transaction.
 
 ## 8. Validation / Restore Safety
 
@@ -111,7 +142,7 @@ Only then invoke the established restore path. Preserve ID remapping, canonical 
 
 ### In scope
 - Google Drive cloud-backup discovery;
-- download of the user's `.ironlog` artifact;
+- download of the user's current `.ironlog` artifact;
 - safe temporary/local staging;
 - reuse of existing validation/import/restore behavior;
 - minimal input-boundary refactoring required for reuse;
@@ -120,17 +151,19 @@ Only then invoke the established restore path. Preserve ID remapping, canonical 
 - account-switch/authorization protection required for correctness;
 - network/download failure handling;
 - empty and populated database regression coverage;
-- local import/export regression protection.
+- local import/export regression protection;
+- correctness-critical authorization/account handling required to safely perform restore.
 
 ### Explicit non-goals
 - user-visible Drive browsing;
 - arbitrary Drive file/folder management;
 - multiple cloud backup history/version browser;
+- generalized cloud backup listing unless proven necessary for the locked UX;
 - scheduled/automatic restore;
 - automatic restore;
 - cloud synchronization;
 - backup-format redesign;
-- schema/database redesign;
+- schema/database redesign unless a previously unknown correctness requirement proves it necessary;
 - centralized IronLog cloud storage;
 - unrelated UI redesign;
 - unrelated analytics;
@@ -139,17 +172,18 @@ Only then invoke the established restore path. Preserve ID remapping, canonical 
 
 ## 10. Material Risks and Mitigations
 
-| Risk | Likelihood | Impact | Mitigation | Verification |
-|---|---|---|---|---|
-| Wrong account/authorization used | Medium | High | Verify active account and Drive authorization consistency | Real-device A→B tests |
-| Corrupt/partial artifact reaches restore | Medium | High | Stage and fully validate before mutation | Corrupt/truncated tests |
-| Data destroyed before validation | Low | Critical | No destructive call before validation succeeds | Populated DB failure tests |
-| Cloud path duplicates restore logic | Medium | Medium | Reuse common parser/import + RestoreRepository | Code review + regression |
-| Populated restore duplicates data | Low | High | Preserve PR4.3 replacement behavior | Populated restore test |
-| Authorization revoked/expired | Medium | Medium | Fail safely and require valid authorization | Runtime auth-failure test |
-| No cloud backup | Medium | Low | Explicit non-destructive state | No-backup test |
-| Large backup memory pressure | Medium | Medium | Controlled staging/streaming | Large-backup inspection/test |
-| Documentation/source mismatch | Medium | High | Inspect repository signatures before coding | Pre-flight source audit |
+| Risk | Likelihood | Impact | Mitigation | Verification | Residual risk |
+|---|---|---|---|---|---|
+| Wrong account/authorization used | Medium | High | Verify active identity and Drive authorization consistency; reject ambiguous/stale authorization | Real-device A→B tests; revoked/expired auth test | Must depend on supported Google authorization semantics |
+| Corrupt/partial artifact reaches restore | Medium | High | Stage download and fully validate before mutation | Corrupt/truncated tests | Low after validation gate |
+| Data destroyed before validation | Low | Critical | No destructive call before validation succeeds | Populated DB failure tests | Low |
+| Cloud path duplicates restore logic | Medium | Medium | Reuse common parser/import + existing RestoreRepository | Code review + regression | Low |
+| Populated restore duplicates data | Low | High | Preserve PR4.3 replacement behavior | Populated restore test | Low |
+| Authorization revoked/expired | Medium | Medium | Detect failure and require valid authorization | Runtime auth-failure test | Low/Medium |
+| No cloud backup | Medium | Low | Explicit non-destructive state | No-backup test | Low |
+| Large backup memory pressure | Medium | Medium | Controlled file/stream staging; inspect parser behavior | Large-backup inspection/test | Parser still reads required payload structures |
+| API/account-binding assumption is wrong | Medium | High | Verify exact installed API/library contract before coding | Source/API inspection + build | Low after verification |
+| Documentation/source mismatch | Medium | High | Repository source outranks prose; stop and reconcile material discrepancies | Pre-flight + Gemini audit | Low |
 
 ## 11. Acceptance Criteria
 
@@ -159,14 +193,16 @@ Only then invoke the established restore path. Preserve ID remapping, canonical 
 - [ ] Backup downloads without modifying database.
 - [ ] No-backup state is clear and non-destructive.
 - [ ] Download/network failure leaves local data unchanged.
+- [ ] Partial/failed downloads are not passed to validation/restore.
 
 ### Validation
-- [ ] Cloud artifact uses established validation/import path.
+- [ ] Cloud artifact uses the established validation/import path.
 - [ ] Malformed archive rejected.
 - [ ] Missing required components rejected.
 - [ ] Unsupported version rejected.
 - [ ] Integrity/checksum failure rejected.
 - [ ] Validation failure leaves existing data unchanged.
+- [ ] Local URI import and cloud-file input share one validation implementation.
 
 ### Restore
 - [ ] Clear confirmation precedes replacement.
@@ -182,6 +218,7 @@ Only then invoke the established restore path. Preserve ID remapping, canonical 
 - [ ] A sign-out → B sign-in cannot reuse stale A authorization.
 - [ ] Revoked/expired authorization fails safely.
 - [ ] Restore unavailable without valid signed-in/authorized state.
+- [ ] Exact account-binding mechanism is supported by the installed library/API and verified before implementation is considered complete.
 
 ### Regression
 - [ ] Local picker import still works.
@@ -191,16 +228,25 @@ Only then invoke the established restore path. Preserve ID remapping, canonical 
 
 ## 12. Verification Plan
 
-### Pre-implementation source audit
-- [ ] verify clean working tree and intended base;
-- [ ] inspect PR4.4 cloud/account code;
-- [ ] inspect `ImportService`;
-- [ ] inspect `RestoreRepository`;
-- [ ] inspect current UI/ViewModel restore flow;
-- [ ] inspect schema/migrations;
-- [ ] confirm exact source signatures;
-- [ ] confirm account/authorization lifecycle;
-- [ ] confirm no schema change is required.
+### Pre-implementation source audit — completed
+- [x] inspected PR4.4 cloud/account code;
+- [x] inspected `ImportService`;
+- [x] inspected `RestoreRepository`;
+- [x] inspected current UI/ViewModel direction;
+- [x] inspected schema/migration requirement at planning level;
+- [x] confirmed cloud download capability is new work;
+- [x] confirmed URI/File boundary issue;
+- [x] identified account/authorization consistency risk;
+- [x] ChatGPT audit completed;
+- [x] Gemini audit completed;
+- [x] audits reconciled.
+
+### Implementation rules
+- [ ] verify exact Google Identity Services account-binding API before editing auth code;
+- [ ] verify exact Drive download API signature before editing cloud service;
+- [ ] verify exact importer abstraction before refactoring `ImportService`;
+- [ ] verify no schema/migration change is required;
+- [ ] keep implementation within locked scope.
 
 ### Repository checks
 ```powershell
@@ -224,7 +270,29 @@ Required scenarios are tracked in `10_FEATURE_REGRESSION_MATRIX.md`.
 ### Evidence rule
 Do not mark PASS from code inspection alone. Runtime claims require emulator/device evidence.
 
-## 13. Scope-Change Rule
+## 13. Gemini Audit Record
+
+**Audit:** PR4.5 Cloud Restore — Comprehensive Audit Report  
+**Auditor:** Gemini  
+**Result:** `READY WITH CHANGES`
+
+### Accepted findings
+- cloud interface requires retrieval capability;
+- account/authorization consistency is a high-priority risk;
+- downloaded cloud artifact needs a safe file/stream input boundary;
+- temporary artifact cleanup is required;
+- cloud restore UI/state must be added;
+- download, corruption, checksum, authorization, account-switch, and restore regressions require testing.
+
+### Reconciled / constrained findings
+- General `listBackups()` is not approved by default; use focused current-backup discovery unless UX proves broader listing necessary.
+- The proposed exact `setAccount(Account(email, "com.google"))` call is not approved without verifying the installed API/library contract. The requirement is account consistency, not a preselected method signature.
+- Memory pressure is a secondary risk; avoid unnecessary buffering, but do not redesign the backup format or parser without evidence.
+
+### Final implementation-readiness decision
+**READY FOR IMPLEMENTATION**, subject to the implementation rules above. No further audit is required before coding unless implementation reveals a material discrepancy.
+
+## 14. Scope-Change Rule
 
 Classify discoveries as:
 - required for PR4.5;
@@ -236,7 +304,9 @@ Classify discoveries as:
 
 Only the first three may justify implementation changes without a new product decision. Other expansion must be deferred or separately approved.
 
-## 14. Completion
+If implementation reveals a material discrepancy from the Gemini audit, stop and classify it. If it changes correctness, security, architecture, scope, or acceptance criteria, update this specification and obtain required Owner approval before continuing.
+
+## 15. Completion
 
 After merge:
 1. verify merged Git state;
@@ -249,6 +319,6 @@ After merge:
 8. reset/advance the active PR state;
 9. run three-pass audit.
 
-## 15. Owner Approval
+## 16. Owner Approval
 
-**Project Owner decision:** APPROVED — proceed with PR4.5 implementation under this locked specification.
+**Project Owner decision:** APPROVED — proceed with PR4.5 implementation under this reconciled specification.
