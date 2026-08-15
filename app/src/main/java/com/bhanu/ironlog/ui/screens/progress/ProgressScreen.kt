@@ -20,8 +20,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bhanu.ironlog.data.local.pojo.PRWithExerciseName
 import com.bhanu.ironlog.data.local.pojo.TrackableExercise
+import com.bhanu.ironlog.data.model.analytics.MuscleGroupCount
 import com.bhanu.ironlog.ui.components.StrengthProgressionChart
-import com.bhanu.ironlog.ui.screens.progress.SelectedExerciseIdentity
 import com.patrykandpatrick.vico.compose.axis.horizontal.rememberBottomAxis
 import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
 import com.patrykandpatrick.vico.compose.chart.Chart
@@ -33,8 +33,6 @@ import com.patrykandpatrick.vico.core.entry.entryModelOf
 import com.patrykandpatrick.vico.core.entry.entryOf
 import java.text.SimpleDateFormat
 import java.util.*
-import com.patrykandpatrick.vico.compose.dimensions.dimensionsOf
-import com.patrykandpatrick.vico.core.component.text.TextComponent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -122,7 +120,7 @@ fun ProgressContent(
         item {
             Text("Overview", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         }
-        
+
         item {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 StatCard(
@@ -158,6 +156,22 @@ fun ProgressContent(
         }
 
         item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("Frequency", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                        Text(String.format(Locale.getDefault(), "%.1f sessions/week", state.summary.weeklyFrequency), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
+                    Icon(Icons.Default.Speed, null, tint = MaterialTheme.colorScheme.secondary)
+                }
+            }
+        }
+
+        item {
             Text("Strength Progress", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         }
 
@@ -189,7 +203,17 @@ fun ProgressContent(
         }
 
         item {
-            VolumeSummaryCard(state.weeklyVolume, state.monthlyVolume)
+            VolumeSummaryCard(state)
+        }
+
+        if (state.muscleDistribution.isNotEmpty()) {
+            item {
+                Text("Training Focus", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+
+            item {
+                MuscleDistributionCard(state.muscleDistribution)
+            }
         }
 
         item {
@@ -267,9 +291,9 @@ fun StrengthChartSection(
                     }
                 }
             }
-            
+
             Spacer(Modifier.height(8.dp))
-            
+
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 SegmentedButton(
                     selected = !isE1RM,
@@ -330,9 +354,9 @@ fun VolumeTrendSection(
                     val entries = history.mapIndexed { index, item ->
                         entryOf(index.toFloat(), item.volume.toFloat())
                     }
-                    
+
                     val model = entryModelOf(entries)
-                    
+
                     Chart(
                         chart = lineChart(),
                         model = model,
@@ -370,17 +394,57 @@ fun StatCard(title: String, value: String, icon: ImageVector, modifier: Modifier
 }
 
 @Composable
-fun VolumeSummaryCard(weekly: Double, monthly: Double) {
+fun VolumeSummaryCard(state: ProgressUiState.Success) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
                     Text("Weekly Volume", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
-                    Text(String.format(Locale.getDefault(), "%,.1f kg", weekly), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(String.format(Locale.getDefault(), "%,.1f kg", state.weeklyVolume), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text("Monthly Volume", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
-                    Text(String.format(Locale.getDefault(), "%,.1f kg", monthly), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(String.format(Locale.getDefault(), "%,.1f kg", state.monthlyVolume), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            val trend = state.summary.monthlyVolumeTrend
+            if (trend.size >= 2) {
+                val last = trend.last()
+                val prev = trend[trend.size - 2]
+                if (prev > 0) {
+                    val percent = ((last - prev) / prev) * 100
+                    val color = if (percent >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                    val arrow = if (percent >= 0) "↑" else "↓"
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = String.format(Locale.getDefault(), "%s %.1f%% vs last month", arrow, kotlin.math.abs(percent)),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = color,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun MuscleDistributionCard(distribution: List<MuscleGroupCount>) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            val maxCount = distribution.maxOf { it.count }
+            distribution.take(6).forEach { muscle ->
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(muscle.muscleGroup, style = MaterialTheme.typography.bodyMedium)
+                        Text("${muscle.count} ex.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                    }
+                    LinearProgressIndicator(
+                        progress = { muscle.count.toFloat() / maxCount },
+                        modifier = Modifier.fillMaxWidth().height(8.dp),
+                        strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                    )
                 }
             }
         }

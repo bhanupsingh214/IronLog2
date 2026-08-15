@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.bhanu.ironlog.data.local.pojo.WorkoutSessionWithStats
+import com.bhanu.ironlog.data.model.analytics.PeriodRecap
 import com.bhanu.ironlog.ui.components.SearchBar
 import com.bhanu.ironlog.ui.components.formatTimer
 import com.bhanu.ironlog.ui.components.formatWorkoutDate
@@ -46,9 +47,11 @@ fun HistoryScreen(
     val selectedDay by viewModel.selectedDay.collectAsState()
     val startDate by viewModel.startDate.collectAsState()
     val endDate by viewModel.endDate.collectAsState()
-    
+
     val workoutsByDay by viewModel.workoutsByDay.collectAsState()
     val currentDate by viewModel.currentDate.collectAsState()
+    val monthRecap by viewModel.currentMonthRecap.collectAsState()
+    val yearRecap by viewModel.currentYearRecap.collectAsState()
 
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("History", "Calendar")
@@ -119,6 +122,8 @@ fun HistoryScreen(
                         CalendarContent(
                             currentDate = currentDate,
                             workoutsByDay = workoutsByDay,
+                            monthRecap = monthRecap,
+                            yearRecap = yearRecap,
                             onMonthChange = { viewModel.onMonthChange(it) },
                             onWorkoutClick = { onNavigateToDetails(it.session.sessionId) }
                         )
@@ -165,7 +170,7 @@ fun HistoryListContent(
                 .fillMaxWidth()
                 .padding(16.dp)
         )
-        
+
         if (history.isEmpty()) {
             EmptyHistoryState(Modifier.weight(1f))
         } else {
@@ -227,9 +232,9 @@ fun HistoryItemWithStats(
                     }
                 }
             }
-            
+
             Spacer(Modifier.height(12.dp))
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -247,7 +252,7 @@ fun HistoryItemWithStats(
                     Text(formatTimer(item.session.durationSeconds), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                 }
             }
-            
+
             Spacer(Modifier.height(8.dp))
             Text(
                 text = formatWorkoutDate(item.session.createdAt),
@@ -263,71 +268,79 @@ fun HistoryItemWithStats(
 fun CalendarContent(
     currentDate: Calendar,
     workoutsByDay: Map<String, List<WorkoutSessionWithStats>>,
+    monthRecap: PeriodRecap?,
+    yearRecap: PeriodRecap?,
     onMonthChange: (Int) -> Unit,
     onWorkoutClick: (WorkoutSessionWithStats) -> Unit
 ) {
     var selectedDayWorkouts by remember { mutableStateOf<List<WorkoutSessionWithStats>?>(null) }
-    
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        // Month Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { onMonthChange(-1) }) {
-                Icon(Icons.Default.ChevronLeft, "Previous Month")
-            }
-            Text(
-                text = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(currentDate.time),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-            IconButton(onClick = { onMonthChange(1) }) {
-                Icon(Icons.Default.ChevronRight, "Next Month")
-            }
-        }
-        
-        Spacer(Modifier.height(16.dp))
-        
-        // Days of Week Header
-        Row(modifier = Modifier.fillMaxWidth()) {
-            val days = listOf("S", "M", "T", "W", "T", "F", "S")
-            days.forEach { day ->
+    var showYearlyRecap by remember { mutableStateOf(false) }
+
+    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        item {
+            // Month Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { onMonthChange(-1) }) {
+                    Icon(Icons.Default.ChevronLeft, "Previous Month")
+                }
                 Text(
-                    text = day,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.outline
+                    text = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(currentDate.time),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
                 )
+                IconButton(onClick = { onMonthChange(1) }) {
+                    Icon(Icons.Default.ChevronRight, "Next Month")
+                }
             }
         }
-        
-        Spacer(Modifier.height(8.dp))
-        
+
+        item { Spacer(Modifier.height(16.dp)) }
+
+        item {
+            // Days of Week Header
+            Row(modifier = Modifier.fillMaxWidth()) {
+                val days = listOf("S", "M", "T", "W", "T", "F", "S")
+                days.forEach { day ->
+                    Text(
+                        text = day,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+            }
+        }
+
+        item { Spacer(Modifier.height(8.dp)) }
+
         // Calendar Grid
         val calendar = currentDate.clone() as Calendar
         calendar.set(Calendar.DAY_OF_MONTH, 1)
         val firstDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
         val daysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-        
+
         val rows = (daysInMonth + firstDayOfWeek - 1 + 6) / 7
         val dayFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        
-        for (row in 0 until rows) {
+
+        items(rows) { row ->
             Row(modifier = Modifier.fillMaxWidth().height(60.dp)) {
                 for (col in 1..7) {
                     val dayNum = row * 7 + col - firstDayOfWeek + 1
                     if (dayNum in 1..daysInMonth) {
-                        calendar.set(Calendar.DAY_OF_MONTH, dayNum)
-                        val dateStr = dayFormat.format(calendar.time)
+                        val cellCal = currentDate.clone() as Calendar
+                        cellCal.set(Calendar.DAY_OF_MONTH, dayNum)
+                        val dateStr = dayFormat.format(cellCal.time)
                         val sessions = workoutsByDay[dateStr] ?: emptyList()
-                        
+
                         CalendarDay(
                             day = dayNum,
                             sessions = sessions,
-                            onClick = { 
+                            onClick = {
                                 if (sessions.isNotEmpty()) {
                                     if (sessions.size == 1) {
                                         onWorkoutClick(sessions[0])
@@ -344,6 +357,34 @@ fun CalendarContent(
                 }
             }
         }
+
+        if (monthRecap != null || yearRecap != null) {
+            item {
+                Spacer(Modifier.height(24.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        if (showYearlyRecap) "Yearly Recap (${currentDate.get(Calendar.YEAR)})"
+                        else "Monthly Recap",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (yearRecap != null) {
+                        TextButton(onClick = { showYearlyRecap = !showYearlyRecap }) {
+                            Text(if (showYearlyRecap) "Show Monthly" else "Show Yearly")
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                val displayRecap = if (showYearlyRecap) yearRecap ?: monthRecap else monthRecap
+                if (displayRecap != null) {
+                    MonthlyRecapSection(displayRecap)
+                }
+            }
+        }
     }
 
     selectedDayWorkouts?.let { sessions ->
@@ -352,7 +393,7 @@ fun CalendarContent(
                 Text("Select Workout", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(16.dp))
                 sessions.forEach { session ->
-                    HistoryItemWithStats(item = session, onClick = { 
+                    HistoryItemWithStats(item = session, onClick = {
                         onWorkoutClick(session)
                         selectedDayWorkouts = null
                     })
@@ -360,6 +401,57 @@ fun CalendarContent(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun MonthlyRecapSection(recap: PeriodRecap) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    RecapStatItem("Workouts", "${recap.workoutCount}", Modifier.weight(1f))
+                    RecapStatItem("Total Volume", String.format(Locale.getDefault(), "%,.0f kg", recap.totalVolume), Modifier.weight(1f))
+                }
+                Spacer(Modifier.height(16.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    RecapStatItem("Sets", "${recap.totalSets}", Modifier.weight(1f))
+                    RecapStatItem("PRs", "${recap.prCount}", Modifier.weight(1f))
+                }
+                Spacer(Modifier.height(16.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    RecapStatItem("Avg Duration", "${recap.averageWorkoutDurationMinutes}m", Modifier.weight(1f))
+                    RecapStatItem("Consistency", String.format(Locale.getDefault(), "%.0f%%", recap.workoutConsistency * 100), Modifier.weight(1f))
+                }
+            }
+        }
+
+        if (recap.topMuscleGroups.isNotEmpty()) {
+            Text("Top Muscle Groups", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    recap.topMuscleGroups.take(5).forEach { muscle ->
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(muscle.muscleGroup, style = MaterialTheme.typography.bodyMedium)
+                            Text("${muscle.count} exercises", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        }
+                        LinearProgressIndicator(
+                            progress = { muscle.count.toFloat() / recap.topMuscleGroups.maxOf { it.count } },
+                            modifier = Modifier.fillMaxWidth().height(8.dp),
+                            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RecapStatItem(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -436,7 +528,7 @@ fun HistoryFilterSheet(
         Column(modifier = Modifier.padding(16.dp).navigationBarsPadding().verticalScroll(rememberScrollState())) {
             Text("Filters & Sorting", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(24.dp))
-            
+
             Text("Program", style = MaterialTheme.typography.labelLarge)
             Row(modifier = Modifier.padding(vertical = 8.dp).horizontalScroll(rememberScrollState())) {
                 FilterChip(
@@ -453,7 +545,7 @@ fun HistoryFilterSheet(
                     )
                 }
             }
-            
+
             Spacer(Modifier.height(16.dp))
 
             Text("Workout Day", style = MaterialTheme.typography.labelLarge)
@@ -494,14 +586,14 @@ fun HistoryFilterSheet(
             }
 
             Spacer(Modifier.height(16.dp))
-            
+
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = hasPROnly, onCheckedChange = onHasPRToggle)
                 Text("Show only workouts with PRs", style = MaterialTheme.typography.bodyLarge)
             }
-            
+
             Spacer(Modifier.height(16.dp))
-            
+
             Text("Sort By", style = MaterialTheme.typography.labelLarge)
             HistorySort.entries.forEach { sort ->
                 Row(
@@ -516,9 +608,9 @@ fun HistoryFilterSheet(
                     Text(sort.label)
                 }
             }
-            
+
             Spacer(Modifier.height(24.dp))
-            
+
             OutlinedButton(
                 onClick = onResetFilters,
                 modifier = Modifier.fillMaxWidth(),
@@ -526,7 +618,7 @@ fun HistoryFilterSheet(
             ) {
                 Text("Reset Filters")
             }
-            
+
             Spacer(Modifier.height(8.dp))
 
             Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
@@ -552,7 +644,7 @@ fun HistoryFilterSheet(
             }
         ) {
             DateRangePicker(
-                state = dateRangePickerState, 
+                state = dateRangePickerState,
                 modifier = Modifier.weight(1f),
                 dateFormatter = remember {
                     DatePickerDefaults.dateFormatter(

@@ -6,6 +6,8 @@ import com.bhanu.ironlog.data.local.pojo.DailyVolume
 import com.bhanu.ironlog.data.local.pojo.ExerciseStrengthHistory
 import com.bhanu.ironlog.data.local.pojo.PRWithExerciseName
 import com.bhanu.ironlog.data.local.pojo.TrackableExercise
+import com.bhanu.ironlog.data.model.analytics.MuscleGroupCount
+import com.bhanu.ironlog.data.model.analytics.ProgressSummary
 import com.bhanu.ironlog.data.repository.AnalyticsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -64,6 +66,9 @@ class ProgressViewModel @Inject constructor(
         analyticsRepository.getDailyVolumeHistory(filter.getSinceTimestamp())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val summary: StateFlow<ProgressSummary?> = analyticsRepository.getProgressSummary()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     val uiState: StateFlow<ProgressUiState> = combine(
         analyticsRepository.getTotalWorkoutsCount(),
         analyticsRepository.getTotalVolume(),
@@ -71,7 +76,9 @@ class ProgressViewModel @Inject constructor(
         analyticsRepository.getEstimated1RMPRCount(),
         analyticsRepository.getWeeklyVolume(),
         analyticsRepository.getMonthlyVolume(),
-        analyticsRepository.getLatestPRs()
+        analyticsRepository.getLatestPRs(),
+        analyticsRepository.getProgressSummary(),
+        analyticsRepository.getMuscleGroupDistribution(0L) // All time distribution
     ) { args: Array<Any> ->
         @Suppress("UNCHECKED_CAST")
         ProgressUiState.Success(
@@ -81,7 +88,9 @@ class ProgressViewModel @Inject constructor(
             e1rmPRCount = args[3] as Int,
             weeklyVolume = args[4] as Double,
             monthlyVolume = args[5] as Double,
-            latestPRs = args[6] as List<PRWithExerciseName>
+            latestPRs = args[6] as List<PRWithExerciseName>,
+            summary = args[7] as ProgressSummary,
+            muscleDistribution = args[8] as List<MuscleGroupCount>
         ) as ProgressUiState
     }.catch { e ->
         emit(ProgressUiState.Error(e.message ?: "Unknown Error"))
@@ -152,7 +161,9 @@ sealed class ProgressUiState {
         val e1rmPRCount: Int,
         val weeklyVolume: Double,
         val monthlyVolume: Double,
-        val latestPRs: List<PRWithExerciseName>
+        val latestPRs: List<PRWithExerciseName>,
+        val summary: ProgressSummary,
+        val muscleDistribution: List<MuscleGroupCount>
     ) : ProgressUiState()
     data class Error(val message: String) : ProgressUiState()
 }

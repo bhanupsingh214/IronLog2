@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.bhanu.ironlog.data.local.pojo.WorkoutSessionWithStats
 import com.bhanu.ironlog.data.repository.WorkoutSessionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import java.util.*
 import java.text.SimpleDateFormat
@@ -12,7 +13,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
-    private val historyRepository: com.bhanu.ironlog.data.repository.HistoryRepository
+    private val historyRepository: com.bhanu.ironlog.data.repository.HistoryRepository,
+    private val analyticsRepository: com.bhanu.ironlog.data.repository.AnalyticsRepository
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -105,6 +107,16 @@ class HistoryViewModel @Inject constructor(
     val availableDays: StateFlow<List<String>> = _history.map { list ->
         list.map { it.session.dayName }.distinct().sorted()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val currentMonthRecap = _currentDate.flatMapLatest { cal ->
+        analyticsRepository.getMonthlyRecap(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val currentYearRecap = _currentDate.flatMapLatest { cal ->
+        analyticsRepository.getYearlyRecap(cal.get(Calendar.YEAR))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query
