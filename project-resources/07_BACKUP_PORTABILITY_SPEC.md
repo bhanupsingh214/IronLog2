@@ -1,7 +1,7 @@
 # IronLog — Backup Portability Specification
 
-**Documentation version:** v3.1
-**As of:** 2026-08-14
+**Documentation version:** v3.8
+**As of:** 2026-08-16
 **Status:** CANONICAL CONTRACT
 
 ## 1. Canonical artifact
@@ -26,7 +26,18 @@ A valid backup must provide enough information for the supported restore pipelin
 - reconstruct supported user data;
 - preserve required relationships and identity.
 
-## 3. Validation-before-restore contract
+## 3. Phase 5B portable data boundary
+
+Phase 5B extends the backup payload to include the new local profile/body-progress data:
+- user profile fields introduced by Phase 5B;
+- dated body-weight history;
+- dated waist history.
+
+These data are independent of workout-session history and are restored as their own persistent data set.
+
+Pre-Phase-5B backups remain valid when these fields are absent. Missing profile/body fields must deserialize as absent/default rather than causing restore failure solely because the newer fields do not exist.
+
+## 4. Validation-before-restore contract
 
 Before destructive mutation:
 1. validate archive structure;
@@ -37,7 +48,7 @@ Before destructive mutation:
 
 If validation fails, existing local data remains protected.
 
-## 4. Restore contract
+## 5. Restore contract
 
 ```text
 artifact
@@ -50,6 +61,8 @@ transactional restore
   ↓
 identity remapping
   ↓
+profile/body-progress restore
+  ↓
 Room
 ```
 
@@ -58,11 +71,14 @@ Restore must preserve:
 - foreign-key safety;
 - canonical exercise identity;
 - required relationship resolution;
+- profile/body data integrity;
 - rollback on failure.
 
-## 5. Compatibility
+Phase 5B verification confirmed local export/import round-trip for profile/body data and preserved existing workout/history/progress/PR behavior.
 
-Older backups remain supported only where current implementation explicitly provides compatibility.
+## 6. Compatibility
+
+Older backups remain supported where current implementation explicitly provides compatibility, including pre-Phase-5B backups that do not contain the newer profile/body fields.
 
 A file successfully deserializing does not prove semantic compatibility.
 
@@ -75,7 +91,7 @@ Any format change requires:
 - regression evidence;
 - portability review.
 
-## 6. Storage-provider independence
+## 7. Storage-provider independence
 
 The contract remains independent of:
 - local filesystem location;
@@ -83,15 +99,15 @@ The contract remains independent of:
 - future cloud providers;
 - UI.
 
-## 7. PR4.4 Google Drive boundary
+## 8. PR4.4 Google Drive boundary
 
 PR4.4 uses user-owned Google Drive `appDataFolder` as storage/transport for the existing `.ironlog` artifact.
 
 It does not change the artifact format or restore engine.
 
-## 8. PR4.5 cloud restore
+## 9. PR4.5 cloud restore
 
-PR4.5 is approved and planned.
+PR4.5 is merged/verified.
 
 Locked flow:
 
@@ -109,13 +125,13 @@ existing restore transaction
 
 Cloud restore must not introduce a second backup parser or restore engine.
 
-## 9. Cloud/account safety
+## 10. Cloud/account safety
 
 The cloud restore path must verify valid signed-in/Drive-authorized state and must protect against stale authorization after account switching.
 
 A missing backup, authorization failure, download failure, or validation failure is non-destructive.
 
-## 10. Storage independence rule
+## 11. Storage independence rule
 
 Cloud implementation details must remain below the portable artifact boundary. A future storage provider should be able to transport the same `.ironlog` without changing its serialized meaning.
 
