@@ -18,6 +18,9 @@ class HistoryRepository @Inject constructor(
     fun getCompletedSessionsWithStats(): Flow<List<WorkoutSessionWithStats>> = 
         workoutSessionDao.getCompletedSessionsWithStats()
 
+    fun getCompletedSessionsWithStatsSince(since: Long): Flow<List<WorkoutSessionWithStats>> =
+        workoutSessionDao.getCompletedSessionsWithStatsSince(since)
+
     fun getCompletedSessionsWithVolume(): Flow<List<WorkoutSessionWithVolume>> = 
         workoutSessionDao.getCompletedSessionsWithVolume()
 

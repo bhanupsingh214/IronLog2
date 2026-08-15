@@ -183,7 +183,7 @@ interface WorkoutSessionDao {
     fun getCompletedSessionsWithVolume(): Flow<List<WorkoutSessionWithVolume>>
 
     @Query("""
-        SELECT sess.*, 
+        SELECT sess.*,
                IFNULL(SUM(s.weight * s.reps), 0) as totalVolume,
                (SELECT COUNT(*) FROM session_exercises WHERE sessionId = sess.sessionId) as exerciseCount,
                (SELECT COUNT(*) FROM session_sets ss JOIN session_exercises ex ON ss.sessionExerciseId = ex.sessionExerciseId WHERE ex.sessionId = sess.sessionId) as setCount,
@@ -267,6 +267,28 @@ interface WorkoutSessionDao {
         ORDER BY sess.createdAt ASC
     """)
     fun getExerciseStrengthHistoryCanonical(libraryId: Long, templateId: Long): Flow<List<ExerciseStrengthHistory>>
+
+    @Query("SELECT * FROM session_exercises WHERE sessionId IN (SELECT sessionId FROM workout_session_logs WHERE status = 'COMPLETED' AND createdAt >= :since)")
+    suspend fun getCompletedExercisesSince(since: Long): List<SessionExercise>
+
+    @Query("SELECT * FROM workout_session_logs WHERE status = 'COMPLETED' AND createdAt >= :since ORDER BY createdAt DESC")
+    fun getCompletedSessionsSince(since: Long): Flow<List<WorkoutSession>>
+
+    @Query("""
+        SELECT sess.*,
+               IFNULL(SUM(s.weight * s.reps), 0) as totalVolume,
+               (SELECT COUNT(*) FROM session_exercises WHERE sessionId = sess.sessionId) as exerciseCount,
+               (SELECT COUNT(*) FROM session_sets ss JOIN session_exercises ex ON ss.sessionExerciseId = ex.sessionExerciseId WHERE ex.sessionId = sess.sessionId) as setCount,
+               (SELECT COUNT(*) FROM personal_records WHERE weightPRSessionId = sess.sessionId OR estimated1RMSessionId = sess.sessionId) as prCount,
+               IFNULL((SELECT GROUP_CONCAT(exerciseName, ', ') FROM session_exercises WHERE sessionId = sess.sessionId), '') as exerciseNames
+        FROM workout_session_logs sess
+        LEFT JOIN session_exercises e ON sess.sessionId = e.sessionId
+        LEFT JOIN session_sets s ON e.sessionExerciseId = s.sessionExerciseId
+        WHERE sess.status = 'COMPLETED' AND sess.createdAt >= :since
+        GROUP BY sess.sessionId
+        ORDER BY sess.createdAt DESC
+    """)
+    fun getCompletedSessionsWithStatsSince(since: Long): Flow<List<WorkoutSessionWithStats>>
 
     @Delete
     suspend fun deleteSession(session: WorkoutSession)
