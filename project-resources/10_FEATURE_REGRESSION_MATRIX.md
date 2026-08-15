@@ -1,6 +1,6 @@
 # IronLog — Feature Regression Matrix
 
-**Documentation version:** v3.8
+**Documentation version:** v3.9
 **As of:** 2026-08-16
 
 ## Evidence legend
@@ -41,60 +41,6 @@
 | P45-1 | PR4.5 implementation/build verification | PASS — GitHub #31; JVM tests, clean debug build, connected Android tests |
 | P45-2 | Real-emulator Google Drive restore flow | PASS — GitHub #31 PR record; metadata confirmation and restore flow manually verified |
 | P45-3 | File-based backup validation instrumentation coverage | PASS — GitHub #31; 5 connected Android tests passed |
-
-The detailed PR4.5 scenario rows below remain `[ ]` unless their individual evidence is explicitly recorded. PR4.5 merge status must not be used to infer PASS for every row.
-
-## PR4.5 required tests
-
-### Discovery/download
-
-| ID | Scenario | Result |
-|---|---|---|
-| C1 | Signed-in + authorized user starts cloud restore | [ ] |
-| C2 | Existing `.ironlog` found in Drive appDataFolder | [ ] |
-| C3 | Valid cloud artifact downloads | [ ] |
-| C4 | No cloud backup produces safe explicit state | [ ] |
-| C5 | Network/download failure leaves local data unchanged | [ ] |
-
-### Validation
-
-| ID | Scenario | Result |
-|---|---|---|
-| V1 | Cloud artifact enters common validation/import path | [ ] |
-| V2 | Malformed archive rejected | [ ] |
-| V3 | Missing required archive component rejected | [ ] |
-| V4 | Unsupported version rejected | [ ] |
-| V5 | Integrity/checksum failure rejected | [ ] |
-| V6 | Validation failure preserves local data | [ ] |
-
-### Restore
-
-| ID | Scenario | Result |
-|---|---|---|
-| R1 | Valid cloud restore on empty DB | [ ] |
-| R2 | Valid cloud restore on populated DB replaces data | [ ] |
-| R3 | No duplicate programs/history | [ ] |
-| R4 | Identity resolution remains correct | [ ] |
-| R5 | Transaction rollback remains correct | [ ] |
-| R6 | Post-restore UI reflects restored data | [ ] |
-
-### Account/authorization safety
-
-| ID | Scenario | Result |
-|---|---|---|
-| A1 | Account A restores its authorized backup | [ ] |
-| A2 | A sign-out → B sign-in cannot reuse stale A Drive authorization | [ ] |
-| A3 | Revoked/expired authorization fails safely | [ ] |
-| A4 | No valid signed-in/authorized state blocks cloud restore | [ ] |
-
-### Local regressions
-
-| ID | Scenario | Result |
-|---|---|---|
-| L1 | Existing local import still works | [ ] |
-| L2 | Existing local export still works | [ ] |
-| L3 | Existing populated restore replacement remains correct | [ ] |
-| L4 | Programs/history/progress/PR/settings integrity remains intact | [ ] |
 
 ## Stability regressions
 
@@ -140,11 +86,30 @@ The detailed PR4.5 scenario rows below remain `[ ]` unless their individual evid
 | P5B-15 | Backup/restore remains backward compatible and transactional | PASS | Backup/restore implementation review + manual local round-trip; connected instrumentation execution unavailable locally |
 | P5B-16 | Phase 5B introduces no multi-account Room redesign or LLM/backend dependency | PASS | GitHub #41 diff/review |
 
+## Phase 5C — Goals & Deterministic Progress Intelligence
+
+| ID | Scenario | Result | Evidence |
+|---|---|---|---|
+| P5C-1 | Goal create/view/edit/delete flows work | [ ] | Phase 5C not yet implemented |
+| P5C-2 | Body-weight goal progress is calculated deterministically from persisted data | [ ] | Phase 5C not yet implemented |
+| P5C-3 | Waist goal progress is calculated deterministically from persisted data | [ ] | Phase 5C not yet implemented |
+| P5C-4 | Exercise/PR goal progress is calculated deterministically from persisted data | [ ] | Phase 5C not yet implemented |
+| P5C-5 | Workout-frequency goal adherence is calculated deterministically | [ ] | Phase 5C not yet implemented |
+| P5C-6 | Trend direction/rate handles sufficient history correctly | [ ] | Phase 5C not yet implemented |
+| P5C-7 | Insufficient-data and no-meaningful-trend states do not fabricate conclusions | [ ] | Phase 5C not yet implemented |
+| P5C-8 | Goal status boundaries are deterministic and unit-tested | [ ] | Phase 5C not yet implemented |
+| P5C-9 | Persistent goals survive required Room migration without existing-data loss | [ ] | Depends on source audit/schema design |
+| P5C-10 | New backup includes goal data and old backups remain restorable | [ ] | Depends on whether persistent goal data is introduced |
+| P5C-11 | Existing Workout/History/Progress/Profile/Body Progress/PR behavior remains intact | [ ] | Phase 5C regression verification required |
+| P5C-12 | Phase 5C introduces no LLM/AI/backend/network dependency | [ ] | Must be verified by diff/review |
+
 ## Evidence rule
 
 Do not mark a current-cycle test PASS from code inspection or an agent report alone.
 
 For Phase 5B, rows that depend on instrumentation execution distinguish implementation/manual evidence from unavailable connected-device execution. The merged PR explicitly records that instrumentation tests were implemented but not executed locally because no connected device was available.
+
+For Phase 5C, `[ ]` rows are intentionally unverified until implementation and actual runtime/test evidence exist.
 
 The populated-database replacement test is a critical regression boundary for any restore-path change.
 
