@@ -67,7 +67,7 @@ The merged PR intentionally excluded Drive browsing/history, synchronization, sc
 **Status: MERGED / VERIFIED**
 
 - Head commit: `8dc08ce1b426f681a9e97afc43c5fa751f0f8521`
-- Merge commit: `eb3bcf34aeb656528b8354a5db2c46cb478109e`
+- Merge commit: `eb3bcf34aeb656528b8354d5fb2c46cb478109e`
 
 The fix calculates live elapsed duration for active sessions while retaining persisted duration for completed sessions. Verification recorded 7/7 connected tests, a successful debug build, and manual emulator verification.
 
