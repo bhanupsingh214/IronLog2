@@ -1,6 +1,6 @@
 # IronLog — Documentation Maintenance Protocol
 
-**Documentation version:** v3.8
+**Documentation version:** v3.9
 **As of:** 2026-08-16
 
 ## 1. Purpose
@@ -58,7 +58,8 @@ Update resources after:
 - schema/migration changes;
 - verified regression discoveries;
 - material workflow/governance changes;
-- a reviewed Gemini audit that changes the locked PR scope, architecture, risk, acceptance criteria, or verification plan.
+- a reviewed Gemini audit that changes the locked PR scope, architecture, risk, acceptance criteria, or verification plan;
+- explicit approval of a new phase/objective that changes current authorization.
 
 Do not update docs merely because an idea was discussed or because an agent proposed an unreviewed possibility.
 
@@ -67,6 +68,15 @@ Do not update docs merely because an idea was discussed or because an agent prop
 Canonical Project Resource maintenance belongs to **ChatGPT** when connected GitHub access is available.
 
 Normal workflow:
+
+```text
+Project Owner approves/reviews objective
+→ ChatGPT reconciles and updates canonical Project Resources
+→ Project Owner reviews documentation PR
+→ Project Owner merges/deletes documentation branch
+```
+
+For implementation cycles:
 
 ```text
 Gemini implementation/evidence
@@ -152,7 +162,8 @@ A fresh chat should be able to determine:
 - schema baseline;
 - regression boundaries;
 - collaboration roles;
-- exact next action.
+- exact next action;
+- whether AI/LLM work is currently authorized or explicitly deferred.
 
 If a new chat cannot determine these without conversation history, the resource stack is incomplete.
 
@@ -198,7 +209,11 @@ merge confirmed
 → canonical stack verified
 ```
 
-Phase 5B closeout follows this workflow: implementation PR #41 was merged and the feature branch deleted; the affected state, architecture, roadmap, decision, schema, backup, regression, active-PR, and handoff resources are now being reconciled on the dedicated documentation branch.
+## 14. Phase/AI planning guardrail
+
+When a phase is explicitly approved as deterministic/local intelligence, documentation must use terms such as `deterministic`, `local calculation`, `rules`, `trend engine`, or `progress logic` rather than implying an LLM.
+
+AI/LLM work must remain explicitly labeled `DEFERRED / NOT APPROVED` until the Project Owner authorizes a dedicated AI objective. Do not revive an old AI candidate merely because a phase contains the word `intelligence`.
 
 ## Final rule
 
