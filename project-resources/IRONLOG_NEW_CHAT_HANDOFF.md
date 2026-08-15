@@ -1,6 +1,6 @@
 # IronLog — New Chat Handoff
 
-**Handoff version:** v3.8
+**Handoff version:** v3.9
 **As of:** 2026-08-16
 **Purpose:** Make a fresh chat inside the IronLog project immediately productive without relying on prior conversation memory.
 
@@ -30,7 +30,10 @@ If GitHub is connected, fetch `/project-resources/` from the repository and trea
 - Phase 5A / GitHub #35 — Progress & History Presentation — MERGED / VERIFIED.
 - Phase 5B / GitHub #41 — Profile Foundation & Body Progress — MERGED / VERIFIED.
 - Phase 5A and Phase 5B feature branches — DELETED after merge.
-- No new feature PR is currently authorized.
+- Phase 5C — Goals & Deterministic Progress Intelligence — APPROVED / LOCKED; implementation not yet started.
+- Phase 5 ends after 5C; no Phase 5D AI/LLM work is planned or authorized.
+- Phase 6 — UI/UX Modernization & Polish — planned after 5C, not yet approved for implementation.
+- AI/LLM work is deferred until after Phase 6 and requires explicit Project Owner authorization.
 
 ## 3. Phase 5A completed boundary
 
@@ -78,7 +81,49 @@ GitHub #41 recorded:
 
 Instrumentation tests for migration/body-progress repository behavior were implemented but not executed locally because no connected device was available. Do not represent those unexecuted instrumentation tests as runtime PASS.
 
-## 7. Stability fixes completed
+## 7. Phase 5C locked boundary
+
+Phase 5C — Goals & Deterministic Progress Intelligence — is the approved next objective.
+
+Initial goal categories:
+- target body weight;
+- target waist circumference;
+- target exercise/PR value;
+- workout-frequency target.
+
+Deterministic local intelligence may calculate:
+- absolute/percentage change where meaningful;
+- goal completion percentage;
+- current vs target state;
+- workout-frequency adherence;
+- simple trend direction/rate;
+- bounded status such as Not Started, In Progress, On Track, Behind, Completed, No Meaningful Trend, or Insufficient Data.
+
+Phase 5C must not introduce:
+- LLMs;
+- generative AI;
+- local language-model inference;
+- model training/fine-tuning;
+- backend/cloud analytics;
+- network dependency;
+- nutrition/calorie tracking;
+- medical diagnosis/treatment;
+- achievements/ranks/badges;
+- broad personalization;
+- unrelated UI/UX modernization;
+- multi-account Room redesign.
+
+## 8. Phase 5/AI boundary
+
+**Phase 5 ends after 5C.** There is no Phase 5D AI/LLM phase.
+
+The word `intelligence` in Phase 5C means deterministic application logic, not AI.
+
+After Phase 5C, the planned next phase is Phase 6 — UI/UX Modernization & Polish. No AI/LLM implementation is planned during Phase 6.
+
+After Phase 6, the Project Owner may explicitly decide whether an AI phase is desirable and what form it should take. Until that decision is made, AI remains `DEFERRED / NOT APPROVED`.
+
+## 9. Stability fixes completed
 
 ### Workout finish duration
 Active workout confirmation now uses live elapsed duration while completed sessions use persisted duration. GitHub #32 merged this fix after 7/7 connected tests, successful debug build, and manual emulator verification.
@@ -94,15 +139,7 @@ android.injected.androidTest.leaveApksInstalledAfterRun=true
 
 Verified with 7/7 connected tests, package-preservation checks, Programs/History preservation, and manual smoke testing with zero data loss.
 
-## 8. Critical historical regression
-
-PR4.3 exposed a populated-database restore bug: DELETE statements were ineffective because `query().close()` did not execute them.
-
-The fix used `execSQL()` with FK-safe ordering and preserved transactional restore.
-
-This is a critical regression boundary. Do not casually redesign restore internals.
-
-## 9. Evidence rules
+## 10. Evidence rules
 
 - Runtime behavior → emulator/device.
 - Build → actual build output.
@@ -112,7 +149,7 @@ This is a critical regression boundary. Do not casually redesign restore interna
 
 Agent reports are evidence, not proof.
 
-## 10. Collaboration
+## 11. Collaboration
 
 Project Owner:
 - final product decisions;
@@ -137,7 +174,7 @@ Gemini/implementation agent:
 
 Gemini should not independently maintain the canonical Project Resources or perform documentation closeout unless explicitly delegated.
 
-## 11. If resources disagree
+## 12. If resources disagree
 
 Do not guess.
 
@@ -153,12 +190,14 @@ repository code/schema/tests
 
 Repair the canonical resource stack when necessary.
 
-## 12. Documentation workflow
+## 13. Documentation workflow
 
 For normal work:
 
 ```text
-Gemini implementation/evidence
+Project Owner objective approval
+→ ChatGPT canonical planning/resource update
+→ Gemini implementation/evidence
 → Project Owner runtime verification
 → ChatGPT reconciliation against Git/GitHub
 → ChatGPT Project Resource maintenance
@@ -167,6 +206,8 @@ Gemini implementation/evidence
 
 Do not duplicate documentation maintenance through Gemini when ChatGPT has connected GitHub access.
 
-## 13. Exact next action
+## 14. Exact next action
 
-Phase 5B is complete and its documentation closeout is in progress. After closeout, wait for explicit Project Owner selection of the next phase/PR. A new locked `11_ACTIVE_PR_SPEC.md` with objective, scope, non-goals, risks, acceptance criteria, and verification plan is required before implementation.
+Gemini must perform a **read-only source audit** against the locked Phase 5C specification. ChatGPT and the Project Owner must reconcile that audit before implementation approval.
+
+After the Phase 5C implementation is complete and merged, close Phase 5. The next planned product phase is Phase 6 UI/UX Modernization & Polish. Do not introduce or plan an AI/LLM phase unless the Project Owner explicitly re-authorizes it after Phase 6.
