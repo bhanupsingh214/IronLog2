@@ -1,7 +1,7 @@
 # IronLog — New Chat Handoff
 
-**Handoff version:** v3.5
-**As of:** 2026-08-15
+**Handoff version:** v3.8
+**As of:** 2026-08-16
 **Purpose:** Make a fresh chat inside the IronLog project immediately productive without relying on prior conversation memory.
 
 ## 1. First action in every new chat
@@ -28,7 +28,8 @@ If GitHub is connected, fetch `/project-resources/` from the repository and trea
 - Connected-test data-safety mitigation — VERIFIED / CLOSED.
 - Phase 4 documentation/stability closeout — VERIFIED / CLOSED.
 - Phase 5A / GitHub #35 — Progress & History Presentation — MERGED / VERIFIED.
-- Phase 5A feature branch — DELETED after merge.
+- Phase 5B / GitHub #41 — Profile Foundation & Body Progress — MERGED / VERIFIED.
+- Phase 5A and Phase 5B feature branches — DELETED after merge.
 - No new feature PR is currently authorized.
 
 ## 3. Phase 5A completed boundary
@@ -44,13 +45,40 @@ Phase 5A delivered deterministic/local presentation over the established workout
 - yearly recap;
 - focused analytics/recap tests.
 
-The implementation reused the established `WorkoutSession → SessionExercise → SessionSet` model and introduced no Room schema/migration, backup/restore, Google Drive, AI/LLM, or backend/cloud analytics change. Body-weight/body-measurement history remains excluded.
+The implementation reused the established `WorkoutSession → SessionExercise → SessionSet` model and introduced no Room schema/migration, backup/restore, Google Drive, AI/LLM, or backend/cloud analytics change. Body-weight/body-measurement history was explicitly excluded from Phase 5A and was subsequently introduced through Phase 5B's separate persistent body-progress model.
 
 ## 4. Phase 5A verification
 
 GitHub #35 recorded repository review PASS, automated tests/build PASS, clean diff hygiene, and manual emulator verification of Progress, History/Calendar, monthly recap, yearly recap, and volume filters. Existing user data remained present during verification. `0m` average duration was accepted for test workouts mostly under one minute, and intentionally large test values were accepted as test data.
 
-## 5. Stability fixes completed
+## 5. Phase 5B completed boundary
+
+Phase 5B / GitHub #41 established the durable local profile and body-progress foundation:
+- optional sex, DOB, and height;
+- feet/inches-preferred height input with canonical metric storage;
+- dated body-weight history;
+- dated waist history;
+- deterministic local age and BMI calculations;
+- adult Indian/Asian-Indian BMI screening classification with separate non-adult handling;
+- Profile hub integration;
+- Room migration v21→v22;
+- backward-compatible `.ironlog` backup/restore extension.
+
+Phase 5B preserved the one-local-dataset-per-installation ownership model and introduced no LLM/backend dependency, nutrition/calorie tracking, medical diagnosis/treatment, goals/achievements, or multi-account Room redesign.
+
+## 6. Phase 5B verification
+
+GitHub #41 recorded:
+- build PASS;
+- JVM/body-metric tests PASS;
+- `git diff --check` PASS;
+- manual Profile/Body Progress verification PASS;
+- local export/import round-trip PASS;
+- Workout/History/Progress/PR regression smoke test PASS.
+
+Instrumentation tests for migration/body-progress repository behavior were implemented but not executed locally because no connected device was available. Do not represent those unexecuted instrumentation tests as runtime PASS.
+
+## 7. Stability fixes completed
 
 ### Workout finish duration
 Active workout confirmation now uses live elapsed duration while completed sessions use persisted duration. GitHub #32 merged this fix after 7/7 connected tests, successful debug build, and manual emulator verification.
@@ -66,7 +94,7 @@ android.injected.androidTest.leaveApksInstalledAfterRun=true
 
 Verified with 7/7 connected tests, package-preservation checks, Programs/History preservation, and manual smoke testing with zero data loss.
 
-## 6. Critical historical regression
+## 8. Critical historical regression
 
 PR4.3 exposed a populated-database restore bug: DELETE statements were ineffective because `query().close()` did not execute them.
 
@@ -74,7 +102,7 @@ The fix used `execSQL()` with FK-safe ordering and preserved transactional resto
 
 This is a critical regression boundary. Do not casually redesign restore internals.
 
-## 7. Evidence rules
+## 9. Evidence rules
 
 - Runtime behavior → emulator/device.
 - Build → actual build output.
@@ -84,7 +112,7 @@ This is a critical regression boundary. Do not casually redesign restore interna
 
 Agent reports are evidence, not proof.
 
-## 8. Collaboration
+## 10. Collaboration
 
 Project Owner:
 - final product decisions;
@@ -109,7 +137,7 @@ Gemini/implementation agent:
 
 Gemini should not independently maintain the canonical Project Resources or perform documentation closeout unless explicitly delegated.
 
-## 9. If resources disagree
+## 11. If resources disagree
 
 Do not guess.
 
@@ -125,7 +153,7 @@ repository code/schema/tests
 
 Repair the canonical resource stack when necessary.
 
-## 10. Documentation workflow
+## 12. Documentation workflow
 
 For normal work:
 
@@ -139,6 +167,6 @@ Gemini implementation/evidence
 
 Do not duplicate documentation maintenance through Gemini when ChatGPT has connected GitHub access.
 
-## 11. Exact next action
+## 13. Exact next action
 
-Phase 5A is complete and its documentation closeout is in progress. After closeout, wait for explicit Project Owner selection of the next phase/PR. A new locked `11_ACTIVE_PR_SPEC.md` with objective, scope, non-goals, risks, acceptance criteria, and verification plan is required before implementation.
+Phase 5B is complete and its documentation closeout is in progress. After closeout, wait for explicit Project Owner selection of the next phase/PR. A new locked `11_ACTIVE_PR_SPEC.md` with objective, scope, non-goals, risks, acceptance criteria, and verification plan is required before implementation.

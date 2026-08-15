@@ -1,7 +1,7 @@
 # IronLog — Decision Log
 
-**Documentation version:** v3.4  
-**As of:** 2026-08-15
+**Documentation version:** v3.8  
+**As of:** 2026-08-16
 
 ## Durable Decisions
 
@@ -78,6 +78,26 @@ Phase 5A Progress & History Presentation must derive ordinary progress, history,
 **Reason:** the repository already provided the established `WorkoutSession → SessionExercise → SessionSet` history model and analytics/query pipeline. Phase 5A was successfully delivered over that foundation without Room schema/migration changes, backup/restore changes, Google Drive changes, or new AI/backend dependencies.
 
 Body-weight/body-measurement history remains outside this decision because the current workout data model does not provide a body-measurement contract.
+
+### D035 — Profile and Body Progress remain local-first and deterministic
+Phase 5B establishes personal profile and body-progress data as local persistent application data under the existing one-local-dataset-per-installation ownership model. Ordinary age, BMI, height conversion, and body-progress calculations must remain deterministic and local; they must not require an LLM, backend analytics service, or network connection.
+
+**Reason:** the feature was implemented and verified without adding an AI/LLM, backend, or cloud analytics dependency. Keeping these calculations local preserves privacy, offline behavior, predictability, and the project's cost constraint.
+
+### D036 — Profile age is derived from DOB, not stored as mutable state
+IronLog stores date of birth and derives age from the current date. It does not persist a mutable age field.
+
+**Reason:** age changes with time while DOB is stable, so derived age avoids stale duplicated state and provides the correct age for age-aware body-metric presentation.
+
+### D037 — Phase 5B uses canonical metric persistence with user-friendly height input
+Physical measurements are persisted canonically in metric units while user-facing entry/display may prefer feet/inches and offer metric alternatives. Unit conversion must preserve the underlying physical value.
+
+**Reason:** a canonical representation keeps calculations and backup data deterministic while allowing the Profile UI to match the user's preferred height/measurement format.
+
+### D038 — Adult Indian/Asian-Indian BMI classification is separated from non-adult handling
+Phase 5B uses the reviewed Indian consensus direction for adult BMI screening—normal 18.0–22.9, overweight 23.0–24.9, obesity ≥25.0—and keeps non-adult interpretation on a separate age-aware path. BMI is presented as a screening/derived metric rather than a diagnosis.
+
+**Reason:** adult cutoffs must not be universally applied to children/adolescents, and the project explicitly excludes medical diagnosis or treatment advice. The Indian 23/25 adult cut points are documented in published consensus/review literature.
 
 ## Decision Change Rule
 

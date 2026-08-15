@@ -1,12 +1,13 @@
 # IronLog — Feature Regression Matrix
 
-**Documentation version:** v3.4
-**As of:** 2026-08-15
+**Documentation version:** v3.8
+**As of:** 2026-08-16
 
 ## Evidence legend
 
 - PASS — verified with appropriate evidence.
 - HISTORICAL PASS — previously verified baseline.
+- IMPLEMENTED / NOT EXECUTED — test exists and was reviewed, but required runtime/instrumentation execution was unavailable.
 - [ ] — required/current-cycle test not yet verified.
 - TBD — requires investigation/decision.
 
@@ -118,9 +119,32 @@ The detailed PR4.5 scenario rows below remain `[ ]` unless their individual evid
 | P5A-9 | Existing user data remains present during feature verification | PASS | Manual emulator verification; restored/manual workout history remained visible |
 | P5A-10 | Phase 5A introduces no schema/migration, backup/restore, Drive, or AI/backend analytics change | PASS | GitHub #35 diff/review |
 
+## Phase 5B — Profile Foundation & Body Progress
+
+| ID | Scenario | Result | Evidence |
+|---|---|---|---|
+| P5B-1 | Profile empty/incomplete state remains usable | PASS | Manual Profile verification |
+| P5B-2 | Sex, DOB, and height persist and display correctly | PASS | Manual Profile verification |
+| P5B-3 | Height ft/in entry and display preserve the physical value | PASS | Manual Profile verification; ft/in selection/display confirmed |
+| P5B-4 | Metric height alternative is available and conversion is accurate | PASS | JVM calculator tests + manual Profile verification |
+| P5B-5 | Body weight entry and latest-value display work | PASS | Manual Profile verification |
+| P5B-6 | Body weight history is durable and independent of workout sessions | PASS | Repository tests + manual Profile verification |
+| P5B-7 | Waist entry/history and latest-value display work | PASS | Repository tests + manual Profile verification |
+| P5B-8 | BMI calculation is deterministic and uses canonical height/weight | PASS | BodyMetricsCalculatorTest + manual BMI verification |
+| P5B-9 | Adult Indian/Asian-Indian BMI classification uses 18/23/25 boundaries | PASS | BodyMetricsCalculatorTest + manual BMI verification |
+| P5B-10 | Non-adult BMI path is separated from adult classification | PASS | Unit-test implementation/audit + manual age-aware behavior verification |
+| P5B-11 | Weight/waist edit and delete flows work | PASS | Manual Profile/body-history verification |
+| P5B-12 | Local export/import round-trip preserves profile/body data | PASS | Manual export/import round-trip verification |
+| P5B-13 | Existing Workout/History/Progress/PR behavior remains intact after Phase 5B | PASS | Manual regression smoke test |
+| P5B-14 | v21→v22 migration creates profile/body tables and preserves existing data | IMPLEMENTED / NOT EXECUTED | Migration test implemented and reviewed; connected execution unavailable locally because no connected device was available |
+| P5B-15 | Backup/restore remains backward compatible and transactional | PASS | Backup/restore implementation review + manual local round-trip; connected instrumentation execution unavailable locally |
+| P5B-16 | Phase 5B introduces no multi-account Room redesign or LLM/backend dependency | PASS | GitHub #41 diff/review |
+
 ## Evidence rule
 
 Do not mark a current-cycle test PASS from code inspection or an agent report alone.
+
+For Phase 5B, rows that depend on instrumentation execution distinguish implementation/manual evidence from unavailable connected-device execution. The merged PR explicitly records that instrumentation tests were implemented but not executed locally because no connected device was available.
 
 The populated-database replacement test is a critical regression boundary for any restore-path change.
 

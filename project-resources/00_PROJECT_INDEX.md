@@ -1,8 +1,8 @@
 # IronLog — Project Resource Index
 
-**Documentation version:** v3.5
+**Documentation version:** v3.8
 **Canonical location:** `/project-resources/`
-**As of:** 2026-08-15
+**As of:** 2026-08-16
 **Purpose:** Canonical continuity and governance index for planning, implementation, verification, release, and fresh-chat handoff.
 
 ## Canonical resource set
@@ -51,6 +51,7 @@ A fresh chat must confirm the current state from the repository and these resour
 - **TBD** — unresolved and requiring investigation/decision.
 - **INFERENCE** — reasoning/planning; never implementation authority.
 - **HISTORICAL** — preserved past fact that is not current state.
+- **IMPLEMENTED / NOT EXECUTED** — test or verification exists but required runtime/device execution was unavailable; it must not be represented as a runtime PASS.
 
 ## Authority hierarchy
 

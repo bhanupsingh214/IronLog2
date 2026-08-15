@@ -1,7 +1,7 @@
 # IronLog — Documentation Maintenance Protocol
 
-**Documentation version:** v3.3
-**As of:** 2026-08-15
+**Documentation version:** v3.8
+**As of:** 2026-08-16
 
 ## 1. Purpose
 
@@ -197,6 +197,8 @@ merge confirmed
 → three-pass audit
 → canonical stack verified
 ```
+
+Phase 5B closeout follows this workflow: implementation PR #41 was merged and the feature branch deleted; the affected state, architecture, roadmap, decision, schema, backup, regression, active-PR, and handoff resources are now being reconciled on the dedicated documentation branch.
 
 ## Final rule
 
