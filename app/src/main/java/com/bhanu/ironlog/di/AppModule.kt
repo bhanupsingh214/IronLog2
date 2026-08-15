@@ -12,6 +12,7 @@ import com.bhanu.ironlog.data.local.dao.WorkoutSessionDao
 import com.bhanu.ironlog.data.local.dao.PersonalRecordDao
 import com.bhanu.ironlog.data.local.dao.WorkoutSettingsDao
 import com.bhanu.ironlog.data.local.dao.LibraryExerciseDao
+import com.bhanu.ironlog.data.local.dao.UserProfileDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -45,11 +46,13 @@ object AppModule {
             AppDatabase.MIGRATION_17_18,
             AppDatabase.MIGRATION_18_19,
             AppDatabase.MIGRATION_19_20,
-            AppDatabase.MIGRATION_20_21
+            AppDatabase.MIGRATION_20_21,
+            AppDatabase.MIGRATION_21_22
         ).addCallback(object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
                 db.execSQL("INSERT OR IGNORE INTO workout_settings (id, defaultRestTimerSeconds, autoStartTimer, hapticFeedback, soundAlert) VALUES (1, 90, 1, 1, 1)")
+                db.execSQL("INSERT OR IGNORE INTO user_profile (id, createdAt, updatedAt) VALUES (1, ${System.currentTimeMillis()}, ${System.currentTimeMillis()})")
             }
         }).build()
     }
@@ -87,5 +90,10 @@ object AppModule {
     @Provides
     fun provideLibraryExerciseDao(database: AppDatabase): LibraryExerciseDao {
         return database.libraryExerciseDao()
+    }
+
+    @Provides
+    fun provideUserProfileDao(database: AppDatabase): UserProfileDao {
+        return database.userProfileDao()
     }
 }

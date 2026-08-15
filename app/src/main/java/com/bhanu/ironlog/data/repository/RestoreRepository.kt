@@ -16,7 +16,8 @@ class RestoreRepository @Inject constructor(
     private val workoutSessionDao: WorkoutSessionDao,
     private val libraryDao: LibraryExerciseDao,
     private val prDao: PersonalRecordDao,
-    private val settingsDao: WorkoutSettingsDao
+    private val settingsDao: WorkoutSettingsDao,
+    private val userProfileDao: UserProfileDao
 ) {
     /**
      * Performs a full "Clear & Restore" of the provided payload.
@@ -279,6 +280,36 @@ class RestoreRepository @Inject constructor(
                 hapticFeedback = payload.settings.hapticFeedback,
                 soundAlert = payload.settings.soundAlert
             ))
+
+            // 7. Restore Profile
+            payload.profile?.let { dto ->
+                userProfileDao.insertOrUpdateProfile(UserProfileEntity(
+                    id = 1,
+                    sex = dto.sex,
+                    dateOfBirth = dto.dateOfBirth,
+                    heightCm = dto.heightCm,
+                    createdAt = dto.createdAt,
+                    updatedAt = dto.updatedAt
+                ))
+            }
+
+            // 8. Restore Weight History
+            payload.weightHistory.forEach { dto ->
+                userProfileDao.insertWeightEntry(BodyWeightEntry(
+                    weightKg = dto.weightKg,
+                    timestamp = dto.timestamp,
+                    notes = dto.notes
+                ))
+            }
+
+            // 9. Restore Waist History
+            payload.waistHistory.forEach { dto ->
+                userProfileDao.insertWaistEntry(WaistEntry(
+                    circumferenceCm = dto.circumferenceCm,
+                    timestamp = dto.timestamp,
+                    notes = dto.notes
+                ))
+            }
         }
     }
 

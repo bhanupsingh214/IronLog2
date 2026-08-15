@@ -10,7 +10,45 @@ data class BackupPayload(
     val programs: List<ProgramDto>,
     val history: List<WorkoutSessionDto>,
     val records: List<PersonalRecordDto>,
-    val settings: WorkoutSettingsDto
+    val settings: WorkoutSettingsDto,
+    val profile: UserProfileDto? = null,
+    val weightHistory: List<BodyWeightDto> = emptyList(),
+    val waistHistory: List<WaistDto> = emptyList()
+)
+
+@Serializable
+data class UserProfileDto(
+    val sex: String?,
+    val dateOfBirth: Long?,
+    val heightCm: Double?,
+    val createdAt: Long,
+    val updatedAt: Long
+)
+
+fun UserProfileEntity.toDto() = UserProfileDto(
+    sex, dateOfBirth, heightCm, createdAt, updatedAt
+)
+
+@Serializable
+data class BodyWeightDto(
+    val weightKg: Double,
+    val timestamp: Long,
+    val notes: String
+)
+
+fun BodyWeightEntry.toDto() = BodyWeightDto(
+    weightKg, timestamp, notes
+)
+
+@Serializable
+data class WaistDto(
+    val circumferenceCm: Double,
+    val timestamp: Long,
+    val notes: String
+)
+
+fun WaistEntry.toDto() = WaistDto(
+    circumferenceCm, timestamp, notes
 )
 
 @Serializable

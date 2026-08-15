@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bhanu.ironlog.data.local.PreferenceStorage
 import com.bhanu.ironlog.data.local.backup.BackupPayload
-import com.bhanu.ironlog.data.local.entity.WorkoutSettingsEntity
+import com.bhanu.ironlog.data.local.entity.*
 import com.bhanu.ironlog.data.model.cloud.CloudResult
 import com.bhanu.ironlog.data.repository.*
 import com.bhanu.ironlog.data.service.CloudStorageService
@@ -24,6 +24,7 @@ class ProfileViewModel @Inject constructor(
     private val repository: WorkoutSessionRepository,
     private val backupRepository: BackupRepository,
     private val restoreRepository: RestoreRepository,
+    private val bodyProgressRepository: BodyProgressRepository,
     private val exportService: ExportService,
     private val importService: ImportService,
     private val accountRepository: AccountRepository,
@@ -32,6 +33,21 @@ class ProfileViewModel @Inject constructor(
 ) : ViewModel() {
 
     val settings: StateFlow<WorkoutSettingsEntity?> = repository.getWorkoutSettings()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val profile = bodyProgressRepository.getProfile()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val weightHistory = bodyProgressRepository.getWeightHistory()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val latestWeight = bodyProgressRepository.getLatestWeight()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val waistHistory = bodyProgressRepository.getWaistHistory()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val latestWaist = bodyProgressRepository.getLatestWaist()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val accountState = accountRepository.accountState
@@ -66,6 +82,53 @@ class ProfileViewModel @Inject constructor(
     fun updateSettings(newSettings: WorkoutSettingsEntity) {
         viewModelScope.launch {
             repository.updateWorkoutSettings(newSettings)
+        }
+    }
+
+    fun updateProfile(sex: String?, dob: Long?, heightCm: Double?) {
+        viewModelScope.launch {
+            val current = bodyProgressRepository.getProfileOnce() ?: UserProfileEntity()
+            bodyProgressRepository.saveProfile(current.copy(
+                sex = sex,
+                dateOfBirth = dob,
+                heightCm = heightCm
+            ))
+        }
+    }
+
+    fun addWeightEntry(weightKg: Double, timestamp: Long, notes: String = "") {
+        viewModelScope.launch {
+            bodyProgressRepository.addWeightEntry(weightKg, timestamp, notes)
+        }
+    }
+
+    fun updateWeightEntry(entry: BodyWeightEntry) {
+        viewModelScope.launch {
+            bodyProgressRepository.updateWeightEntry(entry)
+        }
+    }
+
+    fun deleteWeightEntry(entry: BodyWeightEntry) {
+        viewModelScope.launch {
+            bodyProgressRepository.deleteWeightEntry(entry)
+        }
+    }
+
+    fun addWaistEntry(circumferenceCm: Double, timestamp: Long, notes: String = "") {
+        viewModelScope.launch {
+            bodyProgressRepository.addWaistEntry(circumferenceCm, timestamp, notes)
+        }
+    }
+
+    fun updateWaistEntry(entry: WaistEntry) {
+        viewModelScope.launch {
+            bodyProgressRepository.updateWaistEntry(entry)
+        }
+    }
+
+    fun deleteWaistEntry(entry: WaistEntry) {
+        viewModelScope.launch {
+            bodyProgressRepository.deleteWaistEntry(entry)
         }
     }
 
