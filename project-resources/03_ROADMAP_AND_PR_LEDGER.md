@@ -1,6 +1,6 @@
 # IronLog Roadmap & PR Ledger
 
-**Documentation version:** v3.8  
+**Documentation version:** v3.9  
 **As of:** 2026-08-16
 
 ## Purpose
@@ -172,14 +172,56 @@ Verified constraints:
 
 Verification included build/JVM tests, clean diff hygiene, manual Profile/Body Progress verification, local export/import round-trip, and regression smoke testing. Instrumentation tests were implemented but not executed locally because no connected device was available.
 
-### Phase 5C — AI Assistance
-**Status: CANDIDATE / NOT APPROVED**
-- AI coach.
+### Phase 5C — Goals & Deterministic Progress Intelligence
+**Status: APPROVED / LOCKED — IMPLEMENTATION NOT YET STARTED**
 
-### Future Candidate — Goals & Engagement
-**Status: CANDIDATE / NOT APPROVED**
-- goal tracking;
-- achievements/ranks.
+Objective:
+- establish a small durable goal system;
+- calculate goal progress, trends, adherence, and deterministic status locally;
+- present understandable progress facts from existing workout/history/profile/body-progress data;
+- preserve local-first, one-dataset-per-installation architecture.
+
+Initial goal categories:
+- target body weight;
+- target waist circumference;
+- target exercise/PR value;
+- workout-frequency target.
+
+Required boundaries:
+- no LLM, AI model, generative AI, or network dependency;
+- no backend/cloud analytics;
+- no nutrition/calorie system;
+- no medical diagnosis/treatment;
+- no achievements/ranks/badges;
+- no broad personalization;
+- no unrelated UI/UX modernization;
+- no multi-account Room redesign.
+
+Acceptance and verification are locked in `11_ACTIVE_PR_SPEC.md`. Implementation is authorized only after the required source audit and approval workflow.
+
+### Phase 5 completion boundary
+
+Phase 5 is planned to end after 5C. No Phase 5D AI/LLM phase is planned or authorized. After 5C, the next planned product phase is Phase 6 — UI/UX Modernization & Polish.
+
+### Phase 6 — UI/UX Modernization & Polish
+**Status: PLANNED / NOT APPROVED**
+
+Future direction after Phase 5C:
+- modern visual system and component consistency;
+- typography, spacing, surfaces, colors, and hierarchy;
+- navigation and information-architecture polish;
+- screen-by-screen UX refinement;
+- empty/loading/error states;
+- transitions/interaction quality;
+- accessibility and touch-target refinement;
+- polished presentation of workout, history, progress, profile, body progress, goals, backup/data, and settings.
+
+Phase 6 is not part of Phase 5C implementation scope.
+
+### Future AI direction
+**Status: DEFERRED / NOT APPROVED**
+
+No AI/LLM implementation is planned during Phase 5 or Phase 6. After Phase 6, the Project Owner may explicitly decide whether an AI phase is desirable and, if so, whether it should use a local model, user-authorized external LLM, hybrid architecture, or another approach. Until that explicit decision, AI must not be promoted from a future idea into implementation scope.
 
 ## Scope-First Development Rule
 
@@ -205,5 +247,5 @@ Do not invent calendar deadlines. Future items remain CANDIDATE/PLANNED/TBD/INFE
 ## Current Orientation
 
 **Completed:** PR4.1 → PR4.2 → PR4.3 → PR4.4 → PR4.5 → stability fix #32 → Phase 4 closeout → Phase 5A #35 → Phase 5B #41  
-**Current:** Phase 5B COMPLETE / VERIFIED; documentation closeout in progress  
-**Next:** explicit Project Owner selection of the next objective; no implementation is authorized until a new `11_ACTIVE_PR_SPEC.md` is locked.
+**Current:** Phase 5C approved and locked; implementation not yet started  
+**Next:** Gemini source audit against the locked Phase 5C specification, followed by Project Owner approval before implementation
