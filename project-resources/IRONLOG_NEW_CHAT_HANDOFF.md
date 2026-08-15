@@ -1,6 +1,6 @@
 # IronLog — New Chat Handoff
 
-**Handoff version:** v3.4
+**Handoff version:** v3.5
 **As of:** 2026-08-15
 **Purpose:** Make a fresh chat inside the IronLog project immediately productive without relying on prior conversation memory.
 
@@ -27,24 +27,30 @@ If GitHub is connected, fetch `/project-resources/` from the repository and trea
 - GitHub #32 — workout finish confirmation duration — MERGED / VERIFIED.
 - Connected-test data-safety mitigation — VERIFIED / CLOSED.
 - Phase 4 documentation/stability closeout — VERIFIED / CLOSED.
+- Phase 5A / GitHub #35 — Progress & History Presentation — MERGED / VERIFIED.
+- Phase 5A feature branch — DELETED after merge.
 - No new feature PR is currently authorized.
 
-## 3. PR4.5 completed boundary
+## 3. Phase 5A completed boundary
 
-Google Drive Cloud Restore:
+Phase 5A delivered deterministic/local presentation over the established workout-history data:
+- Progress overview and training-frequency presentation;
+- strength/PR progression;
+- volume trend and period filtering;
+- training-focus / muscle-group presentation;
+- enhanced History cards;
+- calendar history;
+- monthly recap;
+- yearly recap;
+- focused analytics/recap tests.
 
-```text
-Google Drive appDataFolder
-→ locate IronLog `.ironlog`
-→ controlled download/staging
-→ existing validation/import boundary
-→ existing restore transaction
-→ Room/UI
-```
+The implementation reused the established `WorkoutSession → SessionExercise → SessionSet` model and introduced no Room schema/migration, backup/restore, Google Drive, AI/LLM, or backend/cloud analytics change. Body-weight/body-measurement history remains excluded.
 
-PR4.5 reused the established restore pipeline and did not add Drive browsing/history, synchronization, scheduled restore, backup-format redesign, or schema redesign.
+## 4. Phase 5A verification
 
-## 4. Stability fixes completed
+GitHub #35 recorded repository review PASS, automated tests/build PASS, clean diff hygiene, and manual emulator verification of Progress, History/Calendar, monthly recap, yearly recap, and volume filters. Existing user data remained present during verification. `0m` average duration was accepted for test workouts mostly under one minute, and intentionally large test values were accepted as test data.
+
+## 5. Stability fixes completed
 
 ### Workout finish duration
 Active workout confirmation now uses live elapsed duration while completed sessions use persisted duration. GitHub #32 merged this fix after 7/7 connected tests, successful debug build, and manual emulator verification.
@@ -60,7 +66,7 @@ android.injected.androidTest.leaveApksInstalledAfterRun=true
 
 Verified with 7/7 connected tests, package-preservation checks, Programs/History preservation, and manual smoke testing with zero data loss.
 
-## 5. Critical historical regression
+## 6. Critical historical regression
 
 PR4.3 exposed a populated-database restore bug: DELETE statements were ineffective because `query().close()` did not execute them.
 
@@ -68,7 +74,7 @@ The fix used `execSQL()` with FK-safe ordering and preserved transactional resto
 
 This is a critical regression boundary. Do not casually redesign restore internals.
 
-## 6. Evidence rules
+## 7. Evidence rules
 
 - Runtime behavior → emulator/device.
 - Build → actual build output.
@@ -78,7 +84,7 @@ This is a critical regression boundary. Do not casually redesign restore interna
 
 Agent reports are evidence, not proof.
 
-## 7. Collaboration
+## 8. Collaboration
 
 Project Owner:
 - final product decisions;
@@ -103,7 +109,7 @@ Gemini/implementation agent:
 
 Gemini should not independently maintain the canonical Project Resources or perform documentation closeout unless explicitly delegated.
 
-## 8. If resources disagree
+## 9. If resources disagree
 
 Do not guess.
 
@@ -119,7 +125,7 @@ repository code/schema/tests
 
 Repair the canonical resource stack when necessary.
 
-## 9. Documentation workflow
+## 10. Documentation workflow
 
 For normal work:
 
@@ -133,6 +139,6 @@ Gemini implementation/evidence
 
 Do not duplicate documentation maintenance through Gemini when ChatGPT has connected GitHub access.
 
-## 10. Exact next action
+## 11. Exact next action
 
-Phase 4 closeout is complete. Wait for explicit Project Owner selection of the next phase/PR. Once selected, create a locked `11_ACTIVE_PR_SPEC.md` with objective, scope, non-goals, risks, acceptance criteria, and verification plan before implementation.
+Phase 5A is complete and its documentation closeout is in progress. After closeout, wait for explicit Project Owner selection of the next phase/PR. A new locked `11_ACTIVE_PR_SPEC.md` with objective, scope, non-goals, risks, acceptance criteria, and verification plan is required before implementation.
