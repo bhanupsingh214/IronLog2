@@ -1,23 +1,51 @@
 # IronLog — Architecture & Data / Identity Model
 
-**Documentation version:** v3.1
+**Documentation version:** v3.8
+**As of:** 2026-08-16
 **Status:** CURRENT WORKING REFERENCE
 **Rule:** verify source signatures before implementation.
 
 ## Architectural layers
 
-Observed backup/recovery layers:
-- UI: Profile/Settings screens.
-- ViewModel: `ProfileViewModel`.
-- Backup models: `data/local/backup/BackupModels.kt` and related current models.
-- Repositories: backup/restore repositories.
-- Services: export/import services.
-- Database: Room entities, DAOs, and `AppDatabase`.
+Observed application layers:
+- UI: Profile/Settings, Progress, History, Workout, and related screens.
+- ViewModels: screen-specific state and user interaction orchestration.
+- Data models: Room entities and backup DTOs/models.
+- Repositories: workout/history, analytics, body progress, backup, and restore repositories.
+- Services: export/import and Google Drive transport/authentication services.
+- Database: Room entities, DAOs, migrations, and `AppDatabase`.
 - Cloud layer: account/authorization and Google Drive services introduced by PR4.4.
 
 This document describes responsibilities, not immutable method signatures.
 
+## Ownership model
+
+IronLog currently uses:
+
+> one local IronLog dataset per app installation.
+
+Google account identity is an authentication/Drive authorization boundary, not a Room dataset-partitioning key. Phase 5B preserved this model and did not introduce multi-account local ownership.
+
 ## Data hierarchy
+
+### User profile
+
+Phase 5B introduced a durable single-row local profile containing optional personal profile attributes such as:
+- sex;
+- date of birth;
+- canonical metric height.
+
+Age is derived locally from DOB and the current date; mutable age is not stored.
+
+### Body progress
+
+Body progress is independent of workout sessions:
+- `body_weight_history` stores dated canonical-kilogram weight entries;
+- `waist_history` stores dated canonical-metric circumference entries.
+
+Latest weight/waist values are derived from the latest valid historical entry rather than duplicated mutable current-value fields.
+
+Body metrics such as BMI are derived locally and deterministically from canonical measurements.
 
 ### Exercise library
 
@@ -48,7 +76,7 @@ PRs use library/template identity where applicable and may reference a session. 
 
 ### Settings
 
-The backup model currently includes workout settings such as default rest timer, auto-start timer, haptic feedback, and sound alert.
+The backup model includes workout settings such as default rest timer, auto-start timer, haptic feedback, and sound alert.
 
 ## Canonical exercise identity
 
@@ -73,6 +101,8 @@ Restore-generated IDs may differ from backup IDs. Relevant mappings can include:
 
 References such as `currentExerciseId`, `originalExerciseId`, `completedExerciseIds`, and non-zero PR session references require correct remapping.
 
+Phase 5B profile/body data is restored as its own persistent data set and does not participate in workout-session identity remapping.
+
 ## Transaction model
 
 The restore contract is:
@@ -86,6 +116,8 @@ clear/rebuild in FK-safe order
         ↓
 resolve/remap identities
         ↓
+restore profile/body-progress data
+        ↓
 commit
 ```
 
@@ -94,6 +126,15 @@ Any failure must roll back. Foreign-key enforcement remains active.
 ## Historical snapshot principle
 
 Workout history is not simply a live view of today's exercise library. Snapshot fields preserve historical context and should remain stable unless a deliberate migration/feature explicitly changes that contract.
+
+## Phase 5B calculation boundary
+
+Ordinary profile/body calculations are local and deterministic:
+- height unit conversion;
+- age derivation from DOB;
+- BMI calculation and adult/non-adult interpretation path.
+
+The implementation does not require an LLM, backend analytics service, or network connection for these calculations.
 
 ## PR4.4 cloud architecture
 
