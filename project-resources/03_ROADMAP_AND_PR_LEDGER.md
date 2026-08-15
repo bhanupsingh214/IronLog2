@@ -1,6 +1,6 @@
 # IronLog Roadmap & PR Ledger
 
-**Documentation version:** v3.5  
+**Documentation version:** v3.6  
 **As of:** 2026-08-15
 
 ## Purpose
@@ -95,7 +95,7 @@ This is a development/test-environment safeguard and is not a product feature.
 
 **Status: COMPLETE / VERIFIED.**
 
-PR4.5, the workout-duration stability fix, and the connected-test data-safety mitigation are complete. The canonical Project Resource stack has been reconciled and audited, and the temporary closeout marker has been removed.
+PR4.5, the workout-duration stability fix, and the connected-test data-safety mitigation are complete. The canonical Project Resource stack was reconciled and audited.
 
 ## Phase 4 future candidates
 
@@ -113,23 +113,34 @@ These remain unapproved.
 ## Phase 5
 
 ### Phase 5A — Progress & History Presentation
-**Status: OBJECTIVE APPROVED / PLANNING LOCKED / IMPLEMENTATION PENDING FINAL SPEC APPROVAL**
+**Status: MERGED / VERIFIED — GitHub #35**
 
-Approved objective:
-- improve presentation of existing workout/history data;
-- investigate Body Progress;
-- investigate fitness timeline;
-- investigate monthly/yearly recap.
+- Head commit: `2ffee60df85271b2b68de96a96f8602d6f41a505`
+- Merge commit: `e35f28eb62148ab25525c2c6c9483840d0e3eaf7`
 
-Planning constraints:
-- deterministic/local calculations preferred;
-- no LLM/AI dependency for ordinary progress analysis;
-- no backend/cloud analytics service;
-- no unnecessary recurring infrastructure cost;
-- no workout logging, backup/restore, Goals/Engagement, or AI Coach redesign;
-- no schema migration unless repository audit proves it is necessary and the Owner separately approves it.
+Delivered:
+- Progress overview and training-frequency presentation;
+- strength/PR progression presentation;
+- volume trend and period filtering;
+- training-focus / muscle-group presentation;
+- enhanced History workout cards;
+- calendar-based history presentation;
+- monthly recap;
+- yearly recap;
+- deterministic analytics models and repository queries;
+- focused analytics/recap instrumentation coverage.
 
-The locked implementation specification is maintained in `11_ACTIVE_PR_SPEC.md`. The repository audit must determine the exact final scope before source-code implementation is authorized.
+Verified constraints:
+- established workout-history model reused;
+- no Room schema/migration change;
+- no backup/restore change;
+- no Google Drive change;
+- no new AI/LLM dependency;
+- no backend/cloud analytics dependency;
+- historical snapshot semantics preserved;
+- body-weight/body-measurement history excluded from this phase.
+
+Verification included repository implementation review, automated tests/build, clean diff hygiene, and manual emulator verification of Progress, History/Calendar, monthly recap, yearly recap, and volume-filter presentation.
 
 ### Phase 5B — Goals & Engagement
 **Status: CANDIDATE / NOT APPROVED**
@@ -163,6 +174,6 @@ Do not invent calendar deadlines. Future items remain CANDIDATE/PLANNED/TBD/INFE
 
 ## Current Orientation
 
-**Completed:** PR4.1 → PR4.2 → PR4.3 → PR4.4 → PR4.5 → stability fix #32 → Phase 4 closeout  
-**Current:** Phase 5A objective approved; repository audit/spec refinement in progress; implementation not yet authorized  
-**Next:** finalize Phase 5A scope and acceptance criteria from current repository evidence, then obtain final implementation approval.
+**Completed:** PR4.1 → PR4.2 → PR4.3 → PR4.4 → PR4.5 → stability fix #32 → Phase 4 closeout → Phase 5A #35  
+**Current:** Phase 5A COMPLETE / VERIFIED; documentation closeout in progress  
+**Next:** explicit Project Owner selection of the next objective; no implementation is authorized until a new `11_ACTIVE_PR_SPEC.md` is locked.
