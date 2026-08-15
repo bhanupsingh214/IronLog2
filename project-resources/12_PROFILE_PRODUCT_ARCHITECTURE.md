@@ -1,7 +1,7 @@
 # IronLog — Profile Product Architecture
 
 **Status:** PLANNING / NOT IMPLEMENTATION AUTHORITY
-**Date:** 2026-08-15
+**Date:** 2026-08-16
 **Purpose:** Holistic product and data-planning reference for the future IronLog Profile experience.
 
 ## 1. Planning intent
@@ -22,10 +22,12 @@ Potential user-owned identity/profile information:
 - display name;
 - optional profile image/avatar;
 - optional sex field;
-- optional date of birth;
+- date of birth;
 - optional country/region where justified.
 
-All fields should be optional unless a future feature establishes a clear requirement.
+Date of birth is included in the Phase 5B profile foundation because age can determine which BMI interpretation is appropriate. It should be collected only with a clear product purpose and should not be used for unrelated app behavior.
+
+All other fields should be optional unless a future feature establishes a clear requirement.
 
 ### Body & Progress
 
@@ -94,7 +96,7 @@ Not every piece of information shown in Profile should be stored in the same sub
 This is a planning rule pending implementation-level schema inspection:
 
 - dated body measurements should be modeled as persistent local data, not merely a single preference value;
-- profile attributes that affect derived calculations should have durable local storage;
+- profile attributes that affect derived calculations, including date of birth where required for age-dependent interpretation, should have durable local storage;
 - UI/display preferences may remain appropriate for preference storage;
 - body-progress data should participate in `.ironlog` backup/restore so portability does not silently omit personal progress data.
 
@@ -126,23 +128,37 @@ Internal calculations should use canonical kilograms.
 
 Sex should be optional and should not be required merely to use IronLog.
 
-Potential UI values require final product/legal/privacy review; the current planning direction is to avoid conflating biological sex with gender identity.
+Potential UI values require final product/privacy review; the current planning direction is to avoid conflating biological sex with gender identity.
 
 Sex must affect app behavior only where an explicit, evidence-based calculation or reference range requires it. Workout logging, workout history, volume calculations, PR calculations, and general navigation should not become sex-dependent without a concrete reason.
 
-## 7. BMI planning
+## 7. Date of birth and age planning
+
+Date of birth should be stored as a durable profile attribute rather than storing a mutable age value.
+
+Age should be derived locally from date of birth when needed. This keeps age current without requiring annual profile edits.
+
+Age is included in Phase 5B primarily because BMI interpretation is age-dependent. The implementation specification must distinguish adult BMI interpretation from BMI-for-age interpretation for users who are not adults, rather than applying adult BMI cutoffs universally.
+
+The exact age boundaries, pediatric reference source, adult reference source, and presentation rules must be verified and recorded in the implementation specification before release.
+
+Date of birth should not automatically drive unrelated training, UI, or personalization behavior without a documented product purpose.
+
+## 8. BMI planning
 
 BMI should be a deterministic/local derived metric based on canonical weight and height.
 
-The planned Indian/Asian-Indian reference scheme is:
+For adults, the planned Indian/Asian-Indian reference scheme is:
 - `<18.0` — underweight;
 - `18.0–22.9` — normal;
 - `23.0–24.9` — overweight;
 - `≥25.0` — obesity.
 
+For users who are not adults, IronLog must **not** apply adult BMI cutoffs. The implementation specification must identify the appropriate BMI-for-age reference method and source before any such interpretation is released.
+
 The exact reference source/version must be recorded in the implementation specification before release. BMI should be presented as a screening/derived metric, not a medical diagnosis, and should not be used to generate medical treatment advice.
 
-## 8. Measurement planning
+## 9. Measurement planning
 
 Weight should be represented as dated measurements rather than a mutable field attached to a workout session.
 
@@ -152,26 +168,30 @@ Initial body-measurement scope should consider:
 
 Additional measurements such as chest, arms, thighs, or other circumference measurements should remain future/planned until their UX, storage, and evidence requirements are explicitly defined.
 
-## 9. Privacy and data minimization
+## 10. Privacy and data minimization
 
 IronLog should collect only profile information with a clear product purpose.
+
+Date of birth is included because it has a concrete role in age-dependent BMI interpretation; it should not become a general-purpose personalization signal by default.
 
 Avoid collecting unnecessary sensitive personal or medical information. Optional fields should remain optional unless a later feature has a documented requirement.
 
 Body/profile calculations should be local and deterministic. No LLM dependency is planned for ordinary profile calculations, BMI, trends, or measurement aggregation.
 
-## 10. Backup and account-isolation principle
+## 11. Backup and account/data ownership principle
 
 Body/profile data is user-owned personal data. Future implementation must preserve:
-- correct account isolation;
+- the current local-dataset ownership model;
 - local-first behavior;
 - backup/export inclusion where the data is part of the portable user dataset;
 - restore correctness and transactional safety;
 - preservation of existing workout data.
 
+Phase 5B must **not** introduce a new multi-account local Room architecture. The current app has one local training dataset per installation; Google account state is the cloud identity/authorization layer rather than a Room ownership key for every local record.
+
 The existing `.ironlog` contract currently covers library, programs, workout history, PRs, and workout settings; it does not currently include body/profile data. Any future extension must be deliberate and versioned rather than silently changing the contract.
 
-## 11. Profile UX principle
+## 12. Profile UX principle
 
 Profile should be a central personal hub, not a giant form.
 
@@ -191,7 +211,7 @@ PROFILE
 
 Exact screen layout, navigation, and component hierarchy remain TBD.
 
-## 12. Phase relationship
+## 13. Phase relationship
 
 Phase 5A — Progress & History Presentation is complete and intentionally excluded body-weight/body-measurement history.
 
@@ -202,7 +222,7 @@ The current product planning recommendation is to make **Phase 5B — Profile Fo
 
 This sequencing is a planning recommendation only until the Project Owner explicitly approves and locks the next implementation specification.
 
-## 13. Non-goals for the initial Body Progress capability
+## 14. Non-goals for the initial Body Progress capability
 
 Unless separately authorized, the first body-progress implementation should not include:
 - calorie tracking;
@@ -213,19 +233,21 @@ Unless separately authorized, the first body-progress implementation should not 
 - AI-generated health coaching;
 - social sharing;
 - achievement/rank mechanics;
-- full goal-management mechanics.
+- full goal-management mechanics;
+- multi-account local database support.
 
-## 14. Required pre-implementation audit
+## 15. Required pre-implementation audit
 
 Before implementation is authorized, inspect and document:
 1. current Room entities and schema version;
 2. migration strategy and schema ledger;
-3. account/user identity boundaries;
+3. current local-dataset/account ownership boundaries;
 4. existing DataStore preferences;
 5. backup DTO/payload and restore mapping;
 6. Profile UI/ViewModel flow;
 7. existing tests and instrumentation conventions;
-8. exact evidence/source for BMI and any sex-specific reference ranges;
-9. acceptance criteria and regression coverage.
+8. exact evidence/source for adult BMI and any BMI-for-age and sex-specific reference ranges;
+9. date-of-birth validation and age-calculation rules;
+10. acceptance criteria and regression coverage.
 
 No implementation should infer missing signatures or schema relationships from this planning document.
