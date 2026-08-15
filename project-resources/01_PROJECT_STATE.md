@@ -1,6 +1,6 @@
 # IronLog — Project State
 
-**Documentation version:** v3.4
+**Documentation version:** v3.6
 **As of:** 2026-08-15
 **State classification:** CURRENT / VERIFIED BASELINE
 
@@ -8,20 +8,18 @@
 
 - Repository: `bhanupsingh214/IronLog2`
 - Default branch: `master`
-- Latest merged feature PR: PR4.5 / GitHub #31
-- PR4.5 head commit: `806f09e694699511d4c1ae11fcf11689b4b47df5`
-- PR4.5 merge commit: `6317c2f2c3aa12e56709d5b62cf600e8f1bca7d4`
-- Latest merged stability PR: GitHub #32 — workout finish duration
-- PR32 head commit: `8dc08ce1b426f681a9e97afc43c5fa751f0f8521`
-- PR32 merge commit: `eb3bcf34aeb656528b835a4d5fb2c46cb478109e`
+- Latest merged feature PR: Phase 5A / GitHub #35
+- Phase 5A head commit: `2ffee60df85271b2b68de96a96f8602d6f41a505`
+- Phase 5A merge commit: `e35f28eb62148ab25525c2c6c9483840d0e3eaf7`
+- PR4.5 / GitHub #31 and stability work remain part of the verified baseline.
 
-The merged PR4.5 and PR32 baseline is the starting point for Phase 4 closeout. Any new implementation session must re-check the actual current `master` state before editing.
+The current `master` includes the completed Phase 5A Progress & History Presentation work. Any new implementation session must re-check the actual current `master` state before editing.
 
 ## Current phase
 
-**Phase 4 — Backup & Recovery / Stability Closeout COMPLETE**
+**Phase 5A — Progress & History Presentation COMPLETE / VERIFIED**
 
-The implementation and stability work is complete. The documentation closeout and canonical-stack audit are now complete as well. No new feature implementation is authorized until a new objective is explicitly selected.
+Phase 5A implementation, automated verification, manual emulator verification, merge, and branch deletion are complete. The documentation closeout is now being reconciled. No new feature implementation is authorized until a new objective is explicitly selected.
 
 ## Completed milestones
 
@@ -33,36 +31,33 @@ The implementation and stability work is complete. The documentation closeout an
 - PR4.5 / GitHub #31 — Google Drive Cloud Restore — MERGED / VERIFIED.
 - GitHub #32 — Workout finish confirmation live duration — MERGED / VERIFIED.
 - Phase 4 documentation/stability closeout — MERGED / VERIFIED.
+- Phase 5A / GitHub #35 — Progress & History Presentation — MERGED / VERIFIED.
 
-## PR4.5 verified boundary
+## Phase 5A verified boundary
 
-PR #31 merged the approved Google Drive cloud-restore flow. Its recorded verification included:
-- JVM test suite/build checks;
-- clean debug build;
-- connected Android tests with 5 tests passing;
-- real-emulator Google Drive restore flow, including backup metadata confirmation and restore flow;
-- no schema/migration change;
-- existing restore pipeline retained as authoritative.
+GitHub #35 delivered presentation and deterministic aggregation over the established workout-history data model. Verified scope included:
+- Progress overview and training-frequency presentation;
+- strength/PR progression presentation;
+- volume trend and period filtering;
+- training-focus / muscle-group presentation;
+- enhanced History workout cards;
+- calendar-based history presentation;
+- monthly recap;
+- yearly recap;
+- deterministic analytics models and repository queries;
+- focused analytics/recap instrumentation coverage.
 
-PR4.5 did not implement general Drive browsing, backup history/version management, cloud synchronization, scheduled restore, backup-format redesign, or schema redesign.
+The implementation reused the established `WorkoutSession → SessionExercise → SessionSet` history model. No Room schema/migration change, backup/restore change, Google Drive change, AI/LLM dependency, or backend/cloud analytics dependency was introduced. Body-weight/body-measurement history was explicitly excluded because the current workout data model does not provide that contract.
 
-## Stability verification
+## Phase 5A verification
 
-The workout finish-duration issue was fixed in GitHub #32. The active confirmation dialog now uses live elapsed duration for active sessions while completed sessions retain persisted duration. Verification recorded 7/7 connected Android tests passing, a successful debug build, and manual emulator verification.
-
-A separate development-test data-loss regression was also investigated. The connected instrumentation-test lifecycle could remove the production IronLog package after a run, wiping the local Room database on the primary emulator. The verified mitigation is:
-
-```properties
-android.injected.androidTest.leaveApksInstalledAfterRun=true
-```
-
-A controlled verification passed with 7/7 connected tests, the production package remaining installed, Programs and History remaining present, and a manual smoke test passing with zero data loss. The mitigation is included in the stability-closeout change set.
+Recorded evidence included repository implementation review PASS, automated tests/build PASS, clean `git diff --check` before commit, and manual emulator verification of Progress, History, Calendar, monthly recap, yearly recap, and volume-filter presentation. Existing user data remained present during verification. The displayed `0m` average duration was accepted because the test workouts were mostly under one minute, and intentionally large test values were accepted as test data.
 
 ## Current authorization
 
 **No new product feature PR is currently authorized.**
 
-Phase 4 documentation/stability closeout is complete. The next step is explicit Project Owner selection of the next phase/objective, followed by a new locked `11_ACTIVE_PR_SPEC.md` before any implementation begins.
+Phase 5A is complete. The next step is explicit Project Owner selection of the next phase/objective, followed by a new locked `11_ACTIVE_PR_SPEC.md` before any implementation begins.
 
 ## Business constraint
 
