@@ -1,6 +1,6 @@
 # IronLog — Project Resource Index
 
-**Documentation version:** v3.8
+**Documentation version:** v3.9
 **Canonical location:** `/project-resources/`
 **As of:** 2026-08-16
 **Purpose:** Canonical continuity and governance index for planning, implementation, verification, release, and fresh-chat handoff.
@@ -85,7 +85,7 @@ If not verified, label it `TBD` and inspect the repository.
 
 `11_ACTIVE_PR_SPEC.md` is the implementation authorization boundary.
 
-No implementation may begin from a candidate, conversation statement, or roadmap entry alone.
+No implementation may begin from a candidate, conversation statement, or roadmap entry alone. Phase 5C is authorized only through the locked `11_ACTIVE_PR_SPEC.md` and its required source-audit/approval gate.
 
 ## Documentation lifecycle
 
