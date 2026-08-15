@@ -1,7 +1,7 @@
 # IronLog Roadmap & PR Ledger
 
-**Documentation version:** v3.6  
-**As of:** 2026-08-15
+**Documentation version:** v3.8  
+**As of:** 2026-08-16
 
 ## Purpose
 
@@ -67,7 +67,7 @@ The merged PR intentionally excluded Drive browsing/history, synchronization, sc
 **Status: MERGED / VERIFIED**
 
 - Head commit: `8dc08ce1b426f681a9e97afc43c5fa751f0f8521`
-- Merge commit: `eb3bcf34aeb656528b835a4d5fb2c46cb478109e`
+- Merge commit: `eb3bcf34aeb656528b8354a5db2c46cb478109e`
 
 The fix calculates live elapsed duration for active sessions while retaining persisted duration for completed sessions. Verification recorded 7/7 connected tests, a successful debug build, and manual emulator verification.
 
@@ -142,14 +142,44 @@ Verified constraints:
 
 Verification included repository implementation review, automated tests/build, clean diff hygiene, and manual emulator verification of Progress, History/Calendar, monthly recap, yearly recap, and volume-filter presentation.
 
-### Phase 5B — Goals & Engagement
-**Status: CANDIDATE / NOT APPROVED**
-- goal tracking;
-- achievements/ranks.
+### Phase 5B — Profile Foundation & Body Progress
+**Status: MERGED / VERIFIED — GitHub #41**
+
+- Head commit: `e6ab49fd2ce8e91d7e5f3f090bf1b9f615c60410`
+- Merge commit: `f1fd9d91f4fbaee7df508b0819a3a478f8f46e31`
+
+Delivered:
+- optional sex, date of birth, and height profile foundation;
+- feet/inches-preferred height entry with canonical metric storage;
+- dated body-weight history;
+- dated waist history;
+- deterministic local age and BMI calculations;
+- adult Indian/Asian-Indian BMI classification with separate non-adult handling;
+- Profile hub integration;
+- Room migration from v21;
+- backward-compatible `.ironlog` backup/restore extension;
+- calculation, repository, and migration test coverage.
+
+Verified constraints:
+- one local IronLog dataset per installation preserved;
+- no multi-account Room redesign;
+- no nutrition/calorie tracking;
+- no medical diagnosis/treatment;
+- no goals/achievements;
+- no AI/LLM dependency;
+- no backend/cloud analytics dependency;
+- existing workout/history/progress/PR behavior preserved.
+
+Verification included build/JVM tests, clean diff hygiene, manual Profile/Body Progress verification, local export/import round-trip, and regression smoke testing. Instrumentation tests were implemented but not executed locally because no connected device was available.
 
 ### Phase 5C — AI Assistance
 **Status: CANDIDATE / NOT APPROVED**
 - AI coach.
+
+### Future Candidate — Goals & Engagement
+**Status: CANDIDATE / NOT APPROVED**
+- goal tracking;
+- achievements/ranks.
 
 ## Scope-First Development Rule
 
@@ -174,6 +204,6 @@ Do not invent calendar deadlines. Future items remain CANDIDATE/PLANNED/TBD/INFE
 
 ## Current Orientation
 
-**Completed:** PR4.1 → PR4.2 → PR4.3 → PR4.4 → PR4.5 → stability fix #32 → Phase 4 closeout → Phase 5A #35  
-**Current:** Phase 5A COMPLETE / VERIFIED; documentation closeout in progress  
+**Completed:** PR4.1 → PR4.2 → PR4.3 → PR4.4 → PR4.5 → stability fix #32 → Phase 4 closeout → Phase 5A #35 → Phase 5B #41  
+**Current:** Phase 5B COMPLETE / VERIFIED; documentation closeout in progress  
 **Next:** explicit Project Owner selection of the next objective; no implementation is authorized until a new `11_ACTIVE_PR_SPEC.md` is locked.
