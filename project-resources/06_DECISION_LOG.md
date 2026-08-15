@@ -1,6 +1,6 @@
 # IronLog — Decision Log
 
-**Documentation version:** v3.3  
+**Documentation version:** v3.4  
 **As of:** 2026-08-15
 
 ## Durable Decisions
@@ -71,6 +71,13 @@ The development test environment must keep the production IronLog package instal
 **Reason:** AGP's connected instrumentation-test lifecycle was observed to remove the production package after a test run, which erased the local Room database. The project now sets `android.injected.androidTest.leaveApksInstalledAfterRun=true` and verified the mitigation with 7/7 connected tests passing, the package remaining installed, Programs/History remaining present, and a manual smoke test passing with zero data loss.
 
 This is a development/test-environment safeguard. It does not replace backups, disposable-device testing, or production data-protection mechanisms.
+
+### D034 — Phase 5A uses deterministic local analytics over existing workout history
+Phase 5A Progress & History Presentation must derive ordinary progress, history, and recap metrics from the established persisted workout-history model using deterministic local calculations rather than an LLM, backend analytics service, or unnecessary schema redesign.
+
+**Reason:** the repository already provided the established `WorkoutSession → SessionExercise → SessionSet` history model and analytics/query pipeline. Phase 5A was successfully delivered over that foundation without Room schema/migration changes, backup/restore changes, Google Drive changes, or new AI/backend dependencies.
+
+Body-weight/body-measurement history remains outside this decision because the current workout data model does not provide a body-measurement contract.
 
 ## Decision Change Rule
 
