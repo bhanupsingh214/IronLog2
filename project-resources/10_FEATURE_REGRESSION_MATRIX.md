@@ -7,6 +7,7 @@
 
 - PASS — verified with appropriate evidence.
 - HISTORICAL PASS — previously verified baseline.
+- IMPLEMENTED / NOT EXECUTED — test exists and was reviewed, but required runtime/instrumentation execution was unavailable.
 - [ ] — required/current-cycle test not yet verified.
 - TBD — requires investigation/decision.
 
@@ -135,7 +136,7 @@ The detailed PR4.5 scenario rows below remain `[ ]` unless their individual evid
 | P5B-11 | Weight/waist edit and delete flows work | PASS | Manual Profile/body-history verification |
 | P5B-12 | Local export/import round-trip preserves profile/body data | PASS | Manual export/import round-trip verification |
 | P5B-13 | Existing Workout/History/Progress/PR behavior remains intact after Phase 5B | PASS | Manual regression smoke test |
-| P5B-14 | v21→v22 migration creates profile/body tables and preserves existing data | PASS | Migration implementation + migration test implemented; connected execution unavailable locally |
+| P5B-14 | v21→v22 migration creates profile/body tables and preserves existing data | IMPLEMENTED / NOT EXECUTED | Migration test implemented and reviewed; connected execution unavailable locally because no connected device was available |
 | P5B-15 | Backup/restore remains backward compatible and transactional | PASS | Backup/restore implementation review + manual local round-trip; connected instrumentation execution unavailable locally |
 | P5B-16 | Phase 5B introduces no multi-account Room redesign or LLM/backend dependency | PASS | GitHub #41 diff/review |
 
@@ -143,7 +144,7 @@ The detailed PR4.5 scenario rows below remain `[ ]` unless their individual evid
 
 Do not mark a current-cycle test PASS from code inspection or an agent report alone.
 
-For Phase 5B, rows that depend on instrumentation execution distinguish implementation/manual evidence from the unavailable connected-device execution. The merged PR explicitly records that instrumentation tests were implemented but not executed locally because no connected device was available.
+For Phase 5B, rows that depend on instrumentation execution distinguish implementation/manual evidence from unavailable connected-device execution. The merged PR explicitly records that instrumentation tests were implemented but not executed locally because no connected device was available.
 
 The populated-database replacement test is a critical regression boundary for any restore-path change.
 
