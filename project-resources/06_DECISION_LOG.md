@@ -1,6 +1,6 @@
 # IronLog — Decision Log
 
-**Documentation version:** v3.8  
+**Documentation version:** v3.9  
 **As of:** 2026-08-16
 
 ## Durable Decisions
@@ -98,6 +98,16 @@ Physical measurements are persisted canonically in metric units while user-facin
 Phase 5B uses the reviewed Indian consensus direction for adult BMI screening—normal 18.0–22.9, overweight 23.0–24.9, obesity ≥25.0—and keeps non-adult interpretation on a separate age-aware path. BMI is presented as a screening/derived metric rather than a diagnosis.
 
 **Reason:** adult cutoffs must not be universally applied to children/adolescents, and the project explicitly excludes medical diagnosis or treatment advice. The Indian 23/25 adult cut points are documented in published consensus/review literature.
+
+### D039 — Phase 5C deterministic intelligence is not AI/LLM
+Phase 5C Goals & Deterministic Progress Intelligence must use local, deterministic application logic for ordinary calculations and classifications such as goal progress, trend direction/rate, adherence, and bounded goal status. Phase 5C must not introduce an LLM, generative AI, local language-model inference, model training, backend inference, or network dependency.
+
+**Reason:** IronLog should remain useful without AI and should build a trustworthy deterministic source of truth before any optional generative layer is considered. The Project Owner explicitly approved 5C as the final Phase 5 feature phase before Phase 6 UI/UX modernization.
+
+### D040 — AI/LLM is explicitly deferred beyond Phase 5 and Phase 6
+No AI/LLM implementation is planned or authorized during Phase 5 or Phase 6. Phase 5 ends after 5C, and the next planned phase is Phase 6 — UI/UX Modernization & Polish. An AI phase may be considered only after Phase 6 and only after explicit Project Owner authorization.
+
+**Reason:** the Project Owner wants Phase 5 to remain focused on data, goals, and deterministic local intelligence, then wants a dedicated UI/UX modernization phase before deciding whether AI is desirable. This prevents roadmap ambiguity and prevents future agents from treating an old AI candidate as active scope.
 
 ## Decision Change Rule
 
