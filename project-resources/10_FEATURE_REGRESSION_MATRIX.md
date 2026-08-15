@@ -1,6 +1,6 @@
 # IronLog — Feature Regression Matrix
 
-**Documentation version:** v3.2
+**Documentation version:** v3.4
 **As of:** 2026-08-15
 
 ## Evidence legend
@@ -41,7 +41,7 @@
 | P45-2 | Real-emulator Google Drive restore flow | PASS — GitHub #31 PR record; metadata confirmation and restore flow manually verified |
 | P45-3 | File-based backup validation instrumentation coverage | PASS — GitHub #31; 5 connected Android tests passed |
 
-The detailed scenario rows below remain `[ ]` unless their individual evidence is explicitly recorded. PR4.5 merge status must not be used to infer PASS for every row.
+The detailed PR4.5 scenario rows below remain `[ ]` unless their individual evidence is explicitly recorded. PR4.5 merge status must not be used to infer PASS for every row.
 
 ## PR4.5 required tests
 
@@ -102,6 +102,21 @@ The detailed scenario rows below remain `[ ]` unless their individual evidence i
 | S1 | Connected instrumentation tests preserve the production package and local data | PASS | 7/7 connected tests passed; package remained installed; Programs/History remained present; manual smoke test passed; zero data loss |
 | S2 | Finish Workout confirmation shows live duration for an active session | PASS | GitHub #32; 7/7 connected tests, successful debug build, manual emulator verification |
 | S3 | Completed-workout duration remains correct after the live-duration fix | PASS | GitHub #32 manual emulator verification; completed-workout screen remained correct |
+
+## Phase 5A — Progress & History Presentation
+
+| ID | Scenario | Result | Evidence |
+|---|---|---|---|
+| P5A-1 | Progress overview and training-frequency presentation uses real persisted data | PASS | GitHub #35; automated verification and manual emulator smoke test |
+| P5A-2 | Strength/PR progression presentation renders correctly | PASS | GitHub #35; automated verification and manual Progress smoke test |
+| P5A-3 | Volume trend and period-filter controls render correctly | PASS | GitHub #35; manual Progress verification confirmed 7 Days / 30 Days / 3 Months / 6 Months controls |
+| P5A-4 | Training-focus / muscle-group presentation renders correctly | PASS | GitHub #35; manual Progress verification |
+| P5A-5 | Enhanced History workout cards render existing workout data | PASS | GitHub #35; manual History verification |
+| P5A-6 | Calendar history presentation renders and navigates known workout dates | PASS | GitHub #35; manual History/Calendar verification |
+| P5A-7 | Monthly recap renders deterministic local aggregation | PASS | GitHub #35; automated tests and manual emulator verification |
+| P5A-8 | Yearly recap renders deterministic local aggregation | PASS | GitHub #35; automated tests and manual emulator verification |
+| P5A-9 | Existing user data remains present during feature verification | PASS | Manual emulator verification; restored/manual workout history remained visible |
+| P5A-10 | Phase 5A introduces no schema/migration, backup/restore, Drive, or AI/backend analytics change | PASS | GitHub #35 diff/review |
 
 ## Evidence rule
 
