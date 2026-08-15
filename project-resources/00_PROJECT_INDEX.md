@@ -1,6 +1,6 @@
 # IronLog — Project Resource Index
 
-**Documentation version:** v3.4
+**Documentation version:** v3.5
 **Canonical location:** `/project-resources/`
 **As of:** 2026-08-15
 **Purpose:** Canonical continuity and governance index for planning, implementation, verification, release, and fresh-chat handoff.
