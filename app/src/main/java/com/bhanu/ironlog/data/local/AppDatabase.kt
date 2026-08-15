@@ -3,13 +3,7 @@ package com.bhanu.ironlog.data.local
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.withTransaction
-import com.bhanu.ironlog.data.local.dao.PlaceholderDao
-import com.bhanu.ironlog.data.local.dao.ProgramDao
-import com.bhanu.ironlog.data.local.dao.SessionDao
-import com.bhanu.ironlog.data.local.dao.WorkoutSessionDao
-import com.bhanu.ironlog.data.local.dao.PersonalRecordDao
-import com.bhanu.ironlog.data.local.dao.WorkoutSettingsDao
-import com.bhanu.ironlog.data.local.dao.LibraryExerciseDao
+import com.bhanu.ironlog.data.local.dao.*
 import com.bhanu.ironlog.data.local.entity.*
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
@@ -27,9 +21,12 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         SessionSet::class,
         PersonalRecordEntity::class,
         WorkoutSettingsEntity::class,
-        LibraryExerciseEntity::class
+        LibraryExerciseEntity::class,
+        UserProfileEntity::class,
+        BodyWeightEntry::class,
+        WaistEntry::class
     ],
-    version = 21,
+    version = 22,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -40,6 +37,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun personalRecordDao(): PersonalRecordDao
     abstract fun workoutSettingsDao(): WorkoutSettingsDao
     abstract fun libraryExerciseDao(): LibraryExerciseDao
+    abstract fun userProfileDao(): UserProfileDao
 
     /**
      * Clears all user-owned training data from the database.
@@ -58,6 +56,11 @@ abstract class AppDatabase : RoomDatabase() {
             db.execSQL("DELETE FROM exercises")
             db.execSQL("DELETE FROM workout_days")
             db.execSQL("DELETE FROM programs")
+
+            // Body & Progress
+            db.execSQL("DELETE FROM body_weight_history")
+            db.execSQL("DELETE FROM waist_history")
+            db.execSQL("DELETE FROM user_profile")
 
             // Global State & Identity
             db.execSQL("DELETE FROM personal_records")
@@ -571,6 +574,39 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_20_21 = object : Migration(20, 21) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_session_exercises_identity` ON `session_exercises` (`libraryExerciseId`, `exerciseTemplateId`)")
+            }
+        }
+
+        val MIGRATION_21_22 = object : Migration(21, 22) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `user_profile` (
+                        `id` INTEGER PRIMARY KEY NOT NULL,
+                        `sex` TEXT,
+                        `dateOfBirth` INTEGER,
+                        `heightCm` REAL,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL
+                    )
+                """)
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `body_weight_history` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `weightKg` REAL NOT NULL,
+                        `timestamp` INTEGER NOT NULL,
+                        `notes` TEXT NOT NULL
+                    )
+                """)
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `waist_history` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `circumferenceCm` REAL NOT NULL,
+                        `timestamp` INTEGER NOT NULL,
+                        `notes` TEXT NOT NULL
+                    )
+                """)
+                // Initialize profile
+                db.execSQL("INSERT OR IGNORE INTO `user_profile` (id, createdAt, updatedAt) VALUES (1, ${System.currentTimeMillis()}, ${System.currentTimeMillis()})")
             }
         }
     }

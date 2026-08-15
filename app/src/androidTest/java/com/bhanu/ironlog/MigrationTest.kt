@@ -143,4 +143,48 @@ class MigrationTest {
 
         db.close()
     }
+
+    @Test
+    fun migrate21To22() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val factory = FrameworkSQLiteOpenHelperFactory()
+        val config = androidx.sqlite.db.SupportSQLiteOpenHelper.Configuration.builder(context)
+            .name("migration-test-22")
+            .callback(object : androidx.sqlite.db.SupportSQLiteOpenHelper.Callback(21) {
+                override fun onCreate(db: SupportSQLiteDatabase) {
+                    // Create v21 schema (minimal for this test)
+                    db.execSQL("CREATE TABLE IF NOT EXISTS `workout_settings` (`id` INTEGER PRIMARY KEY NOT NULL)")
+                }
+                override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {}
+            })
+            .build()
+
+        val db = factory.create(config).writableDatabase
+        db.execSQL("INSERT INTO workout_settings (id) VALUES (1)")
+
+        // RUN MIGRATION
+        AppDatabase.MIGRATION_21_22.migrate(db)
+
+        // VERIFY RESULTS
+        // Check user_profile table exists and has initial record
+        var cursor = db.query("SELECT * FROM user_profile")
+        assertTrue("UserProfile table should have 1 record", cursor.moveToFirst())
+        assertEquals(1L, cursor.getLong(cursor.getColumnIndexOrThrow("id")))
+        cursor.close()
+
+        // Check history tables exist
+        db.execSQL("INSERT INTO body_weight_history (weightKg, timestamp, notes) VALUES (75.0, 1000, 'Test')")
+        cursor = db.query("SELECT * FROM body_weight_history")
+        assertTrue(cursor.moveToFirst())
+        assertEquals(75.0, cursor.getDouble(cursor.getColumnIndexOrThrow("weightKg")), 0.01)
+        cursor.close()
+
+        db.execSQL("INSERT INTO waist_history (circumferenceCm, timestamp, notes) VALUES (85.0, 1000, 'Test')")
+        cursor = db.query("SELECT * FROM waist_history")
+        assertTrue(cursor.moveToFirst())
+        assertEquals(85.0, cursor.getDouble(cursor.getColumnIndexOrThrow("circumferenceCm")), 0.01)
+        cursor.close()
+
+        db.close()
+    }
 }
