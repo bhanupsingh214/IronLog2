@@ -13,6 +13,7 @@ import com.bhanu.ironlog.data.local.dao.PersonalRecordDao
 import com.bhanu.ironlog.data.local.dao.WorkoutSettingsDao
 import com.bhanu.ironlog.data.local.dao.LibraryExerciseDao
 import com.bhanu.ironlog.data.local.dao.UserProfileDao
+import com.bhanu.ironlog.data.local.dao.GoalDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -47,7 +48,8 @@ object AppModule {
             AppDatabase.MIGRATION_18_19,
             AppDatabase.MIGRATION_19_20,
             AppDatabase.MIGRATION_20_21,
-            AppDatabase.MIGRATION_21_22
+            AppDatabase.MIGRATION_21_22,
+            AppDatabase.MIGRATION_22_23
         ).addCallback(object : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
@@ -95,5 +97,10 @@ object AppModule {
     @Provides
     fun provideUserProfileDao(database: AppDatabase): UserProfileDao {
         return database.userProfileDao()
+    }
+
+    @Provides
+    fun provideGoalDao(database: AppDatabase): GoalDao {
+        return database.goalDao()
     }
 }

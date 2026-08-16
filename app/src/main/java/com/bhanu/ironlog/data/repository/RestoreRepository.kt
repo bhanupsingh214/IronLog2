@@ -17,7 +17,8 @@ class RestoreRepository @Inject constructor(
     private val libraryDao: LibraryExerciseDao,
     private val prDao: PersonalRecordDao,
     private val settingsDao: WorkoutSettingsDao,
-    private val userProfileDao: UserProfileDao
+    private val userProfileDao: UserProfileDao,
+    private val goalDao: GoalDao
 ) {
     /**
      * Performs a full "Clear & Restore" of the provided payload.
@@ -308,6 +309,24 @@ class RestoreRepository @Inject constructor(
                     circumferenceCm = dto.circumferenceCm,
                     timestamp = dto.timestamp,
                     notes = dto.notes
+                ))
+            }
+
+            // 10. Restore Goals in the existing Room transaction. Older backups have an empty goal list.
+            payload.goals.forEach { dto ->
+                val remappedLibraryId = dto.libraryExerciseId?.let { oldId ->
+                    libraryIdMap[oldId] ?: error("Missing library mapping for goal exercise $oldId")
+                }
+                goalDao.insertGoal(GoalEntity(
+                    goalId = 0L,
+                    type = dto.type,
+                    targetValue = dto.targetValue,
+                    startingValue = dto.startingValue,
+                    libraryExerciseId = remappedLibraryId,
+                    frequencyCount = dto.frequencyCount,
+                    frequencyPeriod = dto.frequencyPeriod,
+                    startDate = dto.startDate,
+                    deadline = dto.deadline
                 ))
             }
         }

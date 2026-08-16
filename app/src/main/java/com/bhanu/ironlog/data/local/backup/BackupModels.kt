@@ -13,7 +13,8 @@ data class BackupPayload(
     val settings: WorkoutSettingsDto,
     val profile: UserProfileDto? = null,
     val weightHistory: List<BodyWeightDto> = emptyList(),
-    val waistHistory: List<WaistDto> = emptyList()
+    val waistHistory: List<WaistDto> = emptyList(),
+    val goals: List<GoalDto> = emptyList()
 )
 
 @Serializable
@@ -49,6 +50,23 @@ data class WaistDto(
 
 fun WaistEntry.toDto() = WaistDto(
     circumferenceCm, timestamp, notes
+)
+
+@Serializable
+data class GoalDto(
+    val goalId: Long,
+    val type: String,
+    val targetValue: Double,
+    val startingValue: Double,
+    val libraryExerciseId: Long?,
+    val frequencyCount: Int?,
+    val frequencyPeriod: String?,
+    val startDate: Long,
+    val deadline: Long?
+)
+
+fun GoalEntity.toDto() = GoalDto(
+    goalId, type, targetValue, startingValue, libraryExerciseId, frequencyCount, frequencyPeriod, startDate, deadline
 )
 
 @Serializable

@@ -202,9 +202,10 @@ fun ProfileScreen(
                 SettingsClickItem(
                     title = "BMI",
                     subtitle = "${String.format(Locale.getDefault(), "%.1f", bmi)} - $interpretation",
-                    onClick = { /* Show BMI Info */ },
+                    onClick = { /* BMI is read-only */ },
                     icon = Icons.Default.Info,
-                    enabled = false
+                    enabled = false,
+                    showDisabledAlpha = false
                 )
             }
 
@@ -796,8 +797,10 @@ fun SettingsClickItem(
     onClick: () -> Unit,
     icon: ImageVector = Icons.Default.ChevronRight,
     loading: Boolean = false,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    showDisabledAlpha: Boolean = !enabled
 ) {
+    val alpha = if (showDisabledAlpha) 0.38f else 1.0f
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -810,12 +813,12 @@ fun SettingsClickItem(
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
-                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
             )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha)
             )
         }
         if (loading) {
@@ -827,7 +830,7 @@ fun SettingsClickItem(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (enabled) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outline.copy(alpha = 0.38f)
+                tint = MaterialTheme.colorScheme.outline.copy(alpha = alpha)
             )
         }
     }

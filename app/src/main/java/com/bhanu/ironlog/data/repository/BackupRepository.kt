@@ -14,7 +14,8 @@ class BackupRepository @Inject constructor(
     private val libraryDao: LibraryExerciseDao,
     private val prDao: PersonalRecordDao,
     private val settingsDao: WorkoutSettingsDao,
-    private val userProfileDao: UserProfileDao
+    private val userProfileDao: UserProfileDao,
+    private val goalDao: GoalDao
 ) {
     suspend fun getFullBackupPayload(appVersion: String): BackupPayload {
         val library = libraryDao.getAllExercises().map { it.toDto() }
@@ -53,6 +54,7 @@ class BackupRepository @Inject constructor(
         val profile = userProfileDao.getProfileOnce()?.toDto()
         val weightHistory = userProfileDao.getWeightHistoryOnce().map { it.toDto() }
         val waistHistory = userProfileDao.getWaistHistoryOnce().map { it.toDto() }
+        val goals = goalDao.getAllGoals().first().map { it.toDto() }
 
         val metadata = BackupMetadata(
             version = 1,
@@ -71,7 +73,8 @@ class BackupRepository @Inject constructor(
             settings = settings,
             profile = profile,
             weightHistory = weightHistory,
-            waistHistory = waistHistory
+            waistHistory = waistHistory,
+            goals = goals
         )
     }
 }

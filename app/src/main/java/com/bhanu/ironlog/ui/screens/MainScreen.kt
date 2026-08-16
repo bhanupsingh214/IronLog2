@@ -59,6 +59,7 @@ fun MainScreen(
         Screen.Programs,
         Screen.Workout,
         Screen.Progress,
+        Screen.Goals,
         Screen.Profile,
     )
 
@@ -86,6 +87,7 @@ fun MainScreen(
                         Screen.Progress -> currentRoute == Screen.Progress.route ||
                                          currentRoute?.startsWith("records") == true ||
                                          currentRoute?.startsWith("record_detail") == true
+                        Screen.Goals -> currentRoute == Screen.Goals.route
                         else -> currentRoute == screen.route
                     }
 

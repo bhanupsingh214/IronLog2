@@ -24,9 +24,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         LibraryExerciseEntity::class,
         UserProfileEntity::class,
         BodyWeightEntry::class,
-        WaistEntry::class
+        WaistEntry::class,
+        GoalEntity::class
     ],
-    version = 22,
+    version = 23,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -38,6 +39,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun workoutSettingsDao(): WorkoutSettingsDao
     abstract fun libraryExerciseDao(): LibraryExerciseDao
     abstract fun userProfileDao(): UserProfileDao
+    abstract fun goalDao(): GoalDao
 
     /**
      * Clears all user-owned training data from the database.
@@ -66,6 +68,7 @@ abstract class AppDatabase : RoomDatabase() {
             db.execSQL("DELETE FROM personal_records")
             db.execSQL("DELETE FROM exercise_library")
             db.execSQL("DELETE FROM workout_settings")
+            db.execSQL("DELETE FROM goals")
 
             // Legacy Table (Phase 2 engine)
             db.execSQL("DELETE FROM workout_sessions")
@@ -607,6 +610,24 @@ abstract class AppDatabase : RoomDatabase() {
                 """)
                 // Initialize profile
                 db.execSQL("INSERT OR IGNORE INTO `user_profile` (id, createdAt, updatedAt) VALUES (1, ${System.currentTimeMillis()}, ${System.currentTimeMillis()})")
+            }
+        }
+
+        val MIGRATION_22_23 = object : Migration(22, 23) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `goals` (
+                        `goalId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `type` TEXT NOT NULL,
+                        `targetValue` REAL NOT NULL,
+                        `startingValue` REAL NOT NULL,
+                        `libraryExerciseId` INTEGER,
+                        `frequencyCount` INTEGER,
+                        `frequencyPeriod` TEXT,
+                        `startDate` INTEGER NOT NULL,
+                        `deadline` INTEGER
+                    )
+                """)
             }
         }
     }

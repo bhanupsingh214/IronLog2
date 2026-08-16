@@ -14,6 +14,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
         fun passSession(dayId: Long, sessionId: Long) = "session_exercises/$dayId/$sessionId"
     }
     object Progress : Screen("progress", "Progress", Icons.Default.BarChart)
+    object Goals : Screen("goals", "Goals", Icons.Default.Flag)
     object Profile : Screen("profile", "Profile", Icons.Default.Person)
     object History : Screen("history", "History", Icons.Default.History)
     object Records : Screen("records", "Records", Icons.Default.EmojiEvents)
