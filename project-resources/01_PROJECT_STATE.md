@@ -1,8 +1,8 @@
 # IronLog — Project State
 
-**Documentation version:** v3.9
+**Documentation version:** v4.0
 **As of:** 2026-08-16
-**State classification:** CURRENT / VERIFIED BASELINE + APPROVED NEXT OBJECTIVE
+**State classification:** CURRENT / VERIFIED BASELINE + ACTIVE PHASE 5C IMPLEMENTATION
 
 ## Repository baseline
 
@@ -12,14 +12,21 @@
 - Phase 5B head commit: `e6ab49fd2ce8e91d7e5f3f090bf1b9f615c60410`
 - Phase 5B merge commit: `f1fd9d91f4fbaee7df508b0819a3a478f8f46e31`
 - Phase 5A / GitHub #35 and prior stability work remain part of the verified baseline.
+- Current Phase 5C implementation PR: GitHub #44, `feature/phase-5c-goals`, currently open/draft and not merged.
 
-The current `master` includes the completed Phase 5B Profile Foundation & Body Progress work. Any implementation session must re-check the actual current `master` state before editing.
+The current `master` includes the completed Phase 5B Profile Foundation & Body Progress work. Phase 5C implementation is being developed on PR #44 and must be evaluated against the locked active specification and actual runtime evidence before merge.
 
 ## Current phase
 
-**Phase 5C — Goals & Deterministic Progress Intelligence APPROVED / LOCKED — IMPLEMENTATION NOT YET STARTED**
+**Phase 5C — Goals & Deterministic Progress Intelligence APPROVED / LOCKED — IMPLEMENTATION IN PROGRESS**
 
-Phase 5B implementation and closeout are complete. Phase 5C is now the explicitly selected next objective. Its scope, non-goals, risks, acceptance criteria, and verification plan are locked in `11_ACTIVE_PR_SPEC.md`. Implementation must not begin until the required Gemini source audit is reconciled and the Project Owner approves implementation.
+Phase 5B implementation and closeout are complete. Phase 5C is the active implementation objective under GitHub #44. The scope, non-goals, risks, acceptance criteria, and verification plan are locked in `11_ACTIVE_PR_SPEC.md`.
+
+The Project Owner has now run the updated Phase 5C app on the emulator and confirmed the two previously reported UI findings are fixed:
+- Progress goal-card overlap/obscuring — VERIFIED FIXED;
+- BMI readability/read-only presentation — VERIFIED FIXED.
+
+These findings remain preserved in `10_FEATURE_REGRESSION_MATRIX.md` as durable observations with explicit closure evidence. This does not by itself make the entire Phase 5C implementation complete or merged; the remaining acceptance and verification rows must still be completed with appropriate evidence.
 
 ## Completed milestones
 
@@ -84,7 +91,7 @@ No AI/LLM work should be considered for implementation until the Project Owner e
 
 ## Current authorization
 
-**Phase 5C is approved and locked for planning/implementation readiness, but implementation is gated on the required source audit and explicit post-audit implementation approval.**
+**Phase 5C is approved and locked. Implementation is active under GitHub #44.** The implementation PR remains subject to the locked acceptance criteria, runtime verification, final diff/evidence review, Project Owner acceptance, merge, and branch cleanup.
 
 No Phase 6 or AI implementation is authorized by this state.
 
@@ -94,4 +101,4 @@ The Project Owner does not want recurring IronLog infrastructure costs to be ass
 
 ## State discipline
 
-This document records current verified state and explicitly approved planning state. It does not replace source inspection, test evidence, or the active PR specification.
+This document records current verified state and explicitly approved planning/implementation state. It does not replace source inspection, test evidence, or the active PR specification.
