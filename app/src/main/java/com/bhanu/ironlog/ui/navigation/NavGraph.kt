@@ -9,7 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.bhanu.ironlog.ui.screens.dashboard.DashboardScreen
 import com.bhanu.ironlog.ui.screens.goals.GoalsScreen
-import com.bhanu.ironlog.ui.screens.progress.ProgressScreen
+import com.bhanu.ironlog.ui.screens.progress.ProgressGoalsIntegrationScreen
 import com.bhanu.ironlog.ui.screens.profile.ProfileScreen
 import com.bhanu.ironlog.ui.screens.history.HistoryScreen
 import com.bhanu.ironlog.ui.screens.history.WorkoutDetailsScreen
@@ -185,9 +185,12 @@ fun SetupNavGraph(navController: NavHostController) {
             )
         }
         composable(route = Screen.Progress.route) {
-            ProgressScreen(
+            ProgressGoalsIntegrationScreen(
                 onNavigateToRecords = {
                     navController.navigate(Screen.Records.route)
+                },
+                onNavigateToGoals = {
+                    navController.navigate(Screen.Goals.route)
                 }
             )
         }
