@@ -5,7 +5,15 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.bhanu.ironlog.data.local.AppDatabase
-import com.bhanu.ironlog.data.local.dao.*
+import com.bhanu.ironlog.data.local.dao.PlaceholderDao
+import com.bhanu.ironlog.data.local.dao.ProgramDao
+import com.bhanu.ironlog.data.local.dao.SessionDao
+import com.bhanu.ironlog.data.local.dao.WorkoutSessionDao
+import com.bhanu.ironlog.data.local.dao.PersonalRecordDao
+import com.bhanu.ironlog.data.local.dao.WorkoutSettingsDao
+import com.bhanu.ironlog.data.local.dao.LibraryExerciseDao
+import com.bhanu.ironlog.data.local.dao.UserProfileDao
+import com.bhanu.ironlog.data.local.dao.GoalDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -51,13 +59,48 @@ object AppModule {
         }).build()
     }
 
-    @Provides fun providePlaceholderDao(database: AppDatabase): PlaceholderDao = database.placeholderDao()
-    @Provides fun provideProgramDao(database: AppDatabase): ProgramDao = database.programDao()
-    @Provides fun provideSessionDao(database: AppDatabase): SessionDao = database.sessionDao()
-    @Provides fun provideWorkoutSessionDao(database: AppDatabase): WorkoutSessionDao = database.workoutSessionDao()
-    @Provides fun providePersonalRecordDao(database: AppDatabase): PersonalRecordDao = database.personalRecordDao()
-    @Provides fun provideWorkoutSettingsDao(database: AppDatabase): WorkoutSettingsDao = database.workoutSettingsDao()
-    @Provides fun provideLibraryExerciseDao(database: AppDatabase): LibraryExerciseDao = database.libraryExerciseDao()
-    @Provides fun provideUserProfileDao(database: AppDatabase): UserProfileDao = database.userProfileDao()
-    @Provides fun provideGoalDao(database: AppDatabase): GoalDao = database.goalDao()
+    @Provides
+    fun providePlaceholderDao(database: AppDatabase): PlaceholderDao {
+        return database.placeholderDao()
+    }
+
+    @Provides
+    fun provideProgramDao(database: AppDatabase): ProgramDao {
+        return database.programDao()
+    }
+
+    @Provides
+    fun provideSessionDao(database: AppDatabase): SessionDao {
+        return database.sessionDao()
+    }
+
+    @Provides
+    fun provideWorkoutSessionDao(database: AppDatabase): WorkoutSessionDao {
+        return database.workoutSessionDao()
+    }
+
+    @Provides
+    fun providePersonalRecordDao(database: AppDatabase): PersonalRecordDao {
+        return database.personalRecordDao()
+    }
+
+    @Provides
+    fun provideWorkoutSettingsDao(database: AppDatabase): WorkoutSettingsDao {
+        return database.workoutSettingsDao()
+    }
+
+    @Provides
+    fun provideLibraryExerciseDao(database: AppDatabase): LibraryExerciseDao {
+        return database.libraryExerciseDao()
+    }
+
+    @Provides
+    fun provideUserProfileDao(database: AppDatabase): UserProfileDao {
+        return database.userProfileDao()
+    }
+
+    @Provides
+    fun provideGoalDao(database: AppDatabase): GoalDao {
+        return database.goalDao()
+    }
 }
