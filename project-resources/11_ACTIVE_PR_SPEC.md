@@ -1,16 +1,18 @@
 # IronLog — Active PR Specification
 
-**Documentation version:** v3.9  
+**Documentation version:** v4.0  
 **As of:** 2026-08-16  
-**Status:** ACTIVE PR — PHASE 5C APPROVED / LOCKED  
+**Status:** ACTIVE PR — PHASE 5C IMPLEMENTATION IN PROGRESS  
 **Current objective:** Goals & Deterministic Progress Intelligence  
-**Implementation authorization:** APPROVED — IMPLEMENTATION MAY BEGIN AFTER SOURCE AUDIT
+**Implementation authorization:** APPROVED — GitHub #44 is the active implementation PR
 
 ## 1. Authorization boundary
 
-Phase 5C — Goals & Deterministic Progress Intelligence — is the explicitly approved next objective following the completed Phase 5B Profile Foundation & Body Progress work.
+Phase 5C — Goals & Deterministic Progress Intelligence — is the explicitly approved objective following the completed Phase 5B Profile Foundation & Body Progress work.
 
 This specification is the sole implementation authorization boundary for Phase 5C. Gemini must audit the current repository against this specification before implementation. Any ambiguity, schema conflict, backup-contract conflict, or requested scope expansion must stop implementation and return to ChatGPT/Project Owner.
+
+GitHub #44 currently contains the Phase 5C implementation and remains open/draft. The implementation is not yet merged.
 
 ## 2. Objective
 
@@ -205,6 +207,13 @@ Manual verification:
 - Workout/History/Progress/PR regression;
 - backup/restore regression where applicable.
 
+Current manual verification update:
+- Project Owner ran the updated Phase 5C app on the emulator.
+- 5C-UI-01 Progress goal-card overlap/obscuring — VERIFIED FIXED.
+- 5C-UI-02 BMI readability/read-only presentation — VERIFIED FIXED.
+- These findings remain recorded in the regression matrix as durable observations with closure evidence.
+- This does not close the entire Phase 5C PR; remaining acceptance and verification rows must still be completed.
+
 Do not claim instrumentation PASS unless the relevant connected tests actually execute.
 
 ## 10. Required implementation workflow
@@ -219,6 +228,19 @@ Locked Phase 5C spec
 → ChatGPT reviews diff/evidence
 → Project Owner reviews/merges implementation PR + deletes branch
 → ChatGPT performs documentation closeout
+```
+
+Current position in workflow:
+
+```text
+Implementation PR #44
+→ Project Owner emulator verification
+→ two reported UI findings VERIFIED FIXED
+→ remaining Phase 5C acceptance/verification
+→ final ChatGPT diff/evidence review
+→ Project Owner acceptance
+→ merge + branch cleanup
+→ documentation closeout
 ```
 
 ## 11. Stop conditions
