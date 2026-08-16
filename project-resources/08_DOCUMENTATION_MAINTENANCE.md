@@ -1,6 +1,6 @@
 # IronLog — Documentation Maintenance Protocol
 
-**Documentation version:** v3.9
+**Documentation version:** v4.0
 **As of:** 2026-08-16
 
 ## 1. Purpose
@@ -215,6 +215,45 @@ When a phase is explicitly approved as deterministic/local intelligence, documen
 
 AI/LLM work must remain explicitly labeled `DEFERRED / NOT APPROVED` until the Project Owner authorizes a dedicated AI objective. Do not revive an old AI candidate merely because a phase contains the word `intelligence`.
 
+## 15. Active Test Observation Management
+
+Manual testing is an evidence-producing activity, not merely a PASS/FAIL gate. Any meaningful observation discovered during emulator/device testing must be actively managed and must not disappear when a later test produces a new finding.
+
+Required lifecycle:
+
+```text
+Observed
+→ classify
+→ record
+→ determine scope/priority
+→ address or explicitly defer
+→ re-test the original observation
+→ close only with appropriate evidence
+```
+
+Each meaningful observation should have an explicit state:
+- `OPEN` — observed and unresolved;
+- `IN PROGRESS` — actively being addressed;
+- `VERIFIED FIXED` — implementation completed and the original behavior was runtime-verified fixed;
+- `DEFERRED` — intentionally moved outside the current PR with a recorded reason;
+- `NOT REPRODUCED` — investigated but not reproduced;
+- `RESOLVED / NOT A DEFECT` — evidence establishes that no product defect remains.
+
+### Non-negotiable observation rules
+
+1. **Do not forget previous findings.** Before reviewing new manual-test results, check the currently open observations.
+2. **New findings do not overwrite older unresolved findings.** Keep every relevant observation active until its lifecycle is closed.
+3. **Classify findings against the locked PR.** Correctness, regression, security, or acceptance-critical findings required by the current objective should be addressed in the active PR. Unrelated improvements should be explicitly deferred.
+4. **Do not close a finding from an agent report alone.** Runtime/UI findings require appropriate emulator/device evidence.
+5. **Re-test the original observation after a fix.** A build passing is not proof that a UI/runtime finding is fixed.
+6. **Preserve durable observations in the Regression Matrix or another appropriate canonical resource.** A future chat must be able to discover unresolved findings without relying on conversation history.
+7. **When a finding is shown to be environmental, transient, or not a product defect, record that conclusion and the evidence instead of silently deleting the finding.**
+8. **If a new observation reveals a scope, architecture, correctness, or safety conflict, pause and reconcile it before continuing implementation.**
+
+### Current Phase 5C observation principle
+
+During Phase 5C manual verification, confirmed UI findings must remain actively tracked even when the underlying deterministic goal calculations and tests pass. A UI integration defect is still a real verification finding and must be addressed or explicitly deferred before Phase 5C closeout.
+
 ## Final rule
 
-> Documentation exists to preserve verified knowledge, explicit decisions, approved plans, engineering constraints, and continuity—not to invent facts, compete with source code, or blindly reproduce agent reports.
+> Documentation exists to preserve verified knowledge, explicit decisions, approved plans, engineering constraints, continuity, and the lifecycle of meaningful test observations—not to invent facts, compete with source code, or blindly reproduce agent reports.
