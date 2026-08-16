@@ -68,20 +68,23 @@ class HistoryViewModel @Inject constructor(
             val matchesQuery = item.session.dayName.contains(query, ignoreCase = true) ||
                     item.session.programName.contains(query, ignoreCase = true) ||
                     item.exerciseNames.contains(query, ignoreCase = true)
-            
+
             val matchesProgram = program == "All" || item.session.programName == program
             val matchesDay = day == "All" || item.session.dayName == day
             val matchesPR = !hasPR || item.prCount > 0
-            
-            val matchesDateRange = (start == null || item.session.createdAt >= start) &&
-                    (end == null || item.session.createdAt <= end + 86400000) // End of day
-            
+
+            // startTime is the authoritative workout timestamp. This matters for
+            // historical/Add Log sessions whose createdAt can differ from the
+            // date the workout actually happened.
+            val matchesDateRange = (start == null || item.session.startTime >= start) &&
+                    (end == null || item.session.startTime <= end + 86400000L)
+
             matchesQuery && matchesProgram && matchesDay && matchesPR && matchesDateRange
         }
 
         val sorted = when (sort) {
-            HistorySort.Newest -> filtered.sortedByDescending { it.session.createdAt }
-            HistorySort.Oldest -> filtered.sortedBy { it.session.createdAt }
+            HistorySort.Newest -> filtered.sortedByDescending { it.session.startTime }
+            HistorySort.Oldest -> filtered.sortedBy { it.session.startTime }
             HistorySort.HighestVolume -> filtered.sortedByDescending { it.totalVolume }
             HistorySort.LongestDuration -> filtered.sortedByDescending { it.session.durationSeconds }
         }
@@ -97,7 +100,7 @@ class HistoryViewModel @Inject constructor(
 
     val workoutsByDay: StateFlow<Map<String, List<WorkoutSessionWithStats>>> = _history.map { list ->
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        list.groupBy { dateFormat.format(Date(it.session.createdAt)) }
+        list.groupBy { dateFormat.format(Date(it.session.startTime)) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     val availablePrograms: StateFlow<List<String>> = _history.map { list ->
