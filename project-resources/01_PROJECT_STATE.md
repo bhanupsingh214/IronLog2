@@ -1,8 +1,8 @@
 # IronLog — Project State
 
-**Documentation version:** v4.1
+**Documentation version:** v4.2
 **As of:** 2026-08-16
-**State classification:** CURRENT / VERIFIED BASELINE — PHASE 5C COMPLETE
+**State classification:** CURRENT / VERIFIED BASELINE — PHASE 5C COMPLETE; PHASE 6 DESIGN LOCKED / IMPLEMENTATION NOT APPROVED
 
 ## Repository baseline
 
@@ -102,9 +102,35 @@ Phase 5 ends after Phase 5C. No Phase 5D AI/LLM phase is planned or authorized. 
 
 No AI/LLM work should be considered for implementation until the Project Owner explicitly re-authorizes an AI phase after Phase 6.
 
+## Phase 6 design-definition state
+
+Phase 6 — UI/UX Modernization & Polish — has reached the **design-definition / locked-mockup stage**. This is a product-design baseline, not implementation authorization.
+
+Locked principal design references now cover:
+- Dashboard + bottom navigation;
+- Programs;
+- Start Workout;
+- Add Log / Add Previous Workout;
+- Progress;
+- Goals;
+- Profile + Settings;
+- History.
+
+The agreed navigation rule is:
+
+**Dashboard · Programs · Progress · Goals · Profile**
+
+History is accessed from the Dashboard's Recent History area and is not a bottom-navigation destination. Its calendar view includes day workouts followed by monthly/yearly summary content.
+
+The Start Workout visual language is the preferred styling reference for workout-related flows. Add Log should use the same underlying workout/logging experience and visual language.
+
+Phase 6 must be designed for both Android and iOS. Core information architecture and semantics should remain platform-neutral while respecting necessary platform conventions for navigation, system UI, dialogs/sheets, date pickers, text input, accessibility, and touch targets.
+
+The Project Owner has connected a Figma account and confirmed the Phase 6 design file exists there. Live Figma connector access was not successfully verified in the latest tool check, so Figma permissions/account/file access remain **TBD / must be re-verified** before claiming live file read/write access.
+
 ## Current authorization
 
-**No implementation PR is currently active.** Phase 5C is merged and closed. The next planned product objective is Phase 6, but Phase 6 remains `PLANNED / NOT APPROVED` until the Project Owner explicitly approves its scope and a new active PR specification is established.
+**No implementation PR is currently active.** Phase 5C is merged and closed. Phase 6 design is now locked at the mockup level, but implementation remains `NOT APPROVED` until the Project Owner explicitly approves the Phase 6 scope and a new active PR specification is established.
 
 No AI implementation is authorized.
 
@@ -114,4 +140,4 @@ The Project Owner does not want recurring IronLog infrastructure costs to be ass
 
 ## State discipline
 
-This document records current verified state and explicitly approved planning/implementation state. It does not replace source inspection, test evidence, or future active PR authorization.
+This document records current verified state and explicitly approved planning/design state. It does not replace source inspection, test evidence, or future active PR authorization.
