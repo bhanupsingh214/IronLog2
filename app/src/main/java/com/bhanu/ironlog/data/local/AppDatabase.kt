@@ -172,12 +172,17 @@ abstract class AppDatabase : RoomDatabase() {
 
         val MIGRATION_12_13 = object : Migration(12, 13) {
             override fun migrate(db: SupportSQLiteDatabase) {
+                // ExerciseEntity changes
                 db.execSQL("ALTER TABLE `exercises` ADD COLUMN `restTimerSeconds` INTEGER NOT NULL DEFAULT 90")
                 db.execSQL("ALTER TABLE `exercises` ADD COLUMN `useDefaultRestTimer` INTEGER NOT NULL DEFAULT 1")
+                
+                // WorkoutSession changes
                 db.execSQL("ALTER TABLE `workout_session_logs` ADD COLUMN `timerStartTime` INTEGER")
                 db.execSQL("ALTER TABLE `workout_session_logs` ADD COLUMN `timerDurationSeconds` INTEGER")
                 db.execSQL("ALTER TABLE `workout_session_logs` ADD COLUMN `timerState` TEXT NOT NULL DEFAULT 'IDLE'")
                 db.execSQL("ALTER TABLE `workout_session_logs` ADD COLUMN `timerPausedRemainingSeconds` INTEGER")
+
+                // New WorkoutSettings table
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS `workout_settings` (
                         `id` INTEGER PRIMARY KEY NOT NULL, 
@@ -222,6 +227,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         val MIGRATION_15_16 = object : Migration(15, 16) {
             override fun migrate(db: SupportSQLiteDatabase) {
+                // 1. Create new table with full schema including Foreign Keys
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS `exercises_new` (
                         `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
@@ -245,19 +251,33 @@ abstract class AppDatabase : RoomDatabase() {
                         FOREIGN KEY(`libraryExerciseId`) REFERENCES `exercise_library`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT
                     )
                 """)
+
+                // 2. Copy existing data
                 db.execSQL("""
                     INSERT INTO `exercises_new` (id, dayId, `order`, enabled, notes, restTimerSeconds, useDefaultRestTimer, name, muscleGroup, equipment, exerciseType, createdAt)
                     SELECT id, dayId, `order`, enabled, notes, restTimerSeconds, useDefaultRestTimer, name, muscleGroup, equipment, exerciseType, createdAt FROM `exercises`
                 """)
+
+                // 3. Swap tables
                 db.execSQL("DROP TABLE `exercises`")
                 db.execSQL("ALTER TABLE `exercises_new` RENAME TO `exercises`")
+
+                // 4. Migration to Library
                 db.execSQL("""
                     INSERT OR IGNORE INTO exercise_library (name, normalizedName, muscleGroup, equipment, exerciseType, createdBy, isActive, createdAt, updatedAt)
-                    SELECT DISTINCT name, LOWER(name), muscleGroup, equipment, exerciseType, 'User', 1, 0, 0 FROM exercises
+                    SELECT DISTINCT name, 
+                           LOWER(name) as normalizedName, 
+                           muscleGroup, equipment, exerciseType, 'User', 1, 0, 0
+                    FROM exercises
                 """)
+
+                // 5. Update libraryExerciseId references
                 db.execSQL("""
-                    UPDATE exercises SET libraryExerciseId = (
-                        SELECT id FROM exercise_library WHERE exercise_library.name = exercises.name LIMIT 1
+                    UPDATE exercises 
+                    SET libraryExerciseId = (
+                        SELECT id FROM exercise_library 
+                        WHERE exercise_library.name = exercises.name 
+                        LIMIT 1
                     )
                 """)
             }
@@ -265,45 +285,89 @@ abstract class AppDatabase : RoomDatabase() {
 
         val MIGRATION_16_17 = object : Migration(16, 17) {
             override fun migrate(db: SupportSQLiteDatabase) {
+                // 1. Recreate workout_session_logs to update status and add lastActiveTimestamp
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS `workout_session_logs_new` (
-                        `sessionId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `programId` INTEGER NOT NULL, `workoutDayId` INTEGER NOT NULL,
-                        `dayName` TEXT NOT NULL, `programName` TEXT NOT NULL, `startTime` INTEGER NOT NULL, `endTime` INTEGER,
-                        `status` TEXT NOT NULL DEFAULT 'CREATED', `notes` TEXT, `createdAt` INTEGER NOT NULL, `completedExerciseIds` TEXT NOT NULL,
-                        `durationSeconds` INTEGER NOT NULL, `currentExerciseId` INTEGER, `currentSetNumber` INTEGER, `completedSetsCount` INTEGER NOT NULL,
-                        `lastActiveTimestamp` INTEGER NOT NULL, `hasShownBackgroundDialog` INTEGER NOT NULL, `timerStartTime` INTEGER,
-                        `timerDurationSeconds` INTEGER, `timerState` TEXT NOT NULL, `timerPausedRemainingSeconds` INTEGER
+                        `sessionId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                        `programId` INTEGER NOT NULL, 
+                        `workoutDayId` INTEGER NOT NULL, 
+                        `dayName` TEXT NOT NULL, 
+                        `programName` TEXT NOT NULL, 
+                        `startTime` INTEGER NOT NULL, 
+                        `endTime` INTEGER, 
+                        `status` TEXT NOT NULL DEFAULT 'CREATED', 
+                        `notes` TEXT, 
+                        `createdAt` INTEGER NOT NULL, 
+                        `completedExerciseIds` TEXT NOT NULL, 
+                        `durationSeconds` INTEGER NOT NULL, 
+                        `currentExerciseId` INTEGER, 
+                        `currentSetNumber` INTEGER, 
+                        `completedSetsCount` INTEGER NOT NULL, 
+                        `lastActiveTimestamp` INTEGER NOT NULL, 
+                        `hasShownBackgroundDialog` INTEGER NOT NULL, 
+                        `timerStartTime` INTEGER, 
+                        `timerDurationSeconds` INTEGER, 
+                        `timerState` TEXT NOT NULL, 
+                        `timerPausedRemainingSeconds` INTEGER
                     )
                 """)
+
                 db.execSQL("""
                     INSERT INTO `workout_session_logs_new` (
-                        sessionId, programId, workoutDayId, dayName, programName, startTime, endTime, status, notes, createdAt,
-                        completedExerciseIds, durationSeconds, currentExerciseId, currentSetNumber, completedSetsCount, lastActiveTimestamp,
-                        hasShownBackgroundDialog, timerStartTime, timerDurationSeconds, timerState, timerPausedRemainingSeconds
-                    ) SELECT sessionId, programId, workoutDayId, dayName, programName, startTime, endTime,
-                        CASE WHEN status = 'ACTIVE' THEN 'IN_PROGRESS' ELSE status END, notes, createdAt, completedExerciseIds, durationSeconds,
-                        currentExerciseId, currentSetNumber, completedSetsCount, createdAt, hasShownBackgroundDialog, timerStartTime,
-                        timerDurationSeconds, timerState, timerPausedRemainingSeconds FROM `workout_session_logs`
+                        sessionId, programId, workoutDayId, dayName, programName, startTime, endTime, 
+                        status, notes, createdAt, completedExerciseIds, durationSeconds, 
+                        currentExerciseId, currentSetNumber, completedSetsCount, lastActiveTimestamp, 
+                        hasShownBackgroundDialog, timerStartTime, timerDurationSeconds, timerState, 
+                        timerPausedRemainingSeconds
+                    )
+                    SELECT 
+                        sessionId, programId, workoutDayId, dayName, programName, startTime, endTime, 
+                        CASE WHEN status = 'ACTIVE' THEN 'IN_PROGRESS' ELSE status END, 
+                        notes, createdAt, completedExerciseIds, durationSeconds, 
+                        currentExerciseId, currentSetNumber, completedSetsCount, createdAt, 
+                        hasShownBackgroundDialog, timerStartTime, timerDurationSeconds, timerState, 
+                        timerPausedRemainingSeconds
+                    FROM `workout_session_logs`
                 """)
+
                 db.execSQL("DROP TABLE `workout_session_logs`")
                 db.execSQL("ALTER TABLE `workout_session_logs_new` RENAME TO `workout_session_logs`")
+
+                // 2. Recreate session_exercises to add identity and prescription snapshots
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS `session_exercises_new` (
-                        `sessionExerciseId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sessionId` INTEGER NOT NULL, `exerciseTemplateId` INTEGER NOT NULL,
-                        `exerciseName` TEXT NOT NULL DEFAULT '', `muscleGroup` TEXT NOT NULL DEFAULT '', `equipment` TEXT NOT NULL DEFAULT '',
-                        `exerciseType` TEXT NOT NULL DEFAULT 'Compound', `targetSets` INTEGER NOT NULL DEFAULT 3, `targetRepMin` INTEGER NOT NULL DEFAULT 8,
-                        `targetRepMax` INTEGER NOT NULL DEFAULT 12, `targetRPE` REAL, `restTimerSeconds` INTEGER NOT NULL DEFAULT 90,
-                        `exerciseOrder` INTEGER NOT NULL, `isSwapped` INTEGER NOT NULL, `originalExerciseId` INTEGER, `status` TEXT NOT NULL,
-                        `notes` TEXT NOT NULL, FOREIGN KEY(`sessionId`) REFERENCES `workout_session_logs`(`sessionId`) ON UPDATE NO ACTION ON DELETE CASCADE
+                        `sessionExerciseId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                        `sessionId` INTEGER NOT NULL, 
+                        `exerciseTemplateId` INTEGER NOT NULL, 
+                        `exerciseName` TEXT NOT NULL DEFAULT '', 
+                        `muscleGroup` TEXT NOT NULL DEFAULT '', 
+                        `equipment` TEXT NOT NULL DEFAULT '', 
+                        `exerciseType` TEXT NOT NULL DEFAULT 'Compound', 
+                        `targetSets` INTEGER NOT NULL DEFAULT 3, 
+                        `targetRepMin` INTEGER NOT NULL DEFAULT 8, 
+                        `targetRepMax` INTEGER NOT NULL DEFAULT 12, 
+                        `targetRPE` REAL, 
+                        `restTimerSeconds` INTEGER NOT NULL DEFAULT 90, 
+                        `exerciseOrder` INTEGER NOT NULL, 
+                        `isSwapped` INTEGER NOT NULL, 
+                        `originalExerciseId` INTEGER, 
+                        `status` TEXT NOT NULL, 
+                        `notes` TEXT NOT NULL, 
+                        FOREIGN KEY(`sessionId`) REFERENCES `workout_session_logs`(`sessionId`) ON UPDATE NO ACTION ON DELETE CASCADE
                     )
                 """)
+
                 db.execSQL("""
                     INSERT INTO `session_exercises_new` (
-                        sessionExerciseId, sessionId, exerciseTemplateId, exerciseName, muscleGroup, exerciseOrder, isSwapped,
-                        originalExerciseId, status, notes, restTimerSeconds
-                    ) SELECT sessionExerciseId, sessionId, exerciseTemplateId, exerciseName, muscleGroup, exerciseOrder, isSwapped,
-                        originalExerciseId, status, notes, restTimerSeconds FROM `session_exercises`
+                        sessionExerciseId, sessionId, exerciseTemplateId, exerciseName, muscleGroup, 
+                        exerciseOrder, isSwapped, originalExerciseId, status, notes, restTimerSeconds
+                    )
+                    SELECT 
+                        sessionExerciseId, sessionId, exerciseTemplateId, exerciseName, muscleGroup, 
+                        exerciseOrder, isSwapped, originalExerciseId, status, notes, restTimerSeconds
+                    FROM `session_exercises`
                 """)
+
                 db.execSQL("DROP TABLE `session_exercises`")
                 db.execSQL("ALTER TABLE `session_exercises_new` RENAME TO `session_exercises`")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_session_exercises_sessionId` ON `session_exercises` (`sessionId`)")
@@ -313,88 +377,197 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_17_18 = object : Migration(17, 18) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `session_exercises` ADD COLUMN `libraryExerciseId` INTEGER NOT NULL DEFAULT 0")
+                
+                // Backfill libraryExerciseId from templates if they still exist
                 db.execSQL("""
-                    UPDATE session_exercises SET libraryExerciseId = (
-                        SELECT libraryExerciseId FROM exercises WHERE exercises.id = session_exercises.exerciseTemplateId
-                    ) WHERE EXISTS (SELECT 1 FROM exercises WHERE exercises.id = session_exercises.exerciseTemplateId)
+                    UPDATE session_exercises 
+                    SET libraryExerciseId = (
+                        SELECT libraryExerciseId FROM exercises 
+                        WHERE exercises.id = session_exercises.exerciseTemplateId
+                    )
+                    WHERE EXISTS (
+                        SELECT 1 FROM exercises 
+                        WHERE exercises.id = session_exercises.exerciseTemplateId
+                    )
                 """)
             }
         }
 
         val MIGRATION_18_19 = object : Migration(18, 19) {
             override fun migrate(db: SupportSQLiteDatabase) {
+                // Pass 1: Relational Repair (Propagate from Template to Log)
                 db.execSQL("""
-                    UPDATE session_exercises SET libraryExerciseId = (
-                        SELECT libraryExerciseId FROM exercises WHERE exercises.id = session_exercises.exerciseTemplateId
-                    ) WHERE (libraryExerciseId = 0 OR libraryExerciseId IS NULL) AND exerciseTemplateId > 0
-                    AND EXISTS (SELECT 1 FROM exercises WHERE exercises.id = session_exercises.exerciseTemplateId AND libraryExerciseId > 0)
+                    UPDATE session_exercises 
+                    SET libraryExerciseId = (
+                        SELECT libraryExerciseId FROM exercises 
+                        WHERE exercises.id = session_exercises.exerciseTemplateId
+                    )
+                    WHERE (libraryExerciseId = 0 OR libraryExerciseId IS NULL)
+                    AND exerciseTemplateId > 0
+                    AND EXISTS (
+                        SELECT 1 FROM exercises 
+                        WHERE exercises.id = session_exercises.exerciseTemplateId 
+                        AND libraryExerciseId > 0
+                    )
                 """)
+
+                // SQL-based normalization matching the app's regex [^a-z0-9]
                 val cleanSql = "LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(%s, ' ', ''), '(', ''), ')', ''), '-', ''), ',', ''), '.', ''), '/', ''), '''', ''), '[', ''), ']', ''), '&', ''), '+', ''))"
+
+                // Pass 2: Exact Case-Insensitive Name Match
+                // For session_exercises
                 db.execSQL("""
-                    UPDATE session_exercises SET libraryExerciseId = (
-                        SELECT id FROM exercise_library WHERE LOWER(TRIM(name)) = LOWER(TRIM(session_exercises.exerciseName))
-                        GROUP BY LOWER(TRIM(name)) HAVING COUNT(*) = 1
-                    ) WHERE (libraryExerciseId = 0 OR libraryExerciseId IS NULL) AND exerciseName IS NOT NULL AND exerciseName != ''
-                    AND EXISTS (SELECT 1 FROM exercise_library WHERE LOWER(TRIM(name)) = LOWER(TRIM(session_exercises.exerciseName)) GROUP BY LOWER(TRIM(name)) HAVING COUNT(*) = 1)
+                    UPDATE session_exercises 
+                    SET libraryExerciseId = (
+                        SELECT id FROM exercise_library 
+                        WHERE LOWER(TRIM(name)) = LOWER(TRIM(session_exercises.exerciseName)) 
+                        GROUP BY LOWER(TRIM(name))
+                        HAVING COUNT(*) = 1
+                    )
+                    WHERE (libraryExerciseId = 0 OR libraryExerciseId IS NULL)
+                    AND exerciseName IS NOT NULL AND exerciseName != ''
+                    AND EXISTS (
+                        SELECT 1 FROM exercise_library 
+                        WHERE LOWER(TRIM(name)) = LOWER(TRIM(session_exercises.exerciseName))
+                        GROUP BY LOWER(TRIM(name))
+                        HAVING COUNT(*) = 1
+                    )
                 """)
+                
+                // For exercises (blueprints)
                 db.execSQL("""
-                    UPDATE exercises SET libraryExerciseId = (
-                        SELECT id FROM exercise_library WHERE LOWER(TRIM(name)) = LOWER(TRIM(exercises.name))
-                        GROUP BY LOWER(TRIM(name)) HAVING COUNT(*) = 1
-                    ) WHERE (libraryExerciseId = 0 OR libraryExerciseId IS NULL) AND name IS NOT NULL AND name != ''
-                    AND EXISTS (SELECT 1 FROM exercise_library WHERE LOWER(TRIM(name)) = LOWER(TRIM(exercises.name)) GROUP BY LOWER(TRIM(name)) HAVING COUNT(*) = 1)
+                    UPDATE exercises 
+                    SET libraryExerciseId = (
+                        SELECT id FROM exercise_library 
+                        WHERE LOWER(TRIM(name)) = LOWER(TRIM(exercises.name)) 
+                        GROUP BY LOWER(TRIM(name))
+                        HAVING COUNT(*) = 1
+                    )
+                    WHERE (libraryExerciseId = 0 OR libraryExerciseId IS NULL)
+                    AND name IS NOT NULL AND name != ''
+                    AND EXISTS (
+                        SELECT 1 FROM exercise_library 
+                        WHERE LOWER(TRIM(name)) = LOWER(TRIM(exercises.name))
+                        GROUP BY LOWER(TRIM(name))
+                        HAVING COUNT(*) = 1
+                    )
                 """)
+
+                // Pass 3: Deterministic Normalized Match (Only if unique)
+                // We use nested REPLACE to strip common symbols and match alphanumeric-only
+                
+                // For session_exercises
                 db.execSQL("""
-                    UPDATE session_exercises SET libraryExerciseId = (
-                        SELECT id FROM exercise_library WHERE ${cleanSql.format("name")} = ${cleanSql.format("session_exercises.exerciseName")}
-                        GROUP BY ${cleanSql.format("name")} HAVING COUNT(*) = 1
-                    ) WHERE (libraryExerciseId = 0 OR libraryExerciseId IS NULL) AND exerciseName IS NOT NULL AND exerciseName != ''
-                    AND EXISTS (SELECT 1 FROM exercise_library WHERE ${cleanSql.format("name")} = ${cleanSql.format("session_exercises.exerciseName")} GROUP BY ${cleanSql.format("name")} HAVING COUNT(*) = 1)
+                    UPDATE session_exercises 
+                    SET libraryExerciseId = (
+                        SELECT id FROM exercise_library 
+                        WHERE ${cleanSql.format("name")} = ${cleanSql.format("session_exercises.exerciseName")}
+                        GROUP BY ${cleanSql.format("name")}
+                        HAVING COUNT(*) = 1
+                    )
+                    WHERE (libraryExerciseId = 0 OR libraryExerciseId IS NULL)
+                    AND exerciseName IS NOT NULL AND exerciseName != ''
+                    AND EXISTS (
+                        SELECT 1 FROM exercise_library 
+                        WHERE ${cleanSql.format("name")} = ${cleanSql.format("session_exercises.exerciseName")}
+                        GROUP BY ${cleanSql.format("name")}
+                        HAVING COUNT(*) = 1
+                    )
                 """)
+
+                // For exercises (blueprints)
                 db.execSQL("""
-                    UPDATE exercises SET libraryExerciseId = (
-                        SELECT id FROM exercise_library WHERE ${cleanSql.format("name")} = ${cleanSql.format("exercises.name")}
-                        GROUP BY ${cleanSql.format("name")} HAVING COUNT(*) = 1
-                    ) WHERE (libraryExerciseId = 0 OR libraryExerciseId IS NULL) AND name IS NOT NULL AND name != ''
-                    AND EXISTS (SELECT 1 FROM exercise_library WHERE ${cleanSql.format("name")} = ${cleanSql.format("exercises.name")} GROUP BY ${cleanSql.format("name")} HAVING COUNT(*) = 1)
+                    UPDATE exercises 
+                    SET libraryExerciseId = (
+                        SELECT id FROM exercise_library 
+                        WHERE ${cleanSql.format("name")} = ${cleanSql.format("exercises.name")}
+                        GROUP BY ${cleanSql.format("name")}
+                        HAVING COUNT(*) = 1
+                    )
+                    WHERE (libraryExerciseId = 0 OR libraryExerciseId IS NULL)
+                    AND name IS NOT NULL AND name != ''
+                    AND EXISTS (
+                        SELECT 1 FROM exercise_library 
+                        WHERE ${cleanSql.format("name")} = ${cleanSql.format("exercises.name")}
+                        GROUP BY ${cleanSql.format("name")}
+                        HAVING COUNT(*) = 1
+                    )
                 """)
             }
         }
 
         val MIGRATION_19_20 = object : Migration(19, 20) {
             override fun migrate(db: SupportSQLiteDatabase) {
+                // 1. Create the new table with composite Primary Key
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS `personal_records_new` (
-                        `libraryExerciseId` INTEGER NOT NULL, `exerciseTemplateId` INTEGER NOT NULL, `weightPR` REAL NOT NULL,
-                        `weightPRDate` INTEGER NOT NULL, `weightPRSessionId` INTEGER NOT NULL, `estimated1RM` REAL NOT NULL,
-                        `estimated1RMDate` INTEGER NOT NULL, `estimated1RMSessionId` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL,
-                        `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`libraryExerciseId`, `exerciseTemplateId`)
+                        `libraryExerciseId` INTEGER NOT NULL,
+                        `exerciseTemplateId` INTEGER NOT NULL,
+                        `weightPR` REAL NOT NULL,
+                        `weightPRDate` INTEGER NOT NULL,
+                        `weightPRSessionId` INTEGER NOT NULL,
+                        `estimated1RM` REAL NOT NULL,
+                        `estimated1RMDate` INTEGER NOT NULL,
+                        `estimated1RMSessionId` INTEGER NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`libraryExerciseId`, `exerciseTemplateId`)
                     )
                 """)
+
+                // 2. Resolve IDs and prepare mapping (Temp Table)
                 db.execSQL("""
-                    CREATE TEMP TABLE `pr_resolved` AS SELECT pr.*, IFNULL(e.libraryExerciseId, 0) as resolvedLibId
-                    FROM personal_records pr LEFT JOIN exercises e ON pr.exerciseTemplateId = e.id
+                    CREATE TEMP TABLE `pr_resolved` AS
+                    SELECT
+                        pr.*,
+                        IFNULL(e.libraryExerciseId, 0) as resolvedLibId
+                    FROM personal_records pr
+                    LEFT JOIN exercises e ON pr.exerciseTemplateId = e.id
                 """)
+
+                // 3. Migrate Library-backed PRs (Merge logic)
+                // We pick the best weight and best e1RM independently to avoid Frankenstein records
                 db.execSQL("""
                     INSERT INTO personal_records_new (
-                        libraryExerciseId, exerciseTemplateId, weightPR, weightPRDate, weightPRSessionId,
-                        estimated1RM, estimated1RMDate, estimated1RMSessionId, createdAt, updatedAt
-                    ) SELECT resolvedLibId, 0,
+                        libraryExerciseId, exerciseTemplateId,
+                        weightPR, weightPRDate, weightPRSessionId,
+                        estimated1RM, estimated1RMDate, estimated1RMSessionId,
+                        createdAt, updatedAt
+                    )
+                    SELECT
+                        resolvedLibId as libraryExerciseId,
+                        0 as exerciseTemplateId,
                         (SELECT weightPR FROM pr_resolved r2 WHERE r2.resolvedLibId = r1.resolvedLibId ORDER BY weightPR DESC, weightPRDate DESC LIMIT 1),
                         (SELECT weightPRDate FROM pr_resolved r2 WHERE r2.resolvedLibId = r1.resolvedLibId ORDER BY weightPR DESC, weightPRDate DESC LIMIT 1),
                         (SELECT weightPRSessionId FROM pr_resolved r2 WHERE r2.resolvedLibId = r1.resolvedLibId ORDER BY weightPR DESC, weightPRDate DESC LIMIT 1),
                         (SELECT estimated1RM FROM pr_resolved r2 WHERE r2.resolvedLibId = r1.resolvedLibId ORDER BY estimated1RM DESC, estimated1RMDate DESC LIMIT 1),
                         (SELECT estimated1RMDate FROM pr_resolved r2 WHERE r2.resolvedLibId = r1.resolvedLibId ORDER BY estimated1RM DESC, estimated1RMDate DESC LIMIT 1),
                         (SELECT estimated1RMSessionId FROM pr_resolved r2 WHERE r2.resolvedLibId = r1.resolvedLibId ORDER BY estimated1RM DESC, estimated1RMDate DESC LIMIT 1),
-                        MIN(createdAt), MAX(updatedAt) FROM pr_resolved r1 WHERE resolvedLibId > 0 GROUP BY resolvedLibId
+                        MIN(createdAt),
+                        MAX(updatedAt)
+                    FROM pr_resolved r1
+                    WHERE resolvedLibId > 0
+                    GROUP BY resolvedLibId
                 """)
+
+                // 4. Migrate Unresolved/Custom PRs (Isolate logic)
                 db.execSQL("""
                     INSERT INTO personal_records_new (
-                        libraryExerciseId, exerciseTemplateId, weightPR, weightPRDate, weightPRSessionId,
-                        estimated1RM, estimated1RMDate, estimated1RMSessionId, createdAt, updatedAt
-                    ) SELECT 0, exerciseTemplateId, weightPR, weightPRDate, weightPRSessionId, estimated1RM,
-                        estimated1RMDate, estimated1RMSessionId, createdAt, updatedAt FROM pr_resolved WHERE resolvedLibId = 0
+                        libraryExerciseId, exerciseTemplateId,
+                        weightPR, weightPRDate, weightPRSessionId,
+                        estimated1RM, estimated1RMDate, estimated1RMSessionId,
+                        createdAt, updatedAt
+                    )
+                    SELECT
+                        0, exerciseTemplateId,
+                        weightPR, weightPRDate, weightPRSessionId,
+                        estimated1RM, estimated1RMDate, estimated1RMSessionId,
+                        createdAt, updatedAt
+                    FROM pr_resolved
+                    WHERE resolvedLibId = 0
                 """)
+
+                // 5. Swap tables
                 db.execSQL("DROP TABLE `personal_records`")
                 db.execSQL("ALTER TABLE `personal_records_new` RENAME TO `personal_records`")
                 db.execSQL("DROP TABLE `pr_resolved`")
@@ -411,20 +584,31 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS `user_profile` (
-                        `id` INTEGER PRIMARY KEY NOT NULL, `sex` TEXT, `dateOfBirth` INTEGER, `heightCm` REAL,
-                        `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL
+                        `id` INTEGER PRIMARY KEY NOT NULL,
+                        `sex` TEXT,
+                        `dateOfBirth` INTEGER,
+                        `heightCm` REAL,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL
                     )
                 """)
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS `body_weight_history` (
-                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `weightKg` REAL NOT NULL, `timestamp` INTEGER NOT NULL, `notes` TEXT NOT NULL
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `weightKg` REAL NOT NULL,
+                        `timestamp` INTEGER NOT NULL,
+                        `notes` TEXT NOT NULL
                     )
                 """)
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS `waist_history` (
-                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `circumferenceCm` REAL NOT NULL, `timestamp` INTEGER NOT NULL, `notes` TEXT NOT NULL
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `circumferenceCm` REAL NOT NULL,
+                        `timestamp` INTEGER NOT NULL,
+                        `notes` TEXT NOT NULL
                     )
                 """)
+                // Initialize profile
                 db.execSQL("INSERT OR IGNORE INTO `user_profile` (id, createdAt, updatedAt) VALUES (1, ${System.currentTimeMillis()}, ${System.currentTimeMillis()})")
             }
         }
