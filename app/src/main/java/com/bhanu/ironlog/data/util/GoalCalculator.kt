@@ -2,10 +2,10 @@ package com.bhanu.ironlog.data.util
 
 import com.bhanu.ironlog.data.local.entity.GoalEntity
 import com.bhanu.ironlog.data.model.goals.GoalProgress
+import com.bhanu.ironlog.data.model.goals.GoalStatus
 import com.bhanu.ironlog.data.model.goals.GoalTrend
 import com.bhanu.ironlog.data.model.goals.GoalTrendPoint
 import com.bhanu.ironlog.data.model.goals.GoalType
-import com.bhanu.ironlog.data.model.goals.GoalStatus
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -27,7 +27,12 @@ object GoalCalculator {
         val trend = if (type == GoalType.WORKOUT_FREQUENCY) {
             null
         } else {
-            calculateTrend(type, trendPoints)
+            val tolerance = when (type) {
+                GoalType.WEIGHT -> WEIGHT_STABLE_TOLERANCE_KG
+                GoalType.WAIST -> WAIST_STABLE_TOLERANCE_CM
+                else -> 0.0
+            }
+            calculateDirectionalTrend(goal.targetValue, trendPoints, tolerance)
         }
         val trendRate = calculateTrendRate(trendPoints)
         val expected = calculateExpectedProgress(goal.startDate, goal.deadline, now)
@@ -62,30 +67,6 @@ object GoalCalculator {
             (start - current) / (start - target)
         }
         return raw.coerceIn(0.0, 1.0)
-    }
-
-    fun calculateTrend(
-        type: GoalType?,
-        points: List<GoalTrendPoint>
-    ): GoalTrend {
-        if (points.size < 3) return GoalTrend.INSUFFICIENT_DATA
-
-        val recent = points.sortedBy { it.timestamp }.takeLast(3)
-        val p1 = recent[2]
-        val p2 = recent[1]
-        val tolerance = when (type) {
-            GoalType.WEIGHT -> WEIGHT_STABLE_TOLERANCE_KG
-            GoalType.WAIST -> WAIST_STABLE_TOLERANCE_CM
-            else -> 0.0
-        }
-
-        if (tolerance > 0.0 && abs(p1.value - p2.value) <= tolerance) {
-            return GoalTrend.STABLE
-        }
-
-        if (type == null) return GoalTrend.INSUFFICIENT_DATA
-        val target = typeTargetNotAvailable(type, recent)
-        return if (target == null) GoalTrend.INSUFFICIENT_DATA else GoalTrend.INSUFFICIENT_DATA
     }
 
     fun calculateDirectionalTrend(
@@ -132,6 +113,4 @@ object GoalCalculator {
         if (expectedProgress == null) return null
         return if (actualProgress >= expectedProgress) GoalStatus.ON_TRACK else GoalStatus.BEHIND
     }
-
-    private fun typeTargetNotAvailable(type: GoalType, points: List<GoalTrendPoint>): Double? = null
 }
