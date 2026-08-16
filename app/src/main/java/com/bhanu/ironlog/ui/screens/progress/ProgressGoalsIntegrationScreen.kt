@@ -24,29 +24,38 @@ fun ProgressGoalsIntegrationScreen(
     viewModel: GoalViewModel = hiltViewModel()
 ) {
     val goals by viewModel.goals.collectAsState()
+    val activeGoals = goals.filter { it.status != GoalStatus.COMPLETED }
 
-    Box(Modifier.fillMaxSize()) {
-        ProgressScreen(onNavigateToRecords = onNavigateToRecords)
+    ProgressScreen(
+        onNavigateToRecords = onNavigateToRecords,
+        goalsContent = if (activeGoals.isNotEmpty()) {
+            {
+                ActiveGoalsSection(
+                    activeGoals = activeGoals,
+                    onNavigateToGoals = onNavigateToGoals
+                )
+            }
+        } else null
+    )
+}
 
-        val activeGoals = goals.filter { it.status != GoalStatus.COMPLETED }
-        if (activeGoals.isNotEmpty()) {
-            ElevatedCard(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                    .fillMaxWidth()
-            ) {
-                Column(Modifier.padding(12.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Goals", style = MaterialTheme.typography.titleMedium)
-                        Spacer(Modifier.weight(1f))
-                        TextButton(onClick = onNavigateToGoals) { Text("Manage") }
-                    }
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(activeGoals.take(3), key = { it.goal.goalId }) { progress ->
-                            GoalStatusCard(progress)
-                        }
-                    }
+@Composable
+private fun ActiveGoalsSection(
+    activeGoals: List<GoalProgress>,
+    onNavigateToGoals: () -> Unit
+) {
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Active Goals", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = onNavigateToGoals) { Text("Manage") }
+            }
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(activeGoals.take(3), key = { it.goal.goalId }) { progress ->
+                    GoalStatusCard(progress)
                 }
             }
         }

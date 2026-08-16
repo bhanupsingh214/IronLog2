@@ -38,6 +38,7 @@ import java.util.*
 @Composable
 fun ProgressScreen(
     onNavigateToRecords: () -> Unit,
+    goalsContent: @Composable (() -> Unit)? = null,
     viewModel: ProgressViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -85,6 +86,7 @@ fun ProgressScreen(
                             strengthHistory = strengthHistory,
                             volumeHistory = volumeHistory,
                             volumeFilter = volumeFilter,
+                            goalsContent = goalsContent,
                             onExerciseSelected = { libId, tempId -> viewModel.onExerciseSelected(libId, tempId) },
                             onToggleE1RM = { viewModel.toggleE1RM(it) },
                             onVolumeFilterSelected = { viewModel.onVolumeFilterSelected(it) },
@@ -107,6 +109,7 @@ fun ProgressContent(
     strengthHistory: List<com.bhanu.ironlog.data.local.pojo.ExerciseStrengthHistory>,
     volumeHistory: List<com.bhanu.ironlog.data.local.pojo.DailyVolume>,
     volumeFilter: TimeFilter,
+    goalsContent: @Composable (() -> Unit)? = null,
     onExerciseSelected: (Long, Long) -> Unit,
     onToggleE1RM: (Boolean) -> Unit,
     onVolumeFilterSelected: (TimeFilter) -> Unit,
@@ -168,6 +171,12 @@ fun ProgressContent(
                     }
                     Icon(Icons.Default.Speed, null, tint = MaterialTheme.colorScheme.secondary)
                 }
+            }
+        }
+
+        if (goalsContent != null) {
+            item {
+                goalsContent()
             }
         }
 
