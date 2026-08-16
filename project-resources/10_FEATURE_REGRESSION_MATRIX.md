@@ -1,6 +1,6 @@
 # IronLog — Feature Regression Matrix
 
-**Documentation version:** v4.2
+**Documentation version:** v4.3
 **As of:** 2026-08-16
 
 ## Evidence legend
@@ -119,6 +119,14 @@ These observations are retained as durable evidence even after resolution; closu
 | 5C-UI-02 | BMI on Profile & Settings appeared faded/disabled-looking even though it was intentionally read-only. BMI should be normally readable while remaining non-editable. | VERIFIED FIXED | Project Owner re-ran the updated app on the emulator and confirmed BMI is readable while remaining read-only. Final implementation separates disabled alpha presentation from the non-interactive state for this item. |
 | 5C-AUTH-01 | Google Drive backup/restore initially displayed an OAuth credential refresh error. Signing out and signing in again restored the cloud backup/restore flow. | RESOLVED / NOT A DEFECT — current cycle | Project Owner re-tested Google Drive backup/restore after fresh authentication and confirmed the flow works. No Drive-auth code change was made from the transient observation. Re-open only if reproducible after valid re-authentication. |
 
+## Phase 6 — Pre-planning observations
+
+These are durable observations collected before Phase 6 scope approval. They are **not implementation authorization** and do not create an active PR.
+
+| ID | Area | Observation | Status | Phase 6 treatment |
+|---|---|---|---|---|
+| PH6-UI-01 | Profile & Settings | The Profile section contains useful information, but the current arrangement feels visually unorganized/untidy. Related information could be grouped and presented with clearer hierarchy and structure. | OPEN | Include in Phase 6 UI/UX audit and information-architecture planning. Do not fix as a standalone pre-Phase-6 change. |
+
 ### Observation-management rule
 
 A new manual-test observation never erases a previous unresolved observation. Every meaningful finding must have an explicit lifecycle (`OPEN`, `IN PROGRESS`, `VERIFIED FIXED`, `DEFERRED`, `NOT REPRODUCED`, or `RESOLVED / NOT A DEFECT`). UI/runtime findings are not closed by code compilation or an agent completion report alone; the original behavior must be re-tested with appropriate runtime evidence.
@@ -126,6 +134,10 @@ A new manual-test observation never erases a previous unresolved observation. Ev
 ## Phase 5C closeout
 
 **Status: COMPLETE / VERIFIED.** All Phase 5C acceptance scenarios were reported PASS by the Project Owner after the final implementation was run on the emulator, including the previously observed UI findings. PR #44 was reviewed, merged, and its feature branch was deleted.
+
+## Phase 6 pre-planning state
+
+**Status: PLANNED / NOT APPROVED.** Phase 6 is the next planned objective and will begin with a UI/UX audit and information-architecture review. No Phase 6 implementation is authorized yet. The current pre-planning observation register is evidence for planning only; scope, non-goals, acceptance criteria, PR breakdown, and implementation authorization must be established separately before coding.
 
 ## Evidence rule
 
