@@ -70,33 +70,51 @@ class AnalyticsRepository @Inject constructor(
 
         calendar.add(Calendar.MONTH, 1)
         val end = calendar.timeInMillis
+        val daysInPeriod = calendar.clone().let { it as Calendar }.apply { add(Calendar.MONTH, -1) }
+            .getActualMaximum(Calendar.DAY_OF_MONTH)
 
         historyRepository.getCompletedSessionsWithStats().collect { allSessions ->
-            val periodSessions = allSessions.filter { it.session.createdAt in start until end }
+            // The workout's startTime is the actual training date. createdAt is
+            // an insertion timestamp and can differ for historical/Add Log data.
+            val periodSessions = allSessions.filter { it.session.startTime in start until end }
             if (periodSessions.isEmpty()) {
                 emit(null)
                 return@collect
             }
 
+            val sessionIds = periodSessions.map { it.session.sessionId }.toSet()
             val exercises = workoutSessionDao.getCompletedExercisesSince(start)
-                .filter { it.sessionId in periodSessions.map { s -> s.session.sessionId } }
+                .filter { it.sessionId in sessionIds }
 
             val muscleGroups = exercises.groupBy { it.muscleGroup }
                 .map { MuscleGroupCount(it.key, it.value.size) }
                 .sortedByDescending { it.count }
 
             val totalDuration = periodSessions.sumOf { it.session.durationSeconds }
+            val recordedDurations = periodSessions.map { it.session.durationSeconds }.filter { it > 0 }
 
             val recap = PeriodRecap(
-                periodName = java.text.DateFormat.getDateInstance().format(Date(start)), // Placeholder format
+                periodName = java.text.DateFormat.getDateInstance().format(Date(start)),
                 workoutCount = periodSessions.size,
                 totalVolume = periodSessions.sumOf { it.totalVolume },
                 totalDurationSeconds = totalDuration,
                 totalSets = periodSessions.sumOf { it.setCount },
                 prCount = periodSessions.sumOf { it.prCount },
                 topMuscleGroups = muscleGroups,
-                workoutConsistency = periodSessions.size.toFloat() / calendar.getActualMaximum(Calendar.DAY_OF_MONTH),
-                averageWorkoutDurationMinutes = if (periodSessions.isNotEmpty()) (totalDuration / periodSessions.size / 60).toInt() else 0
+                workoutConsistency = periodSessions.map { it.session.startTime }
+                    .map { timestamp ->
+                        Calendar.getInstance().apply { timeInMillis = timestamp }.let { day ->
+                            day.get(Calendar.DAY_OF_YEAR) + day.get(Calendar.YEAR) * 400
+                        }
+                    }
+                    .distinct()
+                    .size
+                    .toFloat() / daysInPeriod,
+                averageWorkoutDurationMinutes = if (recordedDurations.isNotEmpty()) {
+                    (recordedDurations.sum() / recordedDurations.size / 60).toInt()
+                } else {
+                    0
+                }
             )
             emit(recap)
         }
@@ -110,22 +128,25 @@ class AnalyticsRepository @Inject constructor(
 
         calendar.add(Calendar.YEAR, 1)
         val end = calendar.timeInMillis
+        val daysInYear = (end - start) / 86400000L
 
         historyRepository.getCompletedSessionsWithStats().collect { allSessions ->
-            val periodSessions = allSessions.filter { it.session.createdAt in start until end }
+            val periodSessions = allSessions.filter { it.session.startTime in start until end }
             if (periodSessions.isEmpty()) {
                 emit(null)
                 return@collect
             }
 
+            val sessionIds = periodSessions.map { it.session.sessionId }.toSet()
             val exercises = workoutSessionDao.getCompletedExercisesSince(start)
-                .filter { it.sessionId in periodSessions.map { s -> s.session.sessionId } }
+                .filter { it.sessionId in sessionIds }
 
             val muscleGroups = exercises.groupBy { it.muscleGroup }
                 .map { MuscleGroupCount(it.key, it.value.size) }
                 .sortedByDescending { it.count }
 
             val totalDuration = periodSessions.sumOf { it.session.durationSeconds }
+            val recordedDurations = periodSessions.map { it.session.durationSeconds }.filter { it > 0 }
 
             val recap = PeriodRecap(
                 periodName = "$year",
@@ -135,8 +156,20 @@ class AnalyticsRepository @Inject constructor(
                 totalSets = periodSessions.sumOf { it.setCount },
                 prCount = periodSessions.sumOf { it.prCount },
                 topMuscleGroups = muscleGroups,
-                workoutConsistency = periodSessions.size.toFloat() / 365f, // simplified
-                averageWorkoutDurationMinutes = if (periodSessions.isNotEmpty()) (totalDuration / periodSessions.size / 60).toInt() else 0
+                workoutConsistency = periodSessions.map { it.session.startTime }
+                    .map { timestamp ->
+                        Calendar.getInstance().apply { timeInMillis = timestamp }.let { day ->
+                            day.get(Calendar.DAY_OF_YEAR) + day.get(Calendar.YEAR) * 400
+                        }
+                    }
+                    .distinct()
+                    .size
+                    .toFloat() / daysInYear,
+                averageWorkoutDurationMinutes = if (recordedDurations.isNotEmpty()) {
+                    (recordedDurations.sum() / recordedDurations.size / 60).toInt()
+                } else {
+                    0
+                }
             )
             emit(recap)
         }
