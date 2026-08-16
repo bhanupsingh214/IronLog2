@@ -1,6 +1,6 @@
 # IronLog Roadmap & PR Ledger
 
-**Documentation version:** v3.9  
+**Documentation version:** v4.0  
 **As of:** 2026-08-16
 
 ## Purpose
@@ -173,7 +173,7 @@ Verified constraints:
 Verification included build/JVM tests, clean diff hygiene, manual Profile/Body Progress verification, local export/import round-trip, and regression smoke testing. Instrumentation tests were implemented but not executed locally because no connected device was available.
 
 ### Phase 5C — Goals & Deterministic Progress Intelligence
-**Status: APPROVED / LOCKED — IMPLEMENTATION NOT YET STARTED**
+**Status: IMPLEMENTATION IN PROGRESS — GitHub #44 OPEN / DRAFT**
 
 Objective:
 - establish a small durable goal system;
@@ -187,6 +187,13 @@ Initial goal categories:
 - target exercise/PR value;
 - workout-frequency target.
 
+Current implementation state:
+- GitHub #44 contains the Phase 5C implementation and is not yet merged;
+- deterministic goal logic/unit verification is present;
+- Project Owner emulator verification has confirmed the two previously reported Phase 5C UI findings are fixed;
+- the regression matrix retains those findings as `VERIFIED FIXED` observations rather than deleting them;
+- remaining Phase 5C acceptance/verification rows must still be completed before merge.
+
 Required boundaries:
 - no LLM, AI model, generative AI, or network dependency;
 - no backend/cloud analytics;
@@ -197,7 +204,7 @@ Required boundaries:
 - no unrelated UI/UX modernization;
 - no multi-account Room redesign.
 
-Acceptance and verification are locked in `11_ACTIVE_PR_SPEC.md`. Implementation is authorized only after the required source audit and approval workflow.
+Acceptance and verification are locked in `11_ACTIVE_PR_SPEC.md`.
 
 ### Phase 5 completion boundary
 
@@ -247,5 +254,5 @@ Do not invent calendar deadlines. Future items remain CANDIDATE/PLANNED/TBD/INFE
 ## Current Orientation
 
 **Completed:** PR4.1 → PR4.2 → PR4.3 → PR4.4 → PR4.5 → stability fix #32 → Phase 4 closeout → Phase 5A #35 → Phase 5B #41  
-**Current:** Phase 5C approved and locked; implementation not yet started  
-**Next:** Gemini source audit against the locked Phase 5C specification, followed by Project Owner approval before implementation
+**Current:** Phase 5C implementation in progress on GitHub #44; two reported UI findings are VERIFIED FIXED by Project Owner emulator re-test  
+**Next:** complete remaining Phase 5C acceptance/verification, final evidence review, Project Owner acceptance, merge, and branch cleanup
