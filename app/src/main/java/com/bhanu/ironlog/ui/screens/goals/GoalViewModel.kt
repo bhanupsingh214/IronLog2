@@ -49,16 +49,22 @@ class GoalViewModel @Inject constructor(
 
     fun createGoal(type: GoalType, targetValue: Double, startingValue: Double, libraryExerciseId: Long? = null, frequencyCount: Int? = null, frequencyPeriod: String? = null, deadline: Long? = null) {
         viewModelScope.launch {
+            if (type == GoalType.WORKOUT_FREQUENCY) {
+                if (!GoalCalculator.isValidFrequencyTarget(targetValue)) return@launch
+            }
             val baseline = if (type == GoalType.EXERCISE_PR && libraryExerciseId != null) {
                 personalRecordRepository.getPRForExercise(libraryExerciseId, 0L)?.weightPR ?: 0.0
             } else startingValue
-            goalRepository.createGoal(GoalEntity(type = type.key, targetValue = targetValue, startingValue = baseline, libraryExerciseId = libraryExerciseId, frequencyCount = frequencyCount, frequencyPeriod = frequencyPeriod, startDate = System.currentTimeMillis(), deadline = deadline))
+            goalRepository.createGoal(GoalEntity(type = type.key, targetValue = targetValue, startingValue = baseline, libraryExerciseId = libraryExerciseId, frequencyCount = if (type == GoalType.WORKOUT_FREQUENCY) targetValue.toInt() else frequencyCount, frequencyPeriod = frequencyPeriod, startDate = System.currentTimeMillis(), deadline = deadline))
         }
     }
 
     fun updateGoal(goal: GoalEntity, targetValue: Double, deadline: Long?) {
         viewModelScope.launch {
             val type = GoalType.entries.firstOrNull { it.key == goal.type }
+            if (type == GoalType.WORKOUT_FREQUENCY) {
+                if (!GoalCalculator.isValidFrequencyTarget(targetValue)) return@launch
+            }
             goalRepository.updateGoal(goal.copy(targetValue = targetValue, frequencyCount = if (type == GoalType.WORKOUT_FREQUENCY) targetValue.toInt() else goal.frequencyCount, deadline = deadline))
         }
     }

@@ -24,6 +24,7 @@ import com.bhanu.ironlog.data.model.goals.GoalProgress
 import com.bhanu.ironlog.data.model.goals.GoalStatus
 import com.bhanu.ironlog.data.model.goals.GoalTrend
 import com.bhanu.ironlog.data.model.goals.GoalType
+import com.bhanu.ironlog.data.util.GoalCalculator
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -324,7 +325,11 @@ private fun GoalEditorDialog(
 
                 if (type == GoalType.WORKOUT_FREQUENCY) {
                     Box {
-                        OutlinedButton(onClick = { periodMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = { periodMenu = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !isEditing
+                        ) {
                             Text(if (frequencyPeriod == "MONTHLY") "Monthly" else "Weekly")
                         }
                         DropdownMenu(expanded = periodMenu, onDismissRequest = { periodMenu = false }) {
@@ -365,6 +370,7 @@ private fun GoalEditorDialog(
                 val count = if (type == GoalType.WORKOUT_FREQUENCY) target?.toInt() else null
                 val valid = when {
                     target == null || target <= 0.0 -> "Enter a positive target."
+                    type == GoalType.WORKOUT_FREQUENCY && !GoalCalculator.isValidFrequencyTarget(target) -> "Enter a whole number for sessions."
                     !isEditing && type != GoalType.WORKOUT_FREQUENCY && type != GoalType.EXERCISE_PR && (baseline == null || baseline <= 0.0) -> "A valid baseline is required."
                     !isEditing && type == GoalType.EXERCISE_PR && selectedExerciseId == null -> "Select an exercise."
                     type == GoalType.WORKOUT_FREQUENCY && (count == null || count <= 0) -> "Enter a positive session count."

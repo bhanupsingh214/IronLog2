@@ -5,7 +5,9 @@ import com.bhanu.ironlog.data.model.goals.GoalStatus
 import com.bhanu.ironlog.data.model.goals.GoalTrend
 import com.bhanu.ironlog.data.model.goals.GoalTrendPoint
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GoalCalculatorTest {
@@ -68,9 +70,40 @@ class GoalCalculatorTest {
     }
 
     @Test
+    fun noDeadlineCompletedGoalReturnsCompleted() {
+        assertEquals(GoalStatus.COMPLETED, GoalCalculator.calculateStatus(1.0, null, null, 10_000L))
+    }
+
+    @Test
+    fun increasingGoalReachedReturnsCompleted() {
+        val goal = GoalEntity(type = "WEIGHT", targetValue = 90.0, startingValue = 80.0, startDate = 1_000L)
+        val progress = GoalCalculator.calculateProgress(goal, 95.0)!!
+        assertEquals(1.0, progress, 0.0001)
+        assertEquals(GoalStatus.COMPLETED, GoalCalculator.calculateStatus(progress, null, null, 2_000L))
+    }
+
+    @Test
+    fun decreasingGoalReachedReturnsCompleted() {
+        val goal = GoalEntity(type = "WAIST", targetValue = 80.0, startingValue = 90.0, startDate = 1_000L)
+        val progress = GoalCalculator.calculateProgress(goal, 75.0)!!
+        assertEquals(1.0, progress, 0.0001)
+        assertEquals(GoalStatus.COMPLETED, GoalCalculator.calculateStatus(progress, null, null, 2_000L))
+    }
+
+    @Test
     fun frequencyProgressUsesCalendarTargetCount() {
         val goal = GoalEntity(type = "WORKOUT_FREQUENCY", targetValue = 4.0, startingValue = 0.0, frequencyCount = 4, frequencyPeriod = "WEEKLY", startDate = 1_000L)
         assertEquals(0.5, GoalCalculator.calculateProgress(goal, 2.0)!!, 0.0001)
         assertEquals(1.0, GoalCalculator.calculateProgress(goal, 8.0)!!, 0.0001)
+    }
+
+    @Test
+    fun frequencyTargetValidationRejectsDecimals() {
+        assertTrue(GoalCalculator.isValidFrequencyTarget(4.0))
+        assertTrue(GoalCalculator.isValidFrequencyTarget(5.0))
+        assertFalse(GoalCalculator.isValidFrequencyTarget(4.5))
+        assertFalse(GoalCalculator.isValidFrequencyTarget(4.2))
+        assertFalse(GoalCalculator.isValidFrequencyTarget(0.0))
+        assertFalse(GoalCalculator.isValidFrequencyTarget(-1.0))
     }
 }

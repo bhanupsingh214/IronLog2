@@ -96,6 +96,11 @@ object GoalCalculator {
         return if (days > 0.0) (recent[1].value - recent[0].value) / days else null
     }
 
+    fun isValidFrequencyTarget(target: Double?): Boolean {
+        if (target == null) return false
+        return target > 0.0 && target == target.toInt().toDouble()
+    }
+
     fun calculateExpectedProgress(startDate: Long, deadline: Long?, now: Long): Double? {
         if (deadline == null || deadline <= startDate) return null
         return ((now - startDate).toDouble() / (deadline - startDate).toDouble()).coerceIn(0.0, 1.0)
@@ -107,8 +112,9 @@ object GoalCalculator {
         deadline: Long?,
         now: Long
     ): GoalStatus? {
-        if (actualProgress == null || deadline == null) return null
+        if (actualProgress == null) return null
         if (actualProgress >= 1.0) return GoalStatus.COMPLETED
+        if (deadline == null) return null
         if (now > deadline) return GoalStatus.OVERDUE
         if (expectedProgress == null) return null
         return if (actualProgress >= expectedProgress) GoalStatus.ON_TRACK else GoalStatus.BEHIND
