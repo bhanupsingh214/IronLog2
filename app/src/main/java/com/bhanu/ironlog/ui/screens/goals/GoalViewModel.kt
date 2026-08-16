@@ -49,7 +49,10 @@ class GoalViewModel @Inject constructor(
 
     fun createGoal(type: GoalType, targetValue: Double, startingValue: Double, libraryExerciseId: Long? = null, frequencyCount: Int? = null, frequencyPeriod: String? = null, deadline: Long? = null) {
         viewModelScope.launch {
-            goalRepository.createGoal(GoalEntity(type = type.key, targetValue = targetValue, startingValue = startingValue, libraryExerciseId = libraryExerciseId, frequencyCount = frequencyCount, frequencyPeriod = frequencyPeriod, startDate = System.currentTimeMillis(), deadline = deadline))
+            val baseline = if (type == GoalType.EXERCISE_PR && libraryExerciseId != null) {
+                personalRecordRepository.getPRForExercise(libraryExerciseId, 0L)?.weightPR ?: 0.0
+            } else startingValue
+            goalRepository.createGoal(GoalEntity(type = type.key, targetValue = targetValue, startingValue = baseline, libraryExerciseId = libraryExerciseId, frequencyCount = frequencyCount, frequencyPeriod = frequencyPeriod, startDate = System.currentTimeMillis(), deadline = deadline))
         }
     }
 
