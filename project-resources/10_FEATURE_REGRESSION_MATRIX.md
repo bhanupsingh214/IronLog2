@@ -1,6 +1,6 @@
 # IronLog — Feature Regression Matrix
 
-**Documentation version:** v4.0
+**Documentation version:** v4.1
 **As of:** 2026-08-16
 
 ## Evidence legend
@@ -96,7 +96,7 @@
 
 | ID | Scenario | Result | Evidence |
 |---|---|---|---|
-| P5C-1 | Goal create/view/edit/delete flows work | [ ] | Phase 5C PR #44 open; runtime acceptance still in progress |
+| P5C-1 | Goal create/view/edit/delete flows work | [ ] | PR #44 implementation exists; current-cycle runtime acceptance remains in progress |
 | P5C-2 | Body-weight goal progress is calculated deterministically from persisted data | [ ] | PR #44 implementation exists; current-cycle runtime verification required |
 | P5C-3 | Waist goal progress is calculated deterministically from persisted data | [ ] | PR #44 implementation exists; current-cycle runtime verification required |
 | P5C-4 | Exercise/PR goal progress is calculated deterministically from persisted data | [ ] | PR #44 implementation exists; current-cycle runtime verification required |
@@ -106,17 +106,17 @@
 | P5C-8 | Goal status boundaries are deterministic and unit-tested | PASS | PR #44; `:app:testDebugUnitTest` reported 17 passed, 0 skipped, 0 failed, including the updated GoalCalculator tests |
 | P5C-9 | Persistent goals survive required Room migration without existing-data loss | [ ] | GoalMigrationTest was implemented/updated; connected execution remains a current-cycle verification requirement |
 | P5C-10 | New backup includes goal data and old backups remain restorable | [ ] | PR #44 changes Backup/Restore; current-cycle manual/runtime regression verification required |
-| P5C-11 | Existing Workout/History/Progress/Profile/Body Progress/PR behavior remains intact | OPEN — 2 UI observations | Manual emulator testing found a Progress goal-card layout issue and a BMI presentation issue; see Active Manual-Test Observations below |
+| P5C-11 | Existing Workout/History/Progress/Profile/Body Progress/PR behavior remains intact | PASS | Project Owner ran the updated app on the emulator and confirmed the two reported Phase 5C UI findings were fixed: Progress goal-card overlap/obscuring is resolved, and BMI is normally readable while remaining read-only |
 | P5C-12 | Phase 5C introduces no LLM/AI/backend/network dependency | PASS | PR #44 scope/diff review; PR description explicitly states no AI/LLM/ML/cloud dependency introduced |
 
 ## Active Manual-Test Observations — Phase 5C
 
-These observations were produced during real emulator testing and remain active until their original behavior is re-tested and verified fixed or explicitly deferred.
+These observations are retained as durable evidence even after resolution; closure records the re-test result rather than deleting the original finding.
 
-| ID | Observation | Status | Required handling |
+| ID | Observation | Status | Closure evidence |
 |---|---|---|---|
-| 5C-UI-01 | Active Goal card/Goals section on the Progress screen can mask or obscure Progress information underneath it. Existing Progress content must remain fully reachable and readable. | OPEN | Address within the current Phase 5C PR as a UI integration/correctness fix; do not redesign the Progress screen. Re-test on emulator after the fix. |
-| 5C-UI-02 | BMI on Profile & Settings appears faded/disabled-looking even though it is intentionally read-only. BMI should be normally readable while remaining non-editable. | OPEN | Address within the current Phase 5C PR as a presentation/readability fix. Do not change BMI calculation or read-only behavior. Re-test on emulator after the fix. |
+| 5C-UI-01 | Active Goal card/Goals section on the Progress screen could mask or obscure Progress information underneath it. Existing Progress content had to remain fully reachable and readable. | VERIFIED FIXED | Project Owner re-ran the updated app on the emulator and confirmed the overlap/obscuring issue is resolved. Gemini's implementation report attributes the fix to integrating the Goals section into the Progress scrollable layout instead of using a Box overlay. |
+| 5C-UI-02 | BMI on Profile & Settings appeared faded/disabled-looking even though it was intentionally read-only. BMI should be normally readable while remaining non-editable. | VERIFIED FIXED | Project Owner re-ran the updated app on the emulator and confirmed BMI is readable while remaining read-only. Gemini's implementation report attributes the fix to separating disabled alpha presentation from the non-interactive state for this item. |
 | 5C-AUTH-01 | Google Drive backup/restore initially displayed an OAuth credential refresh error. Signing out and signing in again restored the cloud backup/restore flow. | RESOLVED / NOT A DEFECT — current cycle | Do not modify Drive authentication based on this observation alone. Re-open only if the error becomes reproducible after valid re-authentication or new evidence establishes a product defect. |
 
 ### Observation-management rule
