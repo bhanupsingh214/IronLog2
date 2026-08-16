@@ -1,6 +1,6 @@
 # IronLog Roadmap & PR Ledger
 
-**Documentation version:** v4.0  
+**Documentation version:** v4.1  
 **As of:** 2026-08-16
 
 ## Purpose
@@ -173,29 +173,27 @@ Verified constraints:
 Verification included build/JVM tests, clean diff hygiene, manual Profile/Body Progress verification, local export/import round-trip, and regression smoke testing. Instrumentation tests were implemented but not executed locally because no connected device was available.
 
 ### Phase 5C — Goals & Deterministic Progress Intelligence
-**Status: IMPLEMENTATION IN PROGRESS — GitHub #44 OPEN / DRAFT**
+**Status: MERGED / VERIFIED — GitHub #44**
 
-Objective:
-- establish a small durable goal system;
-- calculate goal progress, trends, adherence, and deterministic status locally;
-- present understandable progress facts from existing workout/history/profile/body-progress data;
-- preserve local-first, one-dataset-per-installation architecture.
+- Head commit: `7b20dd0f58c10ab12a30e930d170cdaab63a29fb`
+- Merge commit: `f3406f227672ac4cd9f14ea1ee97bf2021d4ea1c`
+- Feature branch `feature/phase-5c-goals` deleted after merge.
 
-Initial goal categories:
-- target body weight;
-- target waist circumference;
-- target exercise/PR value;
-- workout-frequency target.
+Delivered:
+- target body-weight goals;
+- target waist goals;
+- target exercise/PR goals;
+- workout-frequency goals;
+- deterministic goal progress/completion calculations;
+- deterministic trend/rate and bounded status handling;
+- Goal CRUD UI and Progress goal-card integration;
+- insufficient-data/no-meaningful-trend handling;
+- Room persistence/migration support;
+- backward-compatible backup/restore goal support;
+- deterministic tests and migration/verification coverage.
 
-Current implementation state:
-- GitHub #44 contains the Phase 5C implementation and is not yet merged;
-- deterministic goal logic/unit verification is present;
-- Project Owner emulator verification has confirmed the two previously reported Phase 5C UI findings are fixed;
-- the regression matrix retains those findings as `VERIFIED FIXED` observations rather than deleting them;
-- remaining Phase 5C acceptance/verification rows must still be completed before merge.
-
-Required boundaries:
-- no LLM, AI model, generative AI, or network dependency;
+Verified constraints:
+- no LLM/AI model, generative AI, or network dependency;
 - no backend/cloud analytics;
 - no nutrition/calorie system;
 - no medical diagnosis/treatment;
@@ -204,16 +202,27 @@ Required boundaries:
 - no unrelated UI/UX modernization;
 - no multi-account Room redesign.
 
-Acceptance and verification are locked in `11_ACTIVE_PR_SPEC.md`.
+Verification included automated tests/build and clean-diff checks, Project Owner manual emulator verification of goal flows/calculations/status behavior, backup/restore regression, existing-product regression, and final re-tests of two manual UI observations discovered during the cycle.
+
+### Phase 5C manual-test observation closeout
+
+Two meaningful UI observations were discovered during manual testing and actively managed rather than forgotten:
+
+1. **Progress goal-card overlap/obscuring — VERIFIED FIXED.** The goal section was moved into the normal Progress scrollable layout so it no longer masked existing Progress information. Project Owner re-tested the original behavior on the emulator.
+2. **BMI faded/disabled-looking presentation — VERIFIED FIXED.** BMI remains read-only/non-editable but is now rendered with normal readable presentation. Project Owner re-tested the original behavior on the emulator.
+
+A Google Drive OAuth refresh error also occurred during one test cycle. Sign-out/sign-in restored the cloud backup/restore flow; it is recorded as `RESOLVED / NOT A DEFECT — current cycle`, with no code change made from that observation alone.
 
 ### Phase 5 completion boundary
 
-Phase 5 is planned to end after 5C. No Phase 5D AI/LLM phase is planned or authorized. After 5C, the next planned product phase is Phase 6 — UI/UX Modernization & Polish.
+**Status: COMPLETE / VERIFIED.**
+
+Phase 5 ends after 5C. No Phase 5D AI/LLM phase is planned or authorized. After 5C, the next planned product phase is Phase 6 — UI/UX Modernization & Polish.
 
 ### Phase 6 — UI/UX Modernization & Polish
 **Status: PLANNED / NOT APPROVED**
 
-Future direction after Phase 5C:
+Future direction after completed Phase 5:
 - modern visual system and component consistency;
 - typography, spacing, surfaces, colors, and hierarchy;
 - navigation and information-architecture polish;
@@ -223,7 +232,7 @@ Future direction after Phase 5C:
 - accessibility and touch-target refinement;
 - polished presentation of workout, history, progress, profile, body progress, goals, backup/data, and settings.
 
-Phase 6 is not part of Phase 5C implementation scope.
+Phase 6 is not yet implementation-authorized. A new `11_ACTIVE_PR_SPEC.md` must be approved before implementation begins.
 
 ### Future AI direction
 **Status: DEFERRED / NOT APPROVED**
@@ -253,6 +262,6 @@ Do not invent calendar deadlines. Future items remain CANDIDATE/PLANNED/TBD/INFE
 
 ## Current Orientation
 
-**Completed:** PR4.1 → PR4.2 → PR4.3 → PR4.4 → PR4.5 → stability fix #32 → Phase 4 closeout → Phase 5A #35 → Phase 5B #41  
-**Current:** Phase 5C implementation in progress on GitHub #44; two reported UI findings are VERIFIED FIXED by Project Owner emulator re-test  
-**Next:** complete remaining Phase 5C acceptance/verification, final evidence review, Project Owner acceptance, merge, and branch cleanup
+**Completed:** PR4.1 → PR4.2 → PR4.3 → PR4.4 → PR4.5 → stability fix #32 → Phase 4 closeout → Phase 5A #35 → Phase 5B #41 → Phase 5C #44  
+**Current:** Phase 5 complete / verified; no active implementation PR  
+**Next planned:** define and explicitly approve Phase 6 UI/UX Modernization & Polish before implementation
