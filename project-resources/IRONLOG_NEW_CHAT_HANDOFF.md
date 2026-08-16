@@ -1,6 +1,6 @@
 # IronLog — New Chat Handoff
 
-**Handoff version:** v3.9
+**Handoff version:** v4.1
 **As of:** 2026-08-16
 **Purpose:** Make a fresh chat inside the IronLog project immediately productive without relying on prior conversation memory.
 
@@ -29,69 +29,25 @@ If GitHub is connected, fetch `/project-resources/` from the repository and trea
 - Phase 4 documentation/stability closeout — VERIFIED / CLOSED.
 - Phase 5A / GitHub #35 — Progress & History Presentation — MERGED / VERIFIED.
 - Phase 5B / GitHub #41 — Profile Foundation & Body Progress — MERGED / VERIFIED.
-- Phase 5A and Phase 5B feature branches — DELETED after merge.
-- Phase 5C — Goals & Deterministic Progress Intelligence — APPROVED / LOCKED; implementation not yet started.
+- Phase 5C / GitHub #44 — Goals & Deterministic Progress Intelligence — MERGED / VERIFIED.
+- Phase 5C head: `7b20dd0f58c10ab12a30e930d170cdaab63a29fb`.
+- Phase 5C merge commit: `f3406f227672ac4cd9f14ea1ee97bf2021d4ea1c`.
+- Phase 5C feature branch was deleted after merge.
 - Phase 5 ends after 5C; no Phase 5D AI/LLM work is planned or authorized.
 - Phase 6 — UI/UX Modernization & Polish — planned after 5C, not yet approved for implementation.
 - AI/LLM work is deferred until after Phase 6 and requires explicit Project Owner authorization.
 
-## 3. Phase 5A completed boundary
+## 3. Phase 5C completed boundary
 
-Phase 5A delivered deterministic/local presentation over the established workout-history data:
-- Progress overview and training-frequency presentation;
-- strength/PR progression;
-- volume trend and period filtering;
-- training-focus / muscle-group presentation;
-- enhanced History cards;
-- calendar history;
-- monthly recap;
-- yearly recap;
-- focused analytics/recap tests.
+Phase 5C delivered a local-first deterministic goal/progress layer over existing workout, history, progress, profile, and body-progress foundations.
 
-The implementation reused the established `WorkoutSession → SessionExercise → SessionSet` model and introduced no Room schema/migration, backup/restore, Google Drive, AI/LLM, or backend/cloud analytics change. Body-weight/body-measurement history was explicitly excluded from Phase 5A and was subsequently introduced through Phase 5B's separate persistent body-progress model.
-
-## 4. Phase 5A verification
-
-GitHub #35 recorded repository review PASS, automated tests/build PASS, clean diff hygiene, and manual emulator verification of Progress, History/Calendar, monthly recap, yearly recap, and volume filters. Existing user data remained present during verification. `0m` average duration was accepted for test workouts mostly under one minute, and intentionally large test values were accepted as test data.
-
-## 5. Phase 5B completed boundary
-
-Phase 5B / GitHub #41 established the durable local profile and body-progress foundation:
-- optional sex, DOB, and height;
-- feet/inches-preferred height input with canonical metric storage;
-- dated body-weight history;
-- dated waist history;
-- deterministic local age and BMI calculations;
-- adult Indian/Asian-Indian BMI screening classification with separate non-adult handling;
-- Profile hub integration;
-- Room migration v21→v22;
-- backward-compatible `.ironlog` backup/restore extension.
-
-Phase 5B preserved the one-local-dataset-per-installation ownership model and introduced no LLM/backend dependency, nutrition/calorie tracking, medical diagnosis/treatment, goals/achievements, or multi-account Room redesign.
-
-## 6. Phase 5B verification
-
-GitHub #41 recorded:
-- build PASS;
-- JVM/body-metric tests PASS;
-- `git diff --check` PASS;
-- manual Profile/Body Progress verification PASS;
-- local export/import round-trip PASS;
-- Workout/History/Progress/PR regression smoke test PASS.
-
-Instrumentation tests for migration/body-progress repository behavior were implemented but not executed locally because no connected device was available. Do not represent those unexecuted instrumentation tests as runtime PASS.
-
-## 7. Phase 5C locked boundary
-
-Phase 5C — Goals & Deterministic Progress Intelligence — is the approved next objective.
-
-Initial goal categories:
+Delivered goal categories:
 - target body weight;
 - target waist circumference;
 - target exercise/PR value;
 - workout-frequency target.
 
-Deterministic local intelligence may calculate:
+Deterministic local intelligence calculates:
 - absolute/percentage change where meaningful;
 - goal completion percentage;
 - current vs target state;
@@ -99,21 +55,26 @@ Deterministic local intelligence may calculate:
 - simple trend direction/rate;
 - bounded status such as Not Started, In Progress, On Track, Behind, Completed, No Meaningful Trend, or Insufficient Data.
 
-Phase 5C must not introduce:
-- LLMs;
-- generative AI;
-- local language-model inference;
-- model training/fine-tuning;
-- backend/cloud analytics;
-- network dependency;
-- nutrition/calorie tracking;
-- medical diagnosis/treatment;
-- achievements/ranks/badges;
-- broad personalization;
-- unrelated UI/UX modernization;
-- multi-account Room redesign.
+Phase 5C introduced no LLM, generative AI, local language-model inference, model training/fine-tuning, backend/cloud analytics, network dependency, nutrition/calorie tracking, medical diagnosis/treatment, achievements/ranks/badges, broad personalization, unrelated UI/UX modernization, or multi-account Room redesign.
 
-## 8. Phase 5/AI boundary
+## 4. Phase 5C verification and observation closeout
+
+Project Owner reported a full current-cycle acceptance pass, including:
+- Goal CRUD and supported goal flows;
+- deterministic goal calculations;
+- trend/status and insufficient-data behavior;
+- migration behavior;
+- local backup/export/restore;
+- Google Drive backup/restore after fresh sign-in;
+- Workout/History/Progress/Profile/Body Progress/PR regression.
+
+Two manual UI findings were discovered during testing and actively managed rather than forgotten:
+- Progress goal-card overlap/obscuring — VERIFIED FIXED after emulator re-test;
+- BMI faded/disabled-looking presentation — VERIFIED FIXED after emulator re-test.
+
+The transient Google Drive OAuth refresh error observed during one test cycle was resolved by signing out/signing in again and is recorded as `RESOLVED / NOT A DEFECT — current cycle`. No Drive-auth code change was justified by that evidence alone.
+
+## 5. Phase 5/AI boundary
 
 **Phase 5 ends after 5C.** There is no Phase 5D AI/LLM phase.
 
@@ -123,10 +84,10 @@ After Phase 5C, the planned next phase is Phase 6 — UI/UX Modernization & Poli
 
 After Phase 6, the Project Owner may explicitly decide whether an AI phase is desirable and what form it should take. Until that decision is made, AI remains `DEFERRED / NOT APPROVED`.
 
-## 9. Stability fixes completed
+## 6. Stability fixes completed
 
 ### Workout finish duration
-Active workout confirmation now uses live elapsed duration while completed sessions use persisted duration. GitHub #32 merged this fix after 7/7 connected tests, successful debug build, and manual emulator verification.
+Active workout confirmation uses live elapsed duration while completed sessions use persisted duration. GitHub #32 merged this fix after 7/7 connected tests, successful debug build, and manual emulator verification.
 
 ### Connected-test data safety
 The connected instrumentation lifecycle was found to remove the production package after a run, which could wipe the local Room database on the primary emulator.
@@ -139,7 +100,7 @@ android.injected.androidTest.leaveApksInstalledAfterRun=true
 
 Verified with 7/7 connected tests, package-preservation checks, Programs/History preservation, and manual smoke testing with zero data loss.
 
-## 10. Evidence rules
+## 7. Evidence rules
 
 - Runtime behavior → emulator/device.
 - Build → actual build output.
@@ -149,7 +110,7 @@ Verified with 7/7 connected tests, package-preservation checks, Programs/History
 
 Agent reports are evidence, not proof.
 
-## 11. Collaboration
+## 8. Collaboration
 
 Project Owner:
 - final product decisions;
@@ -174,7 +135,7 @@ Gemini/implementation agent:
 
 Gemini should not independently maintain the canonical Project Resources or perform documentation closeout unless explicitly delegated.
 
-## 12. If resources disagree
+## 9. If resources disagree
 
 Do not guess.
 
@@ -190,7 +151,7 @@ repository code/schema/tests
 
 Repair the canonical resource stack when necessary.
 
-## 13. Documentation workflow
+## 10. Documentation workflow
 
 For normal work:
 
@@ -206,8 +167,10 @@ Project Owner objective approval
 
 Do not duplicate documentation maintenance through Gemini when ChatGPT has connected GitHub access.
 
-## 14. Exact next action
+## 11. Exact next action
 
-Gemini must perform a **read-only source audit** against the locked Phase 5C specification. ChatGPT and the Project Owner must reconcile that audit before implementation approval.
+There is currently **no active implementation PR**.
 
-After the Phase 5C implementation is complete and merged, close Phase 5. The next planned product phase is Phase 6 UI/UX Modernization & Polish. Do not introduce or plan an AI/LLM phase unless the Project Owner explicitly re-authorizes it after Phase 6.
+The next planned product phase is Phase 6 — UI/UX Modernization & Polish. Before implementation begins, the Project Owner must explicitly approve the Phase 6 objective/scope and ChatGPT must establish a new locked `11_ACTIVE_PR_SPEC.md`.
+
+Do not introduce or plan an AI/LLM implementation unless the Project Owner explicitly re-authorizes it after Phase 6.
