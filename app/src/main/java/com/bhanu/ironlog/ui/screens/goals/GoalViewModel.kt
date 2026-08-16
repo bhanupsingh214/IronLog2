@@ -3,7 +3,9 @@ package com.bhanu.ironlog.ui.screens.goals
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bhanu.ironlog.data.local.entity.GoalEntity
+import com.bhanu.ironlog.data.local.pojo.TrackableExercise
 import com.bhanu.ironlog.data.model.goals.GoalProgress
+import com.bhanu.ironlog.data.model.goals.GoalTrendPoint
 import com.bhanu.ironlog.data.model.goals.GoalType
 import com.bhanu.ironlog.data.repository.AnalyticsRepository
 import com.bhanu.ironlog.data.repository.BodyProgressRepository
@@ -11,8 +13,6 @@ import com.bhanu.ironlog.data.repository.GoalRepository
 import com.bhanu.ironlog.data.repository.HistoryRepository
 import com.bhanu.ironlog.data.repository.PersonalRecordRepository
 import com.bhanu.ironlog.data.util.GoalCalculator
-import com.bhanu.ironlog.data.model.goals.GoalTrendPoint
-import com.bhanu.ironlog.data.local.pojo.TrackableExercise
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -28,22 +28,26 @@ class GoalViewModel @Inject constructor(
     private val historyRepository: HistoryRepository,
     private val analyticsRepository: AnalyticsRepository
 ) : ViewModel() {
-
     private val weightHistory = bodyProgressRepository.getWeightHistory()
     private val waistHistory = bodyProgressRepository.getWaistHistory()
     private val personalRecords = personalRecordRepository.getAllPRs()
     private val completedSessions = historyRepository.getCompletedSessions()
+
+    val latestWeight: StateFlow<Double?> = bodyProgressRepository.getLatestWeight()
+        .map { it?.weightKg }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val latestWaist: StateFlow<Double?> = bodyProgressRepository.getLatestWaist()
+        .map { it?.circumferenceCm }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     val trackableExercises: StateFlow<List<TrackableExercise>> = analyticsRepository.getTrackableExercises()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val goals: StateFlow<List<GoalProgress>> = goalRepository.getGoals()
         .flatMapLatest { goals ->
-            if (goals.isEmpty()) {
-                flowOf(emptyList())
-            } else {
-                combine(goals.map { goal -> progressFlow(goal) }) { values -> values.toList() }
-            }
+            if (goals.isEmpty()) flowOf(emptyList())
+            else combine(goals.map { goal -> progressFlow(goal) }) { values -> values.toList() }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -96,23 +100,12 @@ class GoalViewModel @Inject constructor(
                 delay(60_000)
             }
         }
-
         return when (goal.type) {
             GoalType.WEIGHT.key -> combine(weightHistory, clock) { history, now ->
-                GoalCalculator.calculate(
-                    goal = goal,
-                    currentValue = history.firstOrNull()?.weightKg,
-                    trendPoints = history.map { GoalTrendPoint(it.timestamp, it.weightKg) },
-                    now = now
-                )
+                GoalCalculator.calculate(goal, history.firstOrNull()?.weightKg, history.map { GoalTrendPoint(it.timestamp, it.weightKg) }, now = now)
             }
             GoalType.WAIST.key -> combine(waistHistory, clock) { history, now ->
-                GoalCalculator.calculate(
-                    goal = goal,
-                    currentValue = history.firstOrNull()?.circumferenceCm,
-                    trendPoints = history.map { GoalTrendPoint(it.timestamp, it.circumferenceCm) },
-                    now = now
-                )
+                GoalCalculator.calculate(goal, history.firstOrNull()?.circumferenceCm, history.map { GoalTrendPoint(it.timestamp, it.circumferenceCm) }, now = now)
             }
             GoalType.WORKOUT_FREQUENCY.key -> combine(completedSessions, clock) { sessions, now ->
                 val count = sessions.count { it.createdAt in currentCalendarWindow(goal.frequencyPeriod) }
@@ -125,20 +118,11 @@ class GoalViewModel @Inject constructor(
                     analyticsRepository.getExerciseStrengthHistory(libraryId, 0L),
                     clock
                 ) { prs, history, now ->
-                    val current = prs.firstOrNull {
-                        it.libraryExerciseId == libraryId && it.exerciseTemplateId == 0L
-                    }?.weightPR
-                    GoalCalculator.calculate(
-                        goal = goal,
-                        currentValue = current,
-                        trendPoints = history.map { GoalTrendPoint(it.date, it.maxWeight) },
-                        now = now
-                    )
+                    val current = prs.firstOrNull { it.libraryExerciseId == libraryId && it.exerciseTemplateId == 0L }?.weightPR
+                    GoalCalculator.calculate(goal, current, history.map { GoalTrendPoint(it.date, it.maxWeight) }, now = now)
                 }
             }
-            else -> flowOf(
-                GoalCalculator.calculate(goal, null, emptyList())
-            )
+            else -> flowOf(GoalCalculator.calculate(goal, null, emptyList()))
         }
     }
 
@@ -148,7 +132,6 @@ class GoalViewModel @Inject constructor(
         calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
-
         return if (period == "MONTHLY") {
             calendar.set(Calendar.DAY_OF_MONTH, 1)
             val start = calendar.timeInMillis
