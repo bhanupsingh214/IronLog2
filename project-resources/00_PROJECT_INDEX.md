@@ -1,6 +1,6 @@
 # IronLog — Project Resource Index
 
-**Documentation version:** v3.9
+**Documentation version:** v4.1
 **Canonical location:** `/project-resources/`
 **As of:** 2026-08-16
 **Purpose:** Canonical continuity and governance index for planning, implementation, verification, release, and fresh-chat handoff.
@@ -44,7 +44,7 @@ A fresh chat must confirm the current state from the repository and these resour
 
 ## Evidence labels
 
-- **VERIFIED** — supported by current repository code/schema/tests, merged Git history, or tangible runtime evidence.
+- **VERIFIED** — supported by current repository code/schema/tests, merged Git/GitHub history, or tangible runtime evidence.
 - **CURRENT** — observed in the current repository but not necessarily a durable product decision.
 - **APPROVED / PLANNED** — explicitly authorized future implementation.
 - **CANDIDATE / NOT APPROVED** — possible future work only.
@@ -85,7 +85,7 @@ If not verified, label it `TBD` and inspect the repository.
 
 `11_ACTIVE_PR_SPEC.md` is the implementation authorization boundary.
 
-No implementation may begin from a candidate, conversation statement, or roadmap entry alone. Phase 5C is authorized only through the locked `11_ACTIVE_PR_SPEC.md` and its required source-audit/approval gate.
+No implementation may begin from a candidate, conversation statement, or roadmap entry alone. Phase 5C was authorized through the locked `11_ACTIVE_PR_SPEC.md`; it is now historical/closed. Future implementation requires a newly approved active specification.
 
 ## Documentation lifecycle
 
