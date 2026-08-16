@@ -1,6 +1,6 @@
 # IronLog — Feature Regression Matrix
 
-**Documentation version:** v4.1
+**Documentation version:** v4.2
 **As of:** 2026-08-16
 
 ## Evidence legend
@@ -96,18 +96,18 @@
 
 | ID | Scenario | Result | Evidence |
 |---|---|---|---|
-| P5C-1 | Goal create/view/edit/delete flows work | [ ] | PR #44 implementation exists; current-cycle runtime acceptance remains in progress |
-| P5C-2 | Body-weight goal progress is calculated deterministically from persisted data | [ ] | PR #44 implementation exists; current-cycle runtime verification required |
-| P5C-3 | Waist goal progress is calculated deterministically from persisted data | [ ] | PR #44 implementation exists; current-cycle runtime verification required |
-| P5C-4 | Exercise/PR goal progress is calculated deterministically from persisted data | [ ] | PR #44 implementation exists; current-cycle runtime verification required |
-| P5C-5 | Workout-frequency goal adherence is calculated deterministically | [ ] | PR #44 implementation exists; current-cycle runtime verification required |
-| P5C-6 | Trend direction/rate handles sufficient history correctly | [ ] | PR #44 includes deterministic implementation/tests; current-cycle runtime/integration verification required |
-| P5C-7 | Insufficient-data and no-meaningful-trend states do not fabricate conclusions | [ ] | PR #44 includes deterministic implementation/tests; current-cycle runtime verification required |
-| P5C-8 | Goal status boundaries are deterministic and unit-tested | PASS | PR #44; `:app:testDebugUnitTest` reported 17 passed, 0 skipped, 0 failed, including the updated GoalCalculator tests |
-| P5C-9 | Persistent goals survive required Room migration without existing-data loss | [ ] | GoalMigrationTest was implemented/updated; connected execution remains a current-cycle verification requirement |
-| P5C-10 | New backup includes goal data and old backups remain restorable | [ ] | PR #44 changes Backup/Restore; current-cycle manual/runtime regression verification required |
-| P5C-11 | Existing Workout/History/Progress/Profile/Body Progress/PR behavior remains intact | PASS | Project Owner ran the updated app on the emulator and confirmed the two reported Phase 5C UI findings were fixed: Progress goal-card overlap/obscuring is resolved, and BMI is normally readable while remaining read-only |
-| P5C-12 | Phase 5C introduces no LLM/AI/backend/network dependency | PASS | PR #44 scope/diff review; PR description explicitly states no AI/LLM/ML/cloud dependency introduced |
+| P5C-1 | Goal create/view/edit/delete flows work | PASS | Project Owner real-device/emulator acceptance pass |
+| P5C-2 | Body-weight goal progress is calculated deterministically from persisted data | PASS | Deterministic implementation/tests + Project Owner runtime acceptance pass |
+| P5C-3 | Waist goal progress is calculated deterministically from persisted data | PASS | Deterministic implementation/tests + Project Owner runtime acceptance pass |
+| P5C-4 | Exercise/PR goal progress is calculated deterministically from persisted data | PASS | Deterministic implementation/tests + Project Owner runtime acceptance pass |
+| P5C-5 | Workout-frequency goal adherence is calculated deterministically | PASS | Deterministic implementation/tests + Project Owner runtime acceptance pass |
+| P5C-6 | Trend direction/rate handles sufficient history correctly | PASS | Deterministic implementation/tests + Project Owner runtime acceptance pass |
+| P5C-7 | Insufficient-data and no-meaningful-trend states do not fabricate conclusions | PASS | Deterministic implementation/tests + Project Owner runtime acceptance pass |
+| P5C-8 | Goal status boundaries are deterministic and unit-tested | PASS | PR #44; `:app:testDebugUnitTest` reported 17 passed, 0 skipped, 0 failed, including updated GoalCalculator tests |
+| P5C-9 | Persistent goals survive required Room migration without existing-data loss | PASS | Goal migration implementation/test verification + Project Owner acceptance pass |
+| P5C-10 | New backup includes goal data and old backups remain restorable | PASS | Project Owner local backup/export/restore verification; Google Drive backup/restore also re-tested successfully after fresh sign-in |
+| P5C-11 | Existing Workout/History/Progress/Profile/Body Progress/PR behavior remains intact | PASS | Project Owner completed the Phase 5C regression pass; previously reported Progress goal-card and BMI UI findings were fixed and re-tested successfully |
+| P5C-12 | Phase 5C introduces no LLM/AI/backend/network dependency | PASS | PR #44 scope/diff review; merged PR explicitly states no AI/LLM/ML/cloud dependency introduced |
 
 ## Active Manual-Test Observations — Phase 5C
 
@@ -115,13 +115,17 @@ These observations are retained as durable evidence even after resolution; closu
 
 | ID | Observation | Status | Closure evidence |
 |---|---|---|---|
-| 5C-UI-01 | Active Goal card/Goals section on the Progress screen could mask or obscure Progress information underneath it. Existing Progress content had to remain fully reachable and readable. | VERIFIED FIXED | Project Owner re-ran the updated app on the emulator and confirmed the overlap/obscuring issue is resolved. Gemini's implementation report attributes the fix to integrating the Goals section into the Progress scrollable layout instead of using a Box overlay. |
-| 5C-UI-02 | BMI on Profile & Settings appeared faded/disabled-looking even though it was intentionally read-only. BMI should be normally readable while remaining non-editable. | VERIFIED FIXED | Project Owner re-ran the updated app on the emulator and confirmed BMI is readable while remaining read-only. Gemini's implementation report attributes the fix to separating disabled alpha presentation from the non-interactive state for this item. |
-| 5C-AUTH-01 | Google Drive backup/restore initially displayed an OAuth credential refresh error. Signing out and signing in again restored the cloud backup/restore flow. | RESOLVED / NOT A DEFECT — current cycle | Do not modify Drive authentication based on this observation alone. Re-open only if the error becomes reproducible after valid re-authentication or new evidence establishes a product defect. |
+| 5C-UI-01 | Active Goal card/Goals section on the Progress screen could mask or obscure Progress information underneath it. Existing Progress content had to remain fully reachable and readable. | VERIFIED FIXED | Project Owner re-ran the updated app on the emulator and confirmed the overlap/obscuring issue is resolved. Final implementation moved the Goals section into the normal Progress scrollable layout instead of using a bottom overlay. |
+| 5C-UI-02 | BMI on Profile & Settings appeared faded/disabled-looking even though it was intentionally read-only. BMI should be normally readable while remaining non-editable. | VERIFIED FIXED | Project Owner re-ran the updated app on the emulator and confirmed BMI is readable while remaining read-only. Final implementation separates disabled alpha presentation from the non-interactive state for this item. |
+| 5C-AUTH-01 | Google Drive backup/restore initially displayed an OAuth credential refresh error. Signing out and signing in again restored the cloud backup/restore flow. | RESOLVED / NOT A DEFECT — current cycle | Project Owner re-tested Google Drive backup/restore after fresh authentication and confirmed the flow works. No Drive-auth code change was made from the transient observation. Re-open only if reproducible after valid re-authentication. |
 
 ### Observation-management rule
 
 A new manual-test observation never erases a previous unresolved observation. Every meaningful finding must have an explicit lifecycle (`OPEN`, `IN PROGRESS`, `VERIFIED FIXED`, `DEFERRED`, `NOT REPRODUCED`, or `RESOLVED / NOT A DEFECT`). UI/runtime findings are not closed by code compilation or an agent completion report alone; the original behavior must be re-tested with appropriate runtime evidence.
+
+## Phase 5C closeout
+
+**Status: COMPLETE / VERIFIED.** All Phase 5C acceptance scenarios were reported PASS by the Project Owner after the final implementation was run on the emulator, including the previously observed UI findings. PR #44 was reviewed, merged, and its feature branch was deleted.
 
 ## Evidence rule
 
@@ -129,7 +133,7 @@ Do not mark a current-cycle test PASS from code inspection or an agent report al
 
 For Phase 5B, rows that depend on instrumentation execution distinguish implementation/manual evidence from unavailable connected-device execution. The merged PR explicitly records that instrumentation tests were implemented but not executed locally because no connected device was available.
 
-For Phase 5C, `[ ]` rows are intentionally unverified until the relevant implementation and actual runtime/test evidence exist.
+For Phase 5C, current-cycle acceptance rows above are marked PASS from the Project Owner's reported runtime verification combined with implementation/test evidence. The distinction between implementation evidence and runtime evidence is preserved in the individual rows.
 
 The populated-database replacement test is a critical regression boundary for any restore-path change.
 
