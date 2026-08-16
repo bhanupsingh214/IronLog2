@@ -168,7 +168,7 @@ interface WorkoutSessionDao {
     @Delete
     suspend fun deleteSessionExercise(exercise: SessionExercise)
 
-    @Query("SELECT * FROM workout_session_logs WHERE status = 'COMPLETED' ORDER BY createdAt DESC")
+    @Query("SELECT * FROM workout_session_logs WHERE status = 'COMPLETED' ORDER BY startTime DESC")
     fun getCompletedSessions(): Flow<List<WorkoutSession>>
 
     @Query("""
@@ -178,7 +178,7 @@ interface WorkoutSessionDao {
         LEFT JOIN session_sets s ON e.sessionExerciseId = s.sessionExerciseId
         WHERE sess.status = 'COMPLETED'
         GROUP BY sess.sessionId
-        ORDER BY sess.createdAt DESC
+        ORDER BY sess.startTime DESC
     """)
     fun getCompletedSessionsWithVolume(): Flow<List<WorkoutSessionWithVolume>>
 
@@ -194,7 +194,7 @@ interface WorkoutSessionDao {
         LEFT JOIN session_sets s ON e.sessionExerciseId = s.sessionExerciseId
         WHERE sess.status = 'COMPLETED'
         GROUP BY sess.sessionId
-        ORDER BY sess.createdAt DESC
+        ORDER BY sess.startTime DESC
     """)
     fun getCompletedSessionsWithStats(): Flow<List<WorkoutSessionWithStats>>
 
@@ -203,7 +203,7 @@ interface WorkoutSessionDao {
         FROM session_sets s 
         JOIN session_exercises e ON s.sessionExerciseId = e.sessionExerciseId 
         JOIN workout_session_logs sess ON e.sessionId = sess.sessionId 
-        WHERE sess.status = 'COMPLETED' AND sess.createdAt >= :since
+        WHERE sess.status = 'COMPLETED' AND sess.startTime >= :since
     """)
     fun getVolumeSince(since: Long): Flow<Double?>
 
@@ -217,13 +217,13 @@ interface WorkoutSessionDao {
     fun getTotalVolume(): Flow<Double?>
 
     @Query("""
-        SELECT sess.createdAt as date, SUM(s.weight * s.reps) as volume
+        SELECT sess.startTime as date, SUM(s.weight * s.reps) as volume
         FROM session_sets s 
         JOIN session_exercises e ON s.sessionExerciseId = e.sessionExerciseId 
         JOIN workout_session_logs sess ON e.sessionId = sess.sessionId 
-        WHERE sess.status = 'COMPLETED' AND sess.createdAt >= :since
-        GROUP BY CAST(sess.createdAt / 86400000 AS INTEGER)
-        ORDER BY sess.createdAt ASC
+        WHERE sess.status = 'COMPLETED' AND sess.startTime >= :since
+        GROUP BY CAST(sess.startTime / 86400000 AS INTEGER)
+        ORDER BY sess.startTime ASC
     """)
     fun getDailyVolumeHistory(since: Long): Flow<List<DailyVolume>>
 
@@ -242,18 +242,18 @@ interface WorkoutSessionDao {
     fun getTrackableExercises(): Flow<List<TrackableExercise>>
 
     @Query("""
-        SELECT sess.createdAt as date, MAX(s.weight) as maxWeight, MAX(s.weight * (1 + s.reps / 30.0)) as maxE1RM
+        SELECT sess.startTime as date, MAX(s.weight) as maxWeight, MAX(s.weight * (1 + s.reps / 30.0)) as maxE1RM
         FROM session_sets s
         JOIN session_exercises e ON s.sessionExerciseId = e.sessionExerciseId
         JOIN workout_session_logs sess ON e.sessionId = sess.sessionId
         WHERE sess.status = 'COMPLETED' AND e.exerciseTemplateId = :exerciseId
         GROUP BY sess.sessionId
-        ORDER BY sess.createdAt ASC
+        ORDER BY sess.startTime ASC
     """)
     fun getExerciseStrengthHistory(exerciseId: Long): Flow<List<ExerciseStrengthHistory>>
 
     @Query("""
-        SELECT sess.createdAt as date, MAX(s.weight) as maxWeight, MAX(s.weight * (1 + s.reps / 30.0)) as maxE1RM
+        SELECT sess.startTime as date, MAX(s.weight) as maxWeight, MAX(s.weight * (1 + s.reps / 30.0)) as maxE1RM
         FROM session_sets s
         JOIN session_exercises e ON s.sessionExerciseId = e.sessionExerciseId
         JOIN workout_session_logs sess ON e.sessionId = sess.sessionId
@@ -264,14 +264,14 @@ interface WorkoutSessionDao {
             (e.libraryExerciseId = 0 AND e.exerciseTemplateId = :templateId)
           )
         GROUP BY sess.sessionId
-        ORDER BY sess.createdAt ASC
+        ORDER BY sess.startTime ASC
     """)
     fun getExerciseStrengthHistoryCanonical(libraryId: Long, templateId: Long): Flow<List<ExerciseStrengthHistory>>
 
-    @Query("SELECT * FROM session_exercises WHERE sessionId IN (SELECT sessionId FROM workout_session_logs WHERE status = 'COMPLETED' AND createdAt >= :since)")
+    @Query("SELECT * FROM session_exercises WHERE sessionId IN (SELECT sessionId FROM workout_session_logs WHERE status = 'COMPLETED' AND startTime >= :since)")
     suspend fun getCompletedExercisesSince(since: Long): List<SessionExercise>
 
-    @Query("SELECT * FROM workout_session_logs WHERE status = 'COMPLETED' AND createdAt >= :since ORDER BY createdAt DESC")
+    @Query("SELECT * FROM workout_session_logs WHERE status = 'COMPLETED' AND startTime >= :since ORDER BY startTime DESC")
     fun getCompletedSessionsSince(since: Long): Flow<List<WorkoutSession>>
 
     @Query("""
@@ -284,9 +284,9 @@ interface WorkoutSessionDao {
         FROM workout_session_logs sess
         LEFT JOIN session_exercises e ON sess.sessionId = e.sessionId
         LEFT JOIN session_sets s ON e.sessionExerciseId = s.sessionExerciseId
-        WHERE sess.status = 'COMPLETED' AND sess.createdAt >= :since
+        WHERE sess.status = 'COMPLETED' AND sess.startTime >= :since
         GROUP BY sess.sessionId
-        ORDER BY sess.createdAt DESC
+        ORDER BY sess.startTime DESC
     """)
     fun getCompletedSessionsWithStatsSince(since: Long): Flow<List<WorkoutSessionWithStats>>
 
