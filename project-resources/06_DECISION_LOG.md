@@ -1,6 +1,6 @@
 # IronLog — Decision Log
 
-**Documentation version:** v3.9  
+**Documentation version:** v4.0  
 **As of:** 2026-08-16
 
 ## Durable Decisions
@@ -108,6 +108,11 @@ Phase 5C Goals & Deterministic Progress Intelligence must use local, determinist
 No AI/LLM implementation is planned or authorized during Phase 5 or Phase 6. Phase 5 ends after 5C, and the next planned phase is Phase 6 — UI/UX Modernization & Polish. An AI phase may be considered only after Phase 6 and only after explicit Project Owner authorization.
 
 **Reason:** the Project Owner wants Phase 5 to remain focused on data, goals, and deterministic local intelligence, then wants a dedicated UI/UX modernization phase before deciding whether AI is desirable. This prevents roadmap ambiguity and prevents future agents from treating an old AI candidate as active scope.
+
+### D041 — Phase 5C is complete and Phase 6 is the next planned objective
+Phase 5C — Goals & Deterministic Progress Intelligence — is complete and verified after GitHub #44 was merged and its feature branch deleted. Phase 5 therefore ends at 5C. The next planned product phase is Phase 6 — UI/UX Modernization & Polish, but Phase 6 is not implementation-authorized until the Project Owner explicitly approves a new objective and a new active PR specification.
+
+**Reason:** the Project Owner explicitly chose to postpone AI/LLM work and complete deterministic Phase 5 before a dedicated UI/UX modernization phase. Keeping the active PR specification empty after a merge prevents stale Phase 5C authorization from accidentally carrying into the next phase.
 
 ## Decision Change Rule
 
